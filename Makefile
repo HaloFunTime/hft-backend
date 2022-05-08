@@ -18,6 +18,9 @@ ifneq ($(POSTGRES_RUNNING), true)
 	$(error PostgreSQL is not running, start it with 'make')
 endif
 
+createsuperuser: djangoruncheck
+	docker exec -it django python manage.py createsuperuser
+
 migrations: djangoruncheck
 	docker exec -it django python manage.py makemigrations
 
