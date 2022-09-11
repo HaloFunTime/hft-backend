@@ -1,0 +1,8 @@
+.env.example
+.git
+.gitignore
+.pre-commit-config.yaml
+.venv
+docker-compose.yaml
+README.md
+setup.cfg

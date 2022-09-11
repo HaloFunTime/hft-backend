@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  hftbackend:
+    container_name: hftbackend
+    build: .
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      hftdata:
+        condition: service_healthy
+  hftdata:
+    container_name: hftdata
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=local
+      - POSTGRES_PASSWORD=local
+      - POSTGRES_DB=hftbackend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --dbname=hftbackend --username=local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  postgres_data:
