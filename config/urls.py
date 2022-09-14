@@ -25,6 +25,12 @@ from apps.ping import views as ping_views
 
 router = routers.DefaultRouter()
 
+admin.site.site_header = "Staff Portal"
+admin.site.site_title = "HaloFunTime Backend"
+admin.site.site_url = "/docs"
+admin.site.index_title = "Database Tables by App"
+admin.site.empty_value_display = "NULL"
+
 urlpatterns = [
     path("", include(router.urls)),
     path("staff/", admin.site.urls),

@@ -1,0 +1,12 @@
+{% extends "registration/logged_out.html" %}
+{% load i18n %}
+
+{% block content %}
+
+<p>{% translate "Hope you had a fun time." %}</p>
+
+<img src="/static/GruntBirthday.png" width="32px" height="32px" alt="Grunt Birthday">
+
+<p><a href="{% url 'admin:index' %}">{% translate 'Login' %}</a></p>
+
+{% endblock %}
