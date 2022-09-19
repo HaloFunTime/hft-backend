@@ -22,7 +22,7 @@ jobs:
     - name: Start containers
       run: docker-compose up -d
     - name: Run tests
-      run: docker exec -it hftbackend python manage.py test apps
+      run: docker exec hftbackend python manage.py test apps
     - name: Stop containers
       if: always()
       run: docker-compose down
