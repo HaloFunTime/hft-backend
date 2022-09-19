@@ -8,7 +8,7 @@ env:
 jobs:
   test:
     name: Test hft-backend
-    uses: HaloFunTime/hft-backend/.github/workflows/ci.yml@main
+    uses: HaloFunTime/hft-backend/.github/workflows/ci.yaml@main
   deploy:
       name: Deploy hft-backend
       runs-on: ubuntu-latest

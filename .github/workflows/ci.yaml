@@ -1,8 +1,5 @@
 name: hft-backend (CI)
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
     - main
