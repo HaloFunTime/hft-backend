@@ -1,0 +1,25 @@
+name: hft-backend (CI)
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Code checkout
+      uses: actions/checkout@v3
+    - name: Set up Python 3
+      uses: actions/setup-python@v3
+    - name: Check formatting
+      uses: pre-commit/action@v3.0.0
+    - name: Start containers
+      run: sh dev-start.sh
+    - name: Run tests
+      run: sh dev-tests.sh
+    - name: Stop containers
+      if: always()
+      run: sh dev-stop.sh
