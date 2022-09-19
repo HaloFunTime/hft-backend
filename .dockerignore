@@ -3,6 +3,12 @@
 .gitignore
 .pre-commit-config.yaml
 .venv
+dev-format.sh
+dev-manage.sh
+dev-start.sh
+dev-stop.sh
+dev-tests.sh
 docker-compose.yaml
+fly.toml
 README.md
 setup.cfg

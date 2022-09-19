@@ -8,6 +8,8 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
     depends_on:
       hftdata:
         condition: service_healthy

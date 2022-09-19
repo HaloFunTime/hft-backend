@@ -1,3 +1,10 @@
-# from django.test import TestCase
+from django.test import TestCase
 
-# Create your tests here.
+
+class PingTestCase(TestCase):
+    def setUp(self):
+        print("Called setUp")
+
+    def test_ping(self):
+        """Animals that can speak are correctly identified"""
+        print("Called test_ping")
