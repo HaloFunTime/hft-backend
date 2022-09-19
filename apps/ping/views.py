@@ -28,7 +28,7 @@ class Ping(APIView):
         """
         Evaluates API health by testing a database connection.
         """
-        logger.info("Called ping function...")
+        logger.info("Called ping function")
         open_connections = connections.all()
         if not open_connections:
             logger.debug("Ping failure - database connectivity error")
@@ -46,7 +46,7 @@ class Ping(APIView):
                     data={"ping": "Failure (health check error)."}, status=500
                 )
         except OperationalError:
-            logger.exception("Ping failure - operational error")
+            logger.debug("Ping failure - operational error")
             return Response(data={"ping": "Failure (operational error)."}, status=500)
         logger.info("Successful ping!")
         return Response(
