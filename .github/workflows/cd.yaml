@@ -1,4 +1,4 @@
-name: hft-backend (CD)
+name: Continuous Deployment (CD)
 on:
   push:
     branches:
@@ -6,11 +6,12 @@ on:
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 jobs:
-  test:
+  checks:
+    name: Run CI
     uses: HaloFunTime/hft-backend/.github/workflows/ci.yaml@main
   deploy:
-      name: Deploy hft-backend
-      needs: test
+      name: Deploy Production
+      needs: checks
       runs-on: ubuntu-latest
       steps:
         - name: Code checkout
