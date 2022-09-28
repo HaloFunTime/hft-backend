@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
+    "apps.overrides",
     "apps.ping",
 ]
 MIDDLEWARE = [
@@ -105,9 +106,7 @@ LOGGING = {
 # Django Rest Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.TokenAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.overrides.models.BearerAuthentication",),
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -119,24 +118,8 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API for HaloFunTime's backend services.",
     "VERSION": "0.0.1",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PUBLIC": False,
     # OTHER SETTINGS
-}
-
-
-# Swagger settings
-SWAGGER_SETTINGS = {
-    "USE_SESSION_AUTH": False,
-    "LOGIN_URL": "rest_framework:login",
-    "LOGOUT_URL": "rest_framework:logout",
-    "VALIDATOR_URL": None,
-    "SECURITY_DEFINITIONS": {
-        "api_key": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header",
-        },
-    },
-    "REFETCH_SCHEMA_WITH_AUTH": True,
 }
 
 
