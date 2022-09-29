@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.overrides",
     "apps.ping",
+    "apps.series",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

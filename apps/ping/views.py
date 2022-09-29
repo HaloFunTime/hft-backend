@@ -7,7 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import PingResponseSerializer
+from apps.ping.serializers import PingResponseSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ class Ping(APIView):
         """
         Evaluates API availability by testing a database connection.
         """
-        logger.info("Called ping function")
         open_connections = connections.all()
         if not open_connections:
             logger.debug("Ping failure - database connectivity error")
