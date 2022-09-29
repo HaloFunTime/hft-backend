@@ -4,3 +4,7 @@ class SeriesBuildImpossibleException(Exception):
 
 class SeriesBuildTimeoutException(Exception):
     pass
+
+
+class SeriesBuildUnsupportedException(Exception):
+    pass
