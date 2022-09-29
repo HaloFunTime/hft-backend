@@ -1,48 +1,25 @@
 from django.contrib import admin
 
+from apps.overrides.admin import AutofillCreatorModelAdmin
 from apps.series.models import SeriesGametype, SeriesMap, SeriesMode, SeriesRuleset
 
 
 @admin.register(SeriesMap)
-class SeriesMapAdmin(admin.ModelAdmin):
+class SeriesMapAdmin(AutofillCreatorModelAdmin):
     list_display = ("name", "hi_asset_id", "hi_version_id", "creator", "id")
     list_filter = ("name",)
     fields = ("name", "hi_asset_id", "hi_version_id", "creator")
-
-    def add_view(self, request, form_url="", extra_context=None):
-        creator = request.GET.get("creator", None)
-        if creator is None:
-            g = request.GET.copy()
-            g.update(
-                {
-                    "creator": request.user,
-                }
-            )
-            request.GET = g
-        return super().add_view(request, form_url, extra_context)
 
 
 @admin.register(SeriesMode)
-class SeriesModeAdmin(admin.ModelAdmin):
+class SeriesModeAdmin(AutofillCreatorModelAdmin):
     list_display = ("name", "hi_asset_id", "hi_version_id", "creator", "id")
     list_filter = ("name",)
     fields = ("name", "hi_asset_id", "hi_version_id", "creator")
 
-    def add_view(self, request, form_url="", extra_context=None):
-        creator = request.GET.get("creator", None)
-        if creator is None:
-            g = request.GET.copy()
-            g.update(
-                {
-                    "creator": request.user,
-                }
-            )
-            request.GET = g
-        return super().add_view(request, form_url, extra_context)
-
 
 @admin.register(SeriesRuleset)
-class SeriesRulesetAdmin(admin.ModelAdmin):
+class SeriesRulesetAdmin(AutofillCreatorModelAdmin):
     list_display = ("name", "creator", "id")
     list_filter = ("name",)
     fields = (
@@ -58,39 +35,15 @@ class SeriesRulesetAdmin(admin.ModelAdmin):
         "creator",
     )
 
-    def add_view(self, request, form_url="", extra_context=None):
-        creator = request.GET.get("creator", None)
-        if creator is None:
-            g = request.GET.copy()
-            g.update(
-                {
-                    "creator": request.user,
-                }
-            )
-            request.GET = g
-        return super().add_view(request, form_url, extra_context)
-
 
 @admin.register(SeriesGametype)
-class SeriesGametypeAdmin(admin.ModelAdmin):
+class SeriesGametypeAdmin(AutofillCreatorModelAdmin):
     list_display = ("gametype", "creator", "id")
     list_filter = (
         "map",
         "mode",
     )
     fields = ("ruleset", "mode", "map", "creator")
-
-    def add_view(self, request, form_url="", extra_context=None):
-        creator = request.GET.get("creator", None)
-        if creator is None:
-            g = request.GET.copy()
-            g.update(
-                {
-                    "creator": request.user,
-                }
-            )
-            request.GET = g
-        return super().add_view(request, form_url, extra_context)
 
     def gametype(self, obj):
         return f"{obj.ruleset.name}: {obj.mode.name} on {obj.map.name}"

@@ -71,7 +71,7 @@ Use `dev-start.sh` and `dev-stop.sh` to start and stop the application locally. 
 
 ## Directory Structure
 
-We are utilizing a slightly non-standard structure for this Django project. Our main Django settings are contained in a "special" app called `config` that lives underneath the project root (which contains shared abstract models in `models.py`, the primary `settings.py` and `urls.py` files, and ASGI/WSGI configs).
+We are utilizing a slightly non-standard structure for this Django project. Our main Django settings are contained in a "special" app called `config` that lives underneath the project root (which contains the primary `settings.py` and `urls.py` files, as well as ASGI/WSGI configs).
 
 All other Django apps are contained in `/apps`. Deployment/release scripts are contained in `/scripts`, static files are contained in `/static`, and templates are contained in `/templates`.
 

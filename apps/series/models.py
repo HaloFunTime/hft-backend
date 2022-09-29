@@ -1,6 +1,6 @@
 from django.db import models
 
-from config.models import Base
+from apps.overrides.models import Base
 
 
 class SeriesMap(Base):
