@@ -4,7 +4,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.series.exceptions import SeriesBuildImpossibleException
+from apps.series.exceptions import (
+    SeriesBuildImpossibleException,
+    SeriesBuildTimeoutException,
+)
 from apps.series.models import SeriesRuleset
 from apps.series.serializers import (
     SeriesBo3Serializer,
@@ -16,6 +19,13 @@ from apps.series.serializers import (
 from apps.series.utils import build_best_of_dict, build_series
 
 logger = logging.getLogger(__name__)
+
+BESTOF_ERROR_CANNOT_BUILD_TOO_STRICT = (
+    "Cannot build series. Add more gametypes or loosen the ruleset restrictions."
+)
+BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE = (
+    "Cannot build series. Remove some gametypes or tighten the ruleset restrictions."
+)
 
 
 class Series(APIView):
@@ -37,7 +47,6 @@ class SeriesBo3(APIView):
     @extend_schema(
         responses={
             200: SeriesBo3Serializer,
-            400: SeriesErrorSerializer,
             404: SeriesErrorSerializer,
             500: SeriesErrorSerializer,
         }
@@ -47,9 +56,6 @@ class SeriesBo3(APIView):
         Retrieves a randomized best of 3 series for the given ruleset.
         """
         ruleset_id = kwargs.get("id", None)
-        if not ruleset_id:
-            serializer = SeriesErrorSerializer({"error": "Missing 'id' in URL"})
-            return Response(serializer.data, status=400)
         try:
             ruleset = SeriesRuleset.objects.select_related("featured_mode").get(
                 id=ruleset_id
@@ -62,15 +68,23 @@ class SeriesBo3(APIView):
         try:
             gametypes = build_series(ruleset, 3)
             serializer = SeriesBo3Serializer(build_best_of_dict(ruleset, gametypes))
-            return Response(serializer.data, status=200)
+            return Response(
+                serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+            )
         except SeriesBuildImpossibleException:
             logger.debug(
                 f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
             )
             serializer = SeriesErrorSerializer(
-                {
-                    "error": "Cannot build series. Add more gametypes or loosen the ruleset restrictions."
-                }
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_STRICT}
+            )
+            return Response(serializer.data, status=500)
+        except SeriesBuildTimeoutException:
+            logger.debug(
+                f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
+            )
+            serializer = SeriesErrorSerializer(
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE}
             )
             return Response(serializer.data, status=500)
 
@@ -104,15 +118,23 @@ class SeriesBo5(APIView):
         try:
             gametypes = build_series(ruleset, 5)
             serializer = SeriesBo5Serializer(build_best_of_dict(ruleset, gametypes))
-            return Response(serializer.data, status=200)
+            return Response(
+                serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+            )
         except SeriesBuildImpossibleException:
             logger.debug(
                 f"Series failure - Bo5 for ruleset '{ruleset.id}' cannot be built"
             )
             serializer = SeriesErrorSerializer(
-                {
-                    "error": "Cannot build series. Add more gametypes or loosen the ruleset restrictions."
-                }
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_STRICT}
+            )
+            return Response(serializer.data, status=500)
+        except SeriesBuildTimeoutException:
+            logger.debug(
+                f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
+            )
+            serializer = SeriesErrorSerializer(
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE}
             )
             return Response(serializer.data, status=500)
 
@@ -146,14 +168,22 @@ class SeriesBo7(APIView):
         try:
             gametypes = build_series(ruleset, 7)
             serializer = SeriesBo7Serializer(build_best_of_dict(ruleset, gametypes))
-            return Response(serializer.data, status=200)
+            return Response(
+                serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+            )
         except SeriesBuildImpossibleException:
             logger.debug(
                 f"Series failure - Bo7 for ruleset '{ruleset.id}' cannot be built"
             )
             serializer = SeriesErrorSerializer(
-                {
-                    "error": "Cannot build series. Add more gametypes or loosen the ruleset restrictions."
-                }
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_STRICT}
+            )
+            return Response(serializer.data, status=500)
+        except SeriesBuildTimeoutException:
+            logger.debug(
+                f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
+            )
+            serializer = SeriesErrorSerializer(
+                {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE}
             )
             return Response(serializer.data, status=500)

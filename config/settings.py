@@ -117,7 +117,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "HaloFunTime API",
     "DESCRIPTION": "API for HaloFunTime's backend services.",
-    "VERSION": "0.0.1",
+    "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SERVE_PUBLIC": False,
     # OTHER SETTINGS

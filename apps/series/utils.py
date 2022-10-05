@@ -5,6 +5,7 @@ import time
 
 from apps.series.exceptions import (
     SeriesBuildImpossibleException,
+    SeriesBuildTimeoutException,
     SeriesBuildUnsupportedException,
 )
 from apps.series.models import SeriesGametype, SeriesRuleset
@@ -19,7 +20,9 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
     start = time.perf_counter()
     # 1) Validate that x is 3, 5, or 7
     if x != 3 and x != 5 and x != 7:
-        raise SeriesBuildUnsupportedException()
+        raise SeriesBuildUnsupportedException(
+            "Only 3, 5, and 7 game series may be built"
+        )
 
     # 2) Get all gametypes related to the ruleset and shuffle them
     ruleset_gametypes = list(
@@ -29,17 +32,23 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
     )
     random.shuffle(ruleset_gametypes)
     if len(ruleset_gametypes) < x:
-        raise SeriesBuildImpossibleException()
+        raise SeriesBuildImpossibleException("Not enough gametypes to build series")
 
     # 3) Compute all possible combinations of x gametype selections
     combinations = list(itertools.combinations(ruleset_gametypes, x))
     logger.info(
-        f"Bo{x}: {len(combinations)} total series combinations for ruleset '{ruleset.id}'"
+        f"Bo{x}: {len(combinations)} potential series combination(s) for ruleset '{ruleset.id}'"
     )
 
     # 4) Filter the list down to all combinations matching the ruleset's restrictions
     valid_combinations = []
     for combination in combinations:
+        # Raise an exception if we spend more than one full second evaluating combinations
+        if time.perf_counter() - start > 1:
+            raise SeriesBuildTimeoutException(
+                "Took longer than one second to process potential series combinations"
+            )
+
         # Enforce featured mode constraints
         if ruleset.featured_mode is not None:
             # There must be exactly y occurrences of the featured mode in a best of x series
@@ -85,9 +94,9 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
                 continue
         valid_combinations.append(combination)
     if len(valid_combinations) == 0:
-        raise SeriesBuildImpossibleException()
+        raise SeriesBuildImpossibleException("No valid combinations to build series")
     logger.info(
-        f"Bo{x}: {len(valid_combinations)} valid series combinations for ruleset '{ruleset.id}'"
+        f"Bo{x}: {len(valid_combinations)} valid series combination(s) for ruleset '{ruleset.id}'"
     )
 
     # 5) Slice and dice the valid combinations by uniqueness counts to build a list of the most diverse combinations
@@ -112,9 +121,17 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
     diverse_map_combinations = set(
         valid_combinations_by_unique_map_count[unique_map_high_water_mark]
     )
+    if unique_map_high_water_mark >= 2:
+        diverse_map_combinations |= set(
+            valid_combinations_by_unique_map_count[unique_map_high_water_mark - 1]
+        )
     diverse_mode_combinations = set(
         valid_combinations_by_unique_mode_count[unique_mode_high_water_mark]
     )
+    if unique_mode_high_water_mark >= 2:
+        diverse_mode_combinations |= set(
+            valid_combinations_by_unique_map_count[unique_mode_high_water_mark - 1]
+        )
     most_diverse_combinations = list(
         diverse_map_combinations.intersection(diverse_mode_combinations)
     )
@@ -146,9 +163,14 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
                 if permutation_violates_featured_mode_pattern:
                     continue
             valid_permutations.append(permutation)
+        logger.info(
+            f"Bo{x}: {len(valid_permutations)} valid series permutation(s) for chosen combination"
+        )
         fallback_permutation = random.choice(valid_permutations)
         # 6b) Generate ideal permutations from the valid permutations
-        # NOTE: We define an "ideal" permutation as one where no map or mode is played twice consecutively
+        # NOTE: We define an "ideal" permutation as one where:
+        # - No map or mode is played twice consecutively
+        # - Repeat maps/modes are minimized
         ideal_permutations = []
         for valid_permutation in valid_permutations:
             # Evaluate the valid permutation for consecutive plays of the same map or mode
@@ -161,10 +183,47 @@ def build_series(ruleset: SeriesRuleset, x: int) -> list[SeriesGametype]:
                     has_consecutive_plays = True
                     break
                 i += 1
-            if not has_consecutive_plays:
+            # Evaluate the valid permutation for excessive repeats of the same map or non-featured mode
+            count_by_map = {}
+            count_by_mode = {}
+            for gametype in valid_permutation:
+                if str(gametype.map) not in count_by_map:
+                    count_by_map[str(gametype.map)] = 1
+                else:
+                    count_by_map[str(gametype.map)] = (
+                        count_by_map[str(gametype.map)] + 1
+                    )
+                if gametype.mode == ruleset.featured_mode:
+                    continue
+                elif str(gametype.mode) not in count_by_mode:
+                    count_by_mode[str(gametype.mode)] = 0
+                else:
+                    count_by_mode[str(gametype.mode)] = (
+                        count_by_mode[str(gametype.mode)] + 1
+                    )
+            individual_repeat_threshold = {3: 1, 5: 2, 7: 2}.get(x)
+            total_repeat_threshold = {3: 1, 5: 2, 7: 3}.get(x)
+            total_map_repeats = sum(x - 1 for x in list(count_by_map.values()))
+            total_mode_repeats = sum(x - 1 for x in list(count_by_mode.values()))
+            has_too_many_individual_repeats = (
+                max(x for x in list(count_by_map.values()))
+                > individual_repeat_threshold
+                or max(x for x in list(count_by_mode.values()))
+                > individual_repeat_threshold
+            )
+            has_too_many_total_repeats = (
+                max(total_map_repeats, total_mode_repeats) >= total_repeat_threshold
+            )
+            has_excessive_repeats = (
+                has_too_many_individual_repeats or has_too_many_total_repeats
+            )
+            if not has_consecutive_plays and not has_excessive_repeats:
                 ideal_permutations.append(valid_permutation)
         # 6c) If we have any ideal permutations, choose one and break (otherwise try again with another combination)
         if len(ideal_permutations) != 0:
+            logger.info(
+                f"Bo{x}: {len(ideal_permutations)} ideal series permutation(s) for chosen combination"
+            )
             ideal_permutation = random.choice(ideal_permutations)
             break
     chosen_permutation = (
