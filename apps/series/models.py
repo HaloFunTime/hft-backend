@@ -57,7 +57,7 @@ class SeriesRuleset(Base):
     def __str__(self):
         return self.name
 
-    id = models.CharField(max_length=255, primary_key=True, unique=True)
+    id = models.CharField(max_length=32, primary_key=True, unique=True)
     name = models.CharField(max_length=255)
     featured_mode = models.ForeignKey(
         SeriesMode,
