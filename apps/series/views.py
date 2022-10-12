@@ -131,7 +131,7 @@ class SeriesBo5(APIView):
             return Response(serializer.data, status=500)
         except SeriesBuildTimeoutException:
             logger.debug(
-                f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
+                f"Series failure - Bo5 for ruleset '{ruleset.id}' cannot be built"
             )
             serializer = SeriesErrorSerializer(
                 {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE}
@@ -181,7 +181,7 @@ class SeriesBo7(APIView):
             return Response(serializer.data, status=500)
         except SeriesBuildTimeoutException:
             logger.debug(
-                f"Series failure - Bo3 for ruleset '{ruleset.id}' cannot be built"
+                f"Series failure - Bo7 for ruleset '{ruleset.id}' cannot be built"
             )
             serializer = SeriesErrorSerializer(
                 {"error": BESTOF_ERROR_CANNOT_BUILD_TOO_LOOSE}

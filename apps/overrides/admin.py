@@ -13,3 +13,9 @@ class AutofillCreatorModelAdmin(admin.ModelAdmin):
             )
             request.GET = g
         return super().add_view(request, form_url, extra_context)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["creator"]
+        else:
+            return []
