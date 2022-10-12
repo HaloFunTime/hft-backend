@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 
 class InternChatterSerializer(serializers.Serializer):
-    chatter_message = serializers.CharField()
+    chatter = serializers.CharField()
 
 
 class InternChatterPauseSerializer(serializers.Serializer):

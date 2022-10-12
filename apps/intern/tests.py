@@ -76,9 +76,7 @@ class InternChatterTestCase(APITestCase):
             "/intern/random-chatter?channelId=471730128335142912"
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data, {"chatter_message": INTERN_CHATTER_DEFAULT_MESSAGE}
-        )
+        self.assertEqual(response.data, {"chatter": INTERN_CHATTER_DEFAULT_MESSAGE})
 
         # Forbidden channel throws error
         forbidden_channel_id = 471730128335142911
@@ -106,9 +104,7 @@ class InternChatterTestCase(APITestCase):
             "/intern/random-chatter?channelId=471730128335142912"
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data, {"chatter_message": INTERN_CHATTER_DEFAULT_MESSAGE}
-        )
+        self.assertEqual(response.data, {"chatter": INTERN_CHATTER_DEFAULT_MESSAGE})
 
         # Returned chatter matches record (if there's only one in the table)
         chatter_message_text = "This is my test chatter message."
@@ -117,4 +113,4 @@ class InternChatterTestCase(APITestCase):
             "/intern/random-chatter?channelId=471730128335142912"
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"chatter_message": chatter_message_text})
+        self.assertEqual(response.data, {"chatter": chatter_message_text})

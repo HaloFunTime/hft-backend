@@ -116,11 +116,7 @@ class RandomInternChatter(APIView):
                 {"error": INTERN_CHATTER_ERROR_UNKNOWN}
             )
             return Response(serializer.data, status=404)
-        serializer = InternChatterSerializer(
-            {
-                "chatter_message": random_chatter_message,
-            }
-        )
+        serializer = InternChatterSerializer({"chatter": random_chatter_message})
         return Response(
             serializer.data, status=200, headers={"Cache-Control": "no-cache"}
         )
