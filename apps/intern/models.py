@@ -30,8 +30,8 @@ class InternChatterForbiddenChannel(Base):
     class Meta:
         db_table = "InternChatterForbiddenChannel"
         ordering = ["-updated_at"]
-        verbose_name = "Forbidden Channel"
-        verbose_name_plural = "Forbidden Channels"
+        verbose_name = "Chatter Forbidden Channel"
+        verbose_name_plural = "Chatter Forbidden Channels"
 
     discord_channel_id = models.CharField(
         max_length=32, unique=True, verbose_name="Discord Channel ID"
@@ -48,8 +48,8 @@ class InternChatterPause(Base):
     class Meta:
         db_table = "InternChatterPause"
         ordering = ["-created_at"]
-        verbose_name = "Pause"
-        verbose_name_plural = "Pauses"
+        verbose_name = "Chatter Pause"
+        verbose_name_plural = "Chatter Pauses"
 
     discord_user_id = models.CharField(max_length=32, verbose_name="Discord User ID")
     discord_user_tag = models.CharField(
