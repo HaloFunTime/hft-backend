@@ -24,6 +24,6 @@ class InternChatterForbiddenChannelAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(InternChatterPause)
 class InternChatterPauseAdmin(AutofillCreatorModelAdmin):
-    list_display = ("discord_user_id", "discord_user_tag", "creator", "id")
+    list_display = ("created_at", "discord_user_id", "discord_user_tag", "creator")
     list_filter = ("creator",)
     fields = ("discord_user_id", "discord_user_tag", "creator")
