@@ -12,6 +12,9 @@ from apps.intern.models import (
 )
 from apps.intern.serializers import (
     InternChatterErrorSerializer,
+    InternChatterPauseErrorSerializer,
+    InternChatterPauseRequestSerializer,
+    InternChatterPauseResponseSerializer,
     InternChatterSerializer,
 )
 
@@ -29,6 +32,13 @@ INTERN_CHATTER_ERROR_MISSING_CHANNEL_ID = (
 )
 INTERN_CHATTER_ERROR_PAUSED = "Intern chatter is currently paused."
 INTERN_CHATTER_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_CHATTER_PAUSE_ERROR_MISSING_ID = (
+    "A valid discordUserId (numeric string) must be provided."
+)
+INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG = (
+    "A valid discordUserTag (string with one '#' character) must be provided."
+)
+INTERN_CHATTER_PAUSE_ERROR_UNKNOWN = "An unknown error occurred."
 
 
 class RandomInternChatter(APIView):
@@ -50,7 +60,7 @@ class RandomInternChatter(APIView):
             500: InternChatterErrorSerializer,
         },
     )
-    def get(self, request, **kwargs):
+    def get(self, request, *args, **kwargs):
         """
         Retrieves a random InternChatter if the destination channel isn't forbidden and Intern chatter isn't paused.
         """
@@ -122,6 +132,45 @@ class RandomInternChatter(APIView):
         )
 
 
-# TODO: Accept POSTs that create InternChatterPause records
 class PauseInternChatter(APIView):
-    pass
+    @extend_schema(
+        request=InternChatterPauseRequestSerializer,
+        responses={
+            200: InternChatterPauseResponseSerializer,
+            400: InternChatterPauseErrorSerializer,
+            500: InternChatterPauseErrorSerializer,
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        Creates an InternChatterPause record.
+        """
+        discord_user_id = request.data.get("discordUserId")
+        if not discord_user_id or not discord_user_id.isnumeric():
+            serializer = InternChatterPauseErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_ID}
+            )
+            return Response(serializer.data, status=400)
+        discord_user_tag = request.data.get("discordUserTag")
+        if not discord_user_tag or "#" not in discord_user_tag:
+            serializer = InternChatterPauseErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+            )
+            return Response(serializer.data, status=400)
+        try:
+            InternChatterPause.objects.create(
+                creator=request.user,
+                discord_user_id=discord_user_id,
+                discord_user_tag=discord_user_tag,
+            )
+            serializer = InternChatterPauseResponseSerializer({"success": True})
+            return Response(
+                data=serializer.data,
+                status=200,
+            )
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternChatterPauseErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)

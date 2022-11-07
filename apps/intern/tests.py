@@ -16,6 +16,8 @@ from apps.intern.views import (
     INTERN_CHATTER_ERROR_INVALID_CHANNEL_ID,
     INTERN_CHATTER_ERROR_MISSING_CHANNEL_ID,
     INTERN_CHATTER_ERROR_PAUSED,
+    INTERN_CHATTER_PAUSE_ERROR_MISSING_ID,
+    INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG,
 )
 
 
@@ -114,3 +116,50 @@ class InternChatterTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"chatter": chatter_message_text})
+
+    def test_intern_chatter_pause(self):
+        # Missing 'discordUserId' throws error
+        response = self.client.post("/intern/pause-chatter", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_ID}
+        )
+
+        # Non-numeric 'discordUserId' throws error
+        response = self.client.post(
+            "/intern/pause-chatter", {"discordUserId": "abc"}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_ID}
+        )
+
+        # Missing 'discordUserTag' throws error
+        response = self.client.post(
+            "/intern/pause-chatter", {"discordUserId": "1234"}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+        )
+
+        # Invalid 'discordUserTag' throws error
+        response = self.client.post(
+            "/intern/pause-chatter",
+            {"discordUserId": "1234", "discordUserTag": "foo"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+        )
+
+        # Valid 'discordUserId' and 'discordUserTag' results in record creation
+        response = self.client.post(
+            "/intern/pause-chatter",
+            {"discordUserId": "1234", "discordUserTag": "HFTIntern#1234"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"success": True})
+        self.assertEqual(InternChatterPause.objects.count(), 1)
