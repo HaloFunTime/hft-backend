@@ -6,16 +6,16 @@ from apps.series.models import SeriesGametype, SeriesMap, SeriesMode, SeriesRule
 
 @admin.register(SeriesMap)
 class SeriesMapAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "hi_asset_id", "hi_version_id", "creator", "id")
+    list_display = ("name", "hi_asset_id", "creator", "id")
     list_filter = ("name",)
-    fields = ("name", "hi_asset_id", "hi_version_id", "creator")
+    fields = ("name", "hi_asset_id", "creator")
 
 
 @admin.register(SeriesMode)
 class SeriesModeAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "hi_asset_id", "hi_version_id", "creator", "id")
+    list_display = ("name", "hi_asset_id", "creator", "id")
     list_filter = ("name",)
-    fields = ("name", "hi_asset_id", "hi_version_id", "creator")
+    fields = ("name", "hi_asset_id", "creator")
 
 
 @admin.register(SeriesRuleset)
