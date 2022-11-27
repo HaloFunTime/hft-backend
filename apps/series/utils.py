@@ -243,13 +243,11 @@ def build_best_of_dict(
     }
     for i in range(1, len(chosen_gametypes) + 1):
         gametype = chosen_gametypes[i - 1]
-        best_of_dict[f"game_{i}"] = {
+        best_of_dict[f"game{i}"] = {
             "map": gametype.map.name,
-            "map_file_id": gametype.map.hi_asset_id
-            if gametype.map.hi_asset_id
-            else None,
+            "mapFileId": gametype.map.hi_asset_id if gametype.map.hi_asset_id else None,
             "mode": gametype.mode.name,
-            "mode_file_id": gametype.mode.hi_asset_id
+            "modeFileId": gametype.mode.hi_asset_id
             if gametype.mode.hi_asset_id
             else None,
         }

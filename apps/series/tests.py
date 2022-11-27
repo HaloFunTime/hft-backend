@@ -104,33 +104,33 @@ class SeriesTestCase(APITestCase):
             {
                 "title": ruleset.name,
                 "subtitle": "Best of 3",
-                "game_1": {
+                "game1": {
                     "map": gametypes[0].map.name,
-                    "map_file_id": gametypes[0].map.hi_asset_id
+                    "mapFileId": gametypes[0].map.hi_asset_id
                     if gametypes[0].map.hi_asset_id
                     else None,
                     "mode": gametypes[0].mode.name,
-                    "mode_file_id": gametypes[0].mode.hi_asset_id
+                    "modeFileId": gametypes[0].mode.hi_asset_id
                     if gametypes[0].mode.hi_asset_id
                     else None,
                 },
-                "game_2": {
+                "game2": {
                     "map": gametypes[1].map.name,
-                    "map_file_id": gametypes[1].map.hi_asset_id
+                    "mapFileId": gametypes[1].map.hi_asset_id
                     if gametypes[1].map.hi_asset_id
                     else None,
                     "mode": gametypes[1].mode.name,
-                    "mode_file_id": gametypes[1].mode.hi_asset_id
+                    "modeFileId": gametypes[1].mode.hi_asset_id
                     if gametypes[1].mode.hi_asset_id
                     else None,
                 },
-                "game_3": {
+                "game3": {
                     "map": gametypes[2].map.name,
-                    "map_file_id": gametypes[2].map.hi_asset_id
+                    "mapFileId": gametypes[2].map.hi_asset_id
                     if gametypes[2].map.hi_asset_id
                     else None,
                     "mode": gametypes[2].mode.name,
-                    "mode_file_id": gametypes[2].mode.hi_asset_id
+                    "modeFileId": gametypes[2].mode.hi_asset_id
                     if gametypes[2].mode.hi_asset_id
                     else None,
                 },
@@ -154,53 +154,53 @@ class SeriesTestCase(APITestCase):
             {
                 "title": ruleset.name,
                 "subtitle": "Best of 5",
-                "game_1": {
+                "game1": {
                     "map": gametypes[0].map.name,
-                    "map_file_id": gametypes[0].map.hi_asset_id
+                    "mapFileId": gametypes[0].map.hi_asset_id
                     if gametypes[0].map.hi_asset_id
                     else None,
                     "mode": gametypes[0].mode.name,
-                    "mode_file_id": gametypes[0].mode.hi_asset_id
+                    "modeFileId": gametypes[0].mode.hi_asset_id
                     if gametypes[0].mode.hi_asset_id
                     else None,
                 },
-                "game_2": {
+                "game2": {
                     "map": gametypes[1].map.name,
-                    "map_file_id": gametypes[1].map.hi_asset_id
+                    "mapFileId": gametypes[1].map.hi_asset_id
                     if gametypes[1].map.hi_asset_id
                     else None,
                     "mode": gametypes[1].mode.name,
-                    "mode_file_id": gametypes[1].mode.hi_asset_id
+                    "modeFileId": gametypes[1].mode.hi_asset_id
                     if gametypes[1].mode.hi_asset_id
                     else None,
                 },
-                "game_3": {
+                "game3": {
                     "map": gametypes[2].map.name,
-                    "map_file_id": gametypes[2].map.hi_asset_id
+                    "mapFileId": gametypes[2].map.hi_asset_id
                     if gametypes[2].map.hi_asset_id
                     else None,
                     "mode": gametypes[2].mode.name,
-                    "mode_file_id": gametypes[2].mode.hi_asset_id
+                    "modeFileId": gametypes[2].mode.hi_asset_id
                     if gametypes[2].mode.hi_asset_id
                     else None,
                 },
-                "game_4": {
+                "game4": {
                     "map": gametypes[3].map.name,
-                    "map_file_id": gametypes[3].map.hi_asset_id
+                    "mapFileId": gametypes[3].map.hi_asset_id
                     if gametypes[3].map.hi_asset_id
                     else None,
                     "mode": gametypes[3].mode.name,
-                    "mode_file_id": gametypes[3].mode.hi_asset_id
+                    "modeFileId": gametypes[3].mode.hi_asset_id
                     if gametypes[3].mode.hi_asset_id
                     else None,
                 },
-                "game_5": {
+                "game5": {
                     "map": gametypes[4].map.name,
-                    "map_file_id": gametypes[4].map.hi_asset_id
+                    "mapFileId": gametypes[4].map.hi_asset_id
                     if gametypes[4].map.hi_asset_id
                     else None,
                     "mode": gametypes[4].mode.name,
-                    "mode_file_id": gametypes[4].mode.hi_asset_id
+                    "modeFileId": gametypes[4].mode.hi_asset_id
                     if gametypes[4].mode.hi_asset_id
                     else None,
                 },
@@ -224,73 +224,73 @@ class SeriesTestCase(APITestCase):
             {
                 "title": ruleset.name,
                 "subtitle": "Best of 7",
-                "game_1": {
+                "game1": {
                     "map": gametypes[0].map.name,
-                    "map_file_id": gametypes[0].map.hi_asset_id
+                    "mapFileId": gametypes[0].map.hi_asset_id
                     if gametypes[0].map.hi_asset_id
                     else None,
                     "mode": gametypes[0].mode.name,
-                    "mode_file_id": gametypes[0].mode.hi_asset_id
+                    "modeFileId": gametypes[0].mode.hi_asset_id
                     if gametypes[0].mode.hi_asset_id
                     else None,
                 },
-                "game_2": {
+                "game2": {
                     "map": gametypes[1].map.name,
-                    "map_file_id": gametypes[1].map.hi_asset_id
+                    "mapFileId": gametypes[1].map.hi_asset_id
                     if gametypes[1].map.hi_asset_id
                     else None,
                     "mode": gametypes[1].mode.name,
-                    "mode_file_id": gametypes[1].mode.hi_asset_id
+                    "modeFileId": gametypes[1].mode.hi_asset_id
                     if gametypes[1].mode.hi_asset_id
                     else None,
                 },
-                "game_3": {
+                "game3": {
                     "map": gametypes[2].map.name,
-                    "map_file_id": gametypes[2].map.hi_asset_id
+                    "mapFileId": gametypes[2].map.hi_asset_id
                     if gametypes[2].map.hi_asset_id
                     else None,
                     "mode": gametypes[2].mode.name,
-                    "mode_file_id": gametypes[2].mode.hi_asset_id
+                    "modeFileId": gametypes[2].mode.hi_asset_id
                     if gametypes[2].mode.hi_asset_id
                     else None,
                 },
-                "game_4": {
+                "game4": {
                     "map": gametypes[3].map.name,
-                    "map_file_id": gametypes[3].map.hi_asset_id
+                    "mapFileId": gametypes[3].map.hi_asset_id
                     if gametypes[3].map.hi_asset_id
                     else None,
                     "mode": gametypes[3].mode.name,
-                    "mode_file_id": gametypes[3].mode.hi_asset_id
+                    "modeFileId": gametypes[3].mode.hi_asset_id
                     if gametypes[3].mode.hi_asset_id
                     else None,
                 },
-                "game_5": {
+                "game5": {
                     "map": gametypes[4].map.name,
-                    "map_file_id": gametypes[4].map.hi_asset_id
+                    "mapFileId": gametypes[4].map.hi_asset_id
                     if gametypes[4].map.hi_asset_id
                     else None,
                     "mode": gametypes[4].mode.name,
-                    "mode_file_id": gametypes[4].mode.hi_asset_id
+                    "modeFileId": gametypes[4].mode.hi_asset_id
                     if gametypes[4].mode.hi_asset_id
                     else None,
                 },
-                "game_6": {
+                "game6": {
                     "map": gametypes[5].map.name,
-                    "map_file_id": gametypes[5].map.hi_asset_id
+                    "mapFileId": gametypes[5].map.hi_asset_id
                     if gametypes[5].map.hi_asset_id
                     else None,
                     "mode": gametypes[5].mode.name,
-                    "mode_file_id": gametypes[5].mode.hi_asset_id
+                    "modeFileId": gametypes[5].mode.hi_asset_id
                     if gametypes[5].mode.hi_asset_id
                     else None,
                 },
-                "game_7": {
+                "game7": {
                     "map": gametypes[6].map.name,
-                    "map_file_id": gametypes[6].map.hi_asset_id
+                    "mapFileId": gametypes[6].map.hi_asset_id
                     if gametypes[6].map.hi_asset_id
                     else None,
                     "mode": gametypes[6].mode.name,
-                    "mode_file_id": gametypes[6].mode.hi_asset_id
+                    "modeFileId": gametypes[6].mode.hi_asset_id
                     if gametypes[6].mode.hi_asset_id
                     else None,
                 },
@@ -687,22 +687,22 @@ class SeriesUtilsTestCase(TestCase):
             test_dict_1.get("subtitle"), f"Best of {len(chosen_gametypes)}"
         )
         self.assertEqual(
-            test_dict_1.get("game_1").get("map"), chosen_gametypes[0].map.name
+            test_dict_1.get("game1").get("map"), chosen_gametypes[0].map.name
         )
         self.assertEqual(
-            test_dict_1.get("game_1").get("mode"), chosen_gametypes[0].mode.name
+            test_dict_1.get("game1").get("mode"), chosen_gametypes[0].mode.name
         )
         self.assertEqual(
-            test_dict_1.get("game_2").get("map"), chosen_gametypes[1].map.name
+            test_dict_1.get("game2").get("map"), chosen_gametypes[1].map.name
         )
         self.assertEqual(
-            test_dict_1.get("game_2").get("mode"), chosen_gametypes[1].mode.name
+            test_dict_1.get("game2").get("mode"), chosen_gametypes[1].mode.name
         )
         self.assertEqual(
-            test_dict_1.get("game_3").get("map"), chosen_gametypes[2].map.name
+            test_dict_1.get("game3").get("map"), chosen_gametypes[2].map.name
         )
         self.assertEqual(
-            test_dict_1.get("game_3").get("mode"), chosen_gametypes[2].mode.name
+            test_dict_1.get("game3").get("mode"), chosen_gametypes[2].mode.name
         )
 
         # Works for Bo5
@@ -713,34 +713,34 @@ class SeriesUtilsTestCase(TestCase):
             test_dict_2.get("subtitle"), f"Best of {len(chosen_gametypes)}"
         )
         self.assertEqual(
-            test_dict_2.get("game_1").get("map"), chosen_gametypes[0].map.name
+            test_dict_2.get("game1").get("map"), chosen_gametypes[0].map.name
         )
         self.assertEqual(
-            test_dict_2.get("game_1").get("mode"), chosen_gametypes[0].mode.name
+            test_dict_2.get("game1").get("mode"), chosen_gametypes[0].mode.name
         )
         self.assertEqual(
-            test_dict_2.get("game_2").get("map"), chosen_gametypes[1].map.name
+            test_dict_2.get("game2").get("map"), chosen_gametypes[1].map.name
         )
         self.assertEqual(
-            test_dict_2.get("game_2").get("mode"), chosen_gametypes[1].mode.name
+            test_dict_2.get("game2").get("mode"), chosen_gametypes[1].mode.name
         )
         self.assertEqual(
-            test_dict_2.get("game_3").get("map"), chosen_gametypes[2].map.name
+            test_dict_2.get("game3").get("map"), chosen_gametypes[2].map.name
         )
         self.assertEqual(
-            test_dict_2.get("game_3").get("mode"), chosen_gametypes[2].mode.name
+            test_dict_2.get("game3").get("mode"), chosen_gametypes[2].mode.name
         )
         self.assertEqual(
-            test_dict_2.get("game_4").get("map"), chosen_gametypes[3].map.name
+            test_dict_2.get("game4").get("map"), chosen_gametypes[3].map.name
         )
         self.assertEqual(
-            test_dict_2.get("game_4").get("mode"), chosen_gametypes[3].mode.name
+            test_dict_2.get("game4").get("mode"), chosen_gametypes[3].mode.name
         )
         self.assertEqual(
-            test_dict_2.get("game_5").get("map"), chosen_gametypes[4].map.name
+            test_dict_2.get("game5").get("map"), chosen_gametypes[4].map.name
         )
         self.assertEqual(
-            test_dict_2.get("game_5").get("mode"), chosen_gametypes[4].mode.name
+            test_dict_2.get("game5").get("mode"), chosen_gametypes[4].mode.name
         )
 
         # Works for Bo7
@@ -751,44 +751,44 @@ class SeriesUtilsTestCase(TestCase):
             test_dict_3.get("subtitle"), f"Best of {len(chosen_gametypes)}"
         )
         self.assertEqual(
-            test_dict_3.get("game_1").get("map"), chosen_gametypes[0].map.name
+            test_dict_3.get("game1").get("map"), chosen_gametypes[0].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_1").get("mode"), chosen_gametypes[0].mode.name
+            test_dict_3.get("game1").get("mode"), chosen_gametypes[0].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_2").get("map"), chosen_gametypes[1].map.name
+            test_dict_3.get("game2").get("map"), chosen_gametypes[1].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_2").get("mode"), chosen_gametypes[1].mode.name
+            test_dict_3.get("game2").get("mode"), chosen_gametypes[1].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_3").get("map"), chosen_gametypes[2].map.name
+            test_dict_3.get("game3").get("map"), chosen_gametypes[2].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_3").get("mode"), chosen_gametypes[2].mode.name
+            test_dict_3.get("game3").get("mode"), chosen_gametypes[2].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_4").get("map"), chosen_gametypes[3].map.name
+            test_dict_3.get("game4").get("map"), chosen_gametypes[3].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_4").get("mode"), chosen_gametypes[3].mode.name
+            test_dict_3.get("game4").get("mode"), chosen_gametypes[3].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_5").get("map"), chosen_gametypes[4].map.name
+            test_dict_3.get("game5").get("map"), chosen_gametypes[4].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_5").get("mode"), chosen_gametypes[4].mode.name
+            test_dict_3.get("game5").get("mode"), chosen_gametypes[4].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_6").get("map"), chosen_gametypes[5].map.name
+            test_dict_3.get("game6").get("map"), chosen_gametypes[5].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_6").get("mode"), chosen_gametypes[5].mode.name
+            test_dict_3.get("game6").get("mode"), chosen_gametypes[5].mode.name
         )
         self.assertEqual(
-            test_dict_3.get("game_7").get("map"), chosen_gametypes[6].map.name
+            test_dict_3.get("game7").get("map"), chosen_gametypes[6].map.name
         )
         self.assertEqual(
-            test_dict_3.get("game_7").get("mode"), chosen_gametypes[6].mode.name
+            test_dict_3.get("game7").get("mode"), chosen_gametypes[6].mode.name
         )

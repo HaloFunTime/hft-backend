@@ -11,27 +11,27 @@ class SeriesRulesetSerializer(serializers.ModelSerializer):
 
 class SeriesGameSerializer(serializers.Serializer):
     map = serializers.CharField()
-    map_file_id = serializers.CharField()
+    mapFileId = serializers.CharField()
     mode = serializers.CharField()
-    mode_file_id = serializers.CharField()
+    modeFileId = serializers.CharField()
 
 
 class SeriesBo3Serializer(serializers.Serializer):
     title = serializers.CharField()
     subtitle = serializers.CharField()
-    game_1 = SeriesGameSerializer()
-    game_2 = SeriesGameSerializer()
-    game_3 = SeriesGameSerializer()
+    game1 = SeriesGameSerializer()
+    game2 = SeriesGameSerializer()
+    game3 = SeriesGameSerializer()
 
 
 class SeriesBo5Serializer(SeriesBo3Serializer):
-    game_4 = SeriesGameSerializer()
-    game_5 = SeriesGameSerializer()
+    game4 = SeriesGameSerializer()
+    game5 = SeriesGameSerializer()
 
 
 class SeriesBo7Serializer(SeriesBo5Serializer):
-    game_6 = SeriesGameSerializer()
-    game_7 = SeriesGameSerializer()
+    game6 = SeriesGameSerializer()
+    game7 = SeriesGameSerializer()
 
 
 class SeriesErrorSerializer(serializers.Serializer):
