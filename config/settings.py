@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.overrides",
     "apps.ping",
     "apps.series",
+    "apps.xbox_live",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

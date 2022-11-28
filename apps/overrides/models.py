@@ -5,13 +5,19 @@ from django.db import models
 from rest_framework.authentication import TokenAuthentication
 
 
-class Base(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class BaseWithoutPrimaryKey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name="+"
     )
+
+    class Meta:
+        abstract = True
+
+
+class Base(BaseWithoutPrimaryKey):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     class Meta:
         abstract = True
