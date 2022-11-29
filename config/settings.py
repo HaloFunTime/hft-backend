@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
+    "apps.discord",
     "apps.intern",
     "apps.overrides",
     "apps.ping",

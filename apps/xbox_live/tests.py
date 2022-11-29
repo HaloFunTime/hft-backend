@@ -13,13 +13,14 @@ class XboxLiveAccountTestCase(TestCase):
         )
 
     def test_xbox_live_account_save(self):
-        # Creating a gamertag should be successful
+        # Creating an account should be successful
         account = XboxLiveAccount(creator=self.user, gamertag="test")
         account.save()
         self.assertIsNotNone(account.id)
         self.assertEqual(account.gamertag, "test")
 
-        # Duplicate gamertag should fail to save
+        # TODO: Update this part to verify xuid primary key collision is not allowed
+        # Duplicate account should fail to save
         account2 = XboxLiveAccount(creator=self.user, gamertag="test")
         self.assertRaisesMessage(
             IntegrityError,
