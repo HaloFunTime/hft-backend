@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.discord",
     "apps.intern",
+    "apps.link",
     "apps.overrides",
     "apps.ping",
     "apps.series",

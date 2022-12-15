@@ -1,6 +1,6 @@
 from django.db import models
 
-from apps.overrides.models import Base
+from apps.overrides.models import Base, BaseWithoutPrimaryKey
 
 
 class SeriesMap(Base):
@@ -45,7 +45,7 @@ class SeriesMode(Base):
         return self.name
 
 
-class SeriesRuleset(Base):
+class SeriesRuleset(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "SeriesRuleset"
         ordering = [

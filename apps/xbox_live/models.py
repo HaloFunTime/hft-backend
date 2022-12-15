@@ -13,9 +13,8 @@ class XboxLiveAccount(Base):
         verbose_name_plural = "Accounts"
 
     gamertag = models.CharField(max_length=15, unique=True)
-    # TODO: Create the `xuid` field once we have a way of computing it from the gamertag string, then remove
-    # the uniqueness constraint from `gamertag` and switch the class to extend BaseWithoutPrimaryKey. A custom
-    # migration to hydrate `xuid` will be necessary.
+    # TODO: Create the `xuid` field once we have a way of computing it from the gamertag string, then switch the class
+    # to extend BaseWithoutPrimaryKey. A custom migration to hydrate `xuid` will be necessary.
     # xuid = models.CharField(primary_key=True, max_length=20, verbose_name="Xbox Live ID")
 
     def __str__(self):
