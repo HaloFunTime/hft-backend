@@ -9,6 +9,7 @@ from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
     InternChatterPause,
+    InternHelpfulHint,
 )
 from apps.intern.serializers import (
     InternChatterErrorSerializer,
@@ -16,6 +17,8 @@ from apps.intern.serializers import (
     InternChatterPauseRequestSerializer,
     InternChatterPauseResponseSerializer,
     InternChatterSerializer,
+    InternHelpfulHintErrorSerializer,
+    InternHelpfulHintSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +42,10 @@ INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG = (
     "A valid discordUserTag (string with one '#' character) must be provided."
 )
 INTERN_CHATTER_PAUSE_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_HELPFUL_HINT_DEFAULT_MESSAGE = (
+    "I do my best to help out by providing helpful hints!"
+)
+INTERN_HELPFUL_HINT_ERROR_UNKNOWN = "An unknown error occurred."
 
 
 class RandomInternChatter(APIView):
@@ -174,3 +181,34 @@ class PauseInternChatter(APIView):
                 {"error": INTERN_CHATTER_PAUSE_ERROR_UNKNOWN}
             )
             return Response(serializer.data, status=500)
+
+
+class RandomInternHelpfulHint(APIView):
+    @extend_schema(
+        responses={
+            200: InternHelpfulHintSerializer,
+            400: InternHelpfulHintErrorSerializer,
+            403: InternHelpfulHintErrorSerializer,
+            500: InternHelpfulHintErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternHelpfulHint.
+        """
+        # Get a random helpful hint and return it
+        random_helpful_hint = INTERN_HELPFUL_HINT_DEFAULT_MESSAGE
+        try:
+            random_hints = InternHelpfulHint.objects.order_by("?")
+            if random_hints.count() > 0:
+                random_helpful_hint = random_hints.first().message_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternHelpfulHintErrorSerializer(
+                {"error": INTERN_HELPFUL_HINT_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=404)
+        serializer = InternHelpfulHintSerializer({"hint": random_helpful_hint})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )

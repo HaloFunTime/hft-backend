@@ -58,3 +58,26 @@ class InternChatterPause(Base):
 
     def __str__(self):
         return str(self.created_at)
+
+
+class InternHelpfulHint(Base):
+    class Meta:
+        db_table = "InternHelpfulHint"
+        ordering = ["-updated_at"]
+        verbose_name = "Helpful Hint"
+        verbose_name_plural = "Helpful Hints"
+
+    message_text = models.TextField(
+        max_length=2000, blank=True, verbose_name="Message Text"
+    )
+
+    @property
+    def short_message_text(self):
+        return (
+            (self.message_text[:50] + "...")
+            if len(self.message_text) > 50
+            else self.message_text
+        )
+
+    def __str__(self):
+        return self.short_message_text

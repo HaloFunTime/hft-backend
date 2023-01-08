@@ -20,3 +20,11 @@ class InternChatterPauseRequestSerializer(serializers.Serializer):
 
 class InternChatterPauseResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
+
+
+class InternHelpfulHintSerializer(serializers.Serializer):
+    hint = serializers.CharField()
+
+
+class InternHelpfulHintErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()

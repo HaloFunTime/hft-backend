@@ -4,6 +4,7 @@ from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
     InternChatterPause,
+    InternHelpfulHint,
 )
 from apps.overrides.admin import AutofillCreatorModelAdmin
 
@@ -27,3 +28,10 @@ class InternChatterPauseAdmin(AutofillCreatorModelAdmin):
     list_display = ("created_at", "discord_user_id", "discord_user_tag", "creator")
     list_filter = ("creator",)
     fields = ("discord_user_id", "discord_user_tag", "creator")
+
+
+@admin.register(InternHelpfulHint)
+class InternHelpfulHintAdmin(AutofillCreatorModelAdmin):
+    list_display = ("short_message_text", "creator", "id")
+    list_filter = ("creator",)
+    fields = ("message_text", "creator")

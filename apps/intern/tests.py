@@ -9,6 +9,7 @@ from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
     InternChatterPause,
+    InternHelpfulHint,
 )
 from apps.intern.views import (
     INTERN_CHATTER_DEFAULT_MESSAGE,
@@ -18,6 +19,7 @@ from apps.intern.views import (
     INTERN_CHATTER_ERROR_PAUSED,
     INTERN_CHATTER_PAUSE_ERROR_MISSING_ID,
     INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG,
+    INTERN_HELPFUL_HINT_DEFAULT_MESSAGE,
 )
 
 
@@ -47,6 +49,13 @@ def chatter_pause_factory(
         discord_user_id=abs(uuid.uuid4().int) % 2147483647
         if discord_user_id is None
         else discord_user_id,
+    )
+
+
+def helpful_hint_factory(creator: User, message_text: str = None) -> InternHelpfulHint:
+    return InternHelpfulHint.objects.create(
+        creator=creator,
+        message_text=uuid.uuid4().hex if message_text is None else message_text,
     )
 
 
@@ -163,3 +172,25 @@ class InternChatterTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"success": True})
         self.assertEqual(InternChatterPause.objects.count(), 1)
+
+
+class InternHelpfulHintTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_helpful_hint(self):
+        # Empty InternHelpfulHint table returns default hint message
+        response = self.client.get("/intern/random-helpful-hint")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"hint": INTERN_HELPFUL_HINT_DEFAULT_MESSAGE})
+
+        # Returned hint matches record (if there's only one in the table)
+        hint_message_text = "This is my test hint message."
+        helpful_hint_factory(self.user, hint_message_text)
+        response = self.client.get("/intern/random-helpful-hint")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"hint": hint_message_text})

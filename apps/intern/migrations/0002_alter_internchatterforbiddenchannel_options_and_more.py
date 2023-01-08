@@ -6,16 +6,24 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('intern', '0001_initial'),
+        ("intern", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='internchatterforbiddenchannel',
-            options={'ordering': ['-updated_at'], 'verbose_name': 'Chatter Forbidden Channel', 'verbose_name_plural': 'Chatter Forbidden Channels'},
+            name="internchatterforbiddenchannel",
+            options={
+                "ordering": ["-updated_at"],
+                "verbose_name": "Chatter Forbidden Channel",
+                "verbose_name_plural": "Chatter Forbidden Channels",
+            },
         ),
         migrations.AlterModelOptions(
-            name='internchatterpause',
-            options={'ordering': ['-created_at'], 'verbose_name': 'Chatter Pause', 'verbose_name_plural': 'Chatter Pauses'},
+            name="internchatterpause",
+            options={
+                "ordering": ["-created_at"],
+                "verbose_name": "Chatter Pause",
+                "verbose_name_plural": "Chatter Pauses",
+            },
         ),
     ]
