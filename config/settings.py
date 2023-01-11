@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "apps.link",
     "apps.overrides",
     "apps.ping",
+    "apps.reputation",
     "apps.series",
     "apps.xbox_live",
 ]
