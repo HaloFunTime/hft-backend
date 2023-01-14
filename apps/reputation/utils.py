@@ -12,24 +12,23 @@ def get_current_time() -> datetime.datetime:
     return datetime.datetime.now(pytz.timezone("America/Denver"))
 
 
-def get_current_week_start_time() -> datetime.datetime:
-    # Return 11AM Denver time on the most recent Tuesday
-    now = get_current_time()
-    last_tuesday = None
-    if now.weekday() == TUESDAY:
-        if now.hour >= 11:
+def get_week_start_time(timestamp: datetime.datetime) -> datetime.datetime:
+    # Return the Tuesday at 11AM Denver time nearest to the timestamp and before it
+    prior_tuesday = None
+    if timestamp.weekday() == TUESDAY:
+        if timestamp.hour >= 11:
             # After cutoff time, today is the most recent Tuesday
-            last_tuesday = now.date()
+            prior_tuesday = timestamp.date()
         else:
             # Before cutoff time, seven days ago is the most recent Tuesday
-            last_tuesday = now.date() - datetime.timedelta(days=7)
+            prior_tuesday = timestamp.date() - datetime.timedelta(days=7)
     else:
-        offset = (now.weekday() - TUESDAY) % 7
-        last_tuesday = now - datetime.timedelta(days=offset)
+        offset = (timestamp.weekday() - TUESDAY) % 7
+        prior_tuesday = timestamp - datetime.timedelta(days=offset)
     return datetime.datetime(
-        last_tuesday.year,
-        last_tuesday.month,
-        last_tuesday.day,
+        prior_tuesday.year,
+        prior_tuesday.month,
+        prior_tuesday.day,
         11,
         0,
         0,
@@ -38,14 +37,27 @@ def get_current_week_start_time() -> datetime.datetime:
     )
 
 
-def can_giver_send_rep(giver: DiscordAccount) -> bool:
-    # Users are only allowed to give out reputation 3 times per week
+def get_current_week_start_time() -> datetime.datetime:
+    # Return 11AM Denver time on the most recent Tuesday
+    return get_week_start_time(get_current_time())
+
+
+def get_time_until_reset() -> datetime.timedelta:
+    # Add a week to the current time, then calculate the week start for the week that lands in
+    current_time = get_current_time()
+    next_reset = get_week_start_time(current_time + datetime.timedelta(weeks=1))
+    return next_reset - current_time
+
+
+def count_plus_rep_given_in_current_week(giver: DiscordAccount) -> int:
     start = get_current_week_start_time()
     end = start + datetime.timedelta(days=7)
-    plus_rep_given_in_current_week = PlusRep.objects.filter(
-        giver=giver, created_at__range=(start, end)
-    ).count()
-    rep_given_in_current_week = plus_rep_given_in_current_week
+    return PlusRep.objects.filter(giver=giver, created_at__range=(start, end)).count()
+
+
+def can_giver_send_rep(giver: DiscordAccount) -> bool:
+    # Users are only allowed to give out reputation 3 times per week
+    rep_given_in_current_week = count_plus_rep_given_in_current_week(giver)
     return rep_given_in_current_week < 3
 
 
@@ -76,3 +88,12 @@ def create_new_plus_rep(
             creator=user,
         )
     return None
+
+
+def check_past_year_rep(account: DiscordAccount) -> tuple[int, int]:
+    end = get_current_time()
+    start = end.replace(year=end.year - 1)
+    plus_rep = PlusRep.objects.filter(receiver=account, created_at__range=(start, end))
+    unique_rep = plus_rep.values("giver__discord_id").distinct().count()
+    total_rep = plus_rep.count()
+    return (total_rep, unique_rep)
