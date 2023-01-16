@@ -3,6 +3,7 @@ from calendar import TUESDAY
 
 import pytz
 from django.contrib.auth.models import User
+from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
 from apps.reputation.models import PlusRep
@@ -97,3 +98,30 @@ def check_past_year_rep(account: DiscordAccount) -> tuple[int, int]:
     unique_rep = plus_rep.values("giver__discord_id").distinct().count()
     total_rep = plus_rep.count()
     return (total_rep, unique_rep)
+
+
+def get_top_rep_past_year(count: int) -> list[DiscordAccount]:
+    # Returns a list of the top `count` DiscordAccounts, ordered by total rep in the last year,
+    # descending, excluding all DiscordAccounts with zero rep in the last year
+    if count == 0:
+        return []
+    end = get_current_time()
+    start = end.replace(year=end.year - 1)
+    receivers = (
+        DiscordAccount.objects.annotate(
+            total_rep=Count(
+                "receivers", filter=Q(receivers__created_at__range=(start, end))
+            ),
+            unique_rep=Count(
+                "receivers",
+                distinct=True,
+                filter=Q(receivers__created_at__range=(start, end)),
+            ),
+        )
+        .filter(total_rep__gt=0)
+        .order_by("-total_rep", "created_at")[:count]
+    )
+    top_rep = []
+    for receiver in receivers:
+        top_rep.append(receiver)
+    return top_rep

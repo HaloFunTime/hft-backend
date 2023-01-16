@@ -16,6 +16,7 @@ from apps.reputation.utils import (
     count_plus_rep_given_in_current_week,
     get_current_week_start_time,
     get_time_until_reset,
+    get_top_rep_past_year,
     get_week_start_time,
 )
 from apps.reputation.views import (
@@ -318,6 +319,18 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(PlusRep.objects.count(), 3)
 
 
+class TopRepTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_top_rep(self):
+        pass
+
+
 class UtilsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -518,6 +531,88 @@ class UtilsTestCase(TestCase):
                 expected_tuple[0]
             )
             self.assertEqual(get_time_until_reset(), expected_tuple[1])
+
+    @patch("apps.reputation.utils.get_current_time")
+    def test_get_top_rep_past_year(self, mock_get_current_time):
+        jan_3_2023 = datetime.datetime.fromisoformat("2023-01-03T12:00:00-07:00")
+        mock_get_current_time.return_value = jan_3_2023
+        givers = []
+        receivers = []
+        for i in range(10):
+            givers.append(
+                update_or_create_discord_account(f"000{i}", f"giver#000{i}", self.user)
+            )
+            receivers.append(
+                update_or_create_discord_account(
+                    f"{i}000", f"receiver#{i}000", self.user
+                )
+            )
+
+        # No rep in DB should result in empty list
+        self.assertEqual(get_top_rep_past_year(10), [])
+
+        # Selecting 0 should result in empty list
+        self.assertEqual(get_top_rep_past_year(0), [])
+
+        # One rep in DB should result in list with one element, no matter how many we request
+        plus_rep_1 = plus_rep_factory(self.user, givers[0], receivers[0])
+        plus_rep_1.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_1.save()
+        for i in range(1, 11):
+            self.assertEqual(get_top_rep_past_year(i), [receivers[0]])
+
+        # Add rep across all receivers so that the first one has most rep, second second most, etc.
+        for i in range(1, 11):
+            for j in range(i):
+                plus_rep = plus_rep_factory(self.user, givers[i - 1], receivers[j])
+                plus_rep.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+                plus_rep.save()
+        # Selecting X top receivers results in X returned elements
+        for i in range(1, 11):
+            self.assertEqual(len(get_top_rep_past_year(i)), i)
+        # Top 10 receivers remain appropriately ordered
+        self.assertEqual(
+            get_top_rep_past_year(10),
+            [
+                receivers[0],
+                receivers[1],
+                receivers[2],
+                receivers[3],
+                receivers[4],
+                receivers[5],
+                receivers[6],
+                receivers[7],
+                receivers[8],
+                receivers[9],
+            ],
+        )
+
+        # Add 20 rep to each "giver" but given over a year ago
+        for i in range(10):
+            for _ in range(20):
+                plus_rep = plus_rep_factory(self.user, receivers[0], givers[i])
+                plus_rep.created_at = jan_3_2023 - datetime.timedelta(minutes=525601)
+                plus_rep.save()
+
+        # Assert that top rep list remains unchanged, as all rep received by "givers" was received over a year ago
+        self.assertEqual(
+            get_top_rep_past_year(10),
+            [
+                receivers[0],
+                receivers[1],
+                receivers[2],
+                receivers[3],
+                receivers[4],
+                receivers[5],
+                receivers[6],
+                receivers[7],
+                receivers[8],
+                receivers[9],
+            ],
+        )
+
+        # Selecting 0 (with a bunch of rep in the DB) should result in empty list
+        self.assertEqual(get_top_rep_past_year(0), [])
 
     def test_get_week_start_time(self):
         expected_tuples = [
