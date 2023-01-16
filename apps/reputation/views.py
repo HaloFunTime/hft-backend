@@ -14,18 +14,25 @@ from apps.reputation.serializers import (
     PlusRepErrorSerializer,
     PlusRepRequestSerializer,
     PlusRepResponseSerializer,
+    TopRepErrorSerializer,
+    TopRepResponseSerializer,
+    TopRepSerializer,
 )
 from apps.reputation.utils import (
     check_past_year_rep,
     count_plus_rep_given_in_current_week,
     create_new_plus_rep,
     get_time_until_reset,
+    get_top_rep_past_year,
 )
 
 REPUTATION_ERROR_FORBIDDEN = "This reputation transaction is not allowed."
 REPUTATION_ERROR_GIVER_ID = "A valid giverDiscordId (numeric string) must be provided."
 REPUTATION_ERROR_GIVER_TAG = (
     "A valid giverDiscordTag (string with one '#' character) must be provided."
+)
+REPUTATION_ERROR_INVALID_COUNT = (
+    "The provided count must be a valid non-negative integer."
 )
 REPUTATION_ERROR_INVALID_DISCORD_ID = (
     "The provided discordId must be a string representing a valid positive integer."
@@ -196,3 +203,69 @@ class NewPlusRep(APIView):
             logger.error(ex)
             serializer = PlusRepErrorSerializer({"error": REPUTATION_ERROR_UNKNOWN})
             return Response(serializer.data, status=500)
+
+
+class TopRep(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="count",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                style="form",
+                explode=False,
+            )
+        ],
+        responses={
+            200: TopRepResponseSerializer,
+            400: TopRepErrorSerializer,
+            404: TopRepErrorSerializer,
+            500: TopRepErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the top `count` DiscordAccounts, ordered by PlusRep received in the past year.
+        """
+        # Check whether count was specified
+        count = request.query_params.get("count")
+        if count is None:
+            count = 10  # Default to returning 10
+
+        # Validate that count is numeric and non-negative
+        invalid_count = False
+        try:
+            count = int(count)
+            if count < 0:
+                invalid_count = True
+        except ValueError:
+            invalid_count = True
+        if invalid_count:
+            serializer = TopRepErrorSerializer(
+                {"error": REPUTATION_ERROR_INVALID_COUNT}
+            )
+            return Response(serializer.data, status=400)
+
+        # Retrieve the top `count` DiscordAccounts, ordered by total_rep
+        top_accounts = get_top_rep_past_year(count)
+
+        # Build the serialized result
+        top_reps = []
+        for account in top_accounts:
+            top_reps.append(
+                TopRepSerializer(
+                    {
+                        "rank": account.rank,
+                        "discordId": account.discord_id,
+                        "pastYearTotalRep": account.total_rep,
+                        "pastYearUniqueRep": account.unique_rep,
+                    }
+                )
+            )
+        serializer = TopRepResponseSerializer(
+            {"topRepReceivers": [top_rep.data for top_rep in top_reps]}
+        )
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )

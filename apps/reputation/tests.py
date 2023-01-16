@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -23,6 +24,7 @@ from apps.reputation.views import (
     REPUTATION_ERROR_FORBIDDEN,
     REPUTATION_ERROR_GIVER_ID,
     REPUTATION_ERROR_GIVER_TAG,
+    REPUTATION_ERROR_INVALID_COUNT,
     REPUTATION_ERROR_INVALID_DISCORD_ID,
     REPUTATION_ERROR_MISSING_DISCORD_ID,
     REPUTATION_ERROR_RECEIVER_ID,
@@ -327,8 +329,110 @@ class TopRepTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
-    def test_top_rep(self):
-        pass
+    @patch("apps.reputation.views.get_top_rep_past_year")
+    def test_top_rep(self, mock_get_top_rep_past_year):
+        # Non-numeric count throws error
+        response = self.client.get("/reputation/top-rep?count=abc")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_INVALID_COUNT})
+
+        # Negative count throws error
+        response = self.client.get("/reputation/top-rep?count=-1")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_INVALID_COUNT})
+
+        # Empty returned list results in no topRepReceivers; interior function gets called with value provided to count
+        for i in range(20):
+            mock_get_top_rep_past_year.return_value = []
+            response = self.client.get(f"/reputation/top-rep?count={i}")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, {"topRepReceivers": []})
+            mock_get_top_rep_past_year.assert_called_once_with(i)
+            mock_get_top_rep_past_year.reset_mock()
+
+        # Test output of nested serializers
+        accounts = []
+        for i in range(10):
+            account = update_or_create_discord_account(
+                f"000{i}", f"giver#000{i}", self.user
+            )
+            account.rank = 10 - i
+            account.total_rep = i * 10
+            account.unique_rep = i * 2
+            accounts.append(account)
+        accounts.reverse()
+        mock_get_top_rep_past_year.return_value = accounts
+        response = self.client.get("/reputation/top-rep")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "topRepReceivers": [
+                        {
+                            "rank": 1,
+                            "discordId": accounts[0].discord_id,
+                            "pastYearTotalRep": 90,
+                            "pastYearUniqueRep": 18,
+                        },
+                        {
+                            "rank": 2,
+                            "discordId": accounts[1].discord_id,
+                            "pastYearTotalRep": 80,
+                            "pastYearUniqueRep": 16,
+                        },
+                        {
+                            "rank": 3,
+                            "discordId": accounts[2].discord_id,
+                            "pastYearTotalRep": 70,
+                            "pastYearUniqueRep": 14,
+                        },
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                        {
+                            "rank": 6,
+                            "discordId": accounts[5].discord_id,
+                            "pastYearTotalRep": 40,
+                            "pastYearUniqueRep": 8,
+                        },
+                        {
+                            "rank": 7,
+                            "discordId": accounts[6].discord_id,
+                            "pastYearTotalRep": 30,
+                            "pastYearUniqueRep": 6,
+                        },
+                        {
+                            "rank": 8,
+                            "discordId": accounts[7].discord_id,
+                            "pastYearTotalRep": 20,
+                            "pastYearUniqueRep": 4,
+                        },
+                        {
+                            "rank": 9,
+                            "discordId": accounts[8].discord_id,
+                            "pastYearTotalRep": 10,
+                            "pastYearUniqueRep": 2,
+                        },
+                        {
+                            "rank": 10,
+                            "discordId": accounts[9].discord_id,
+                            "pastYearTotalRep": 0,
+                            "pastYearUniqueRep": 0,
+                        },
+                    ]
+                }
+            ),
+        )
 
 
 class UtilsTestCase(TestCase):
@@ -554,12 +658,75 @@ class UtilsTestCase(TestCase):
         # Selecting 0 should result in empty list
         self.assertEqual(get_top_rep_past_year(0), [])
 
-        # One rep in DB should result in list with one element, no matter how many we request
+        # One receiver in DB should result in list with one element, no matter how many we request
         plus_rep_1 = plus_rep_factory(self.user, givers[0], receivers[0])
         plus_rep_1.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
         plus_rep_1.save()
         for i in range(1, 11):
             self.assertEqual(get_top_rep_past_year(i), [receivers[0]])
+
+        # Two receivers in DB, but tied in equal total rep & rank
+        plus_rep_2 = plus_rep_factory(self.user, givers[1], receivers[1])
+        plus_rep_2.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_2.save()
+        result = get_top_rep_past_year(10)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].discord_id, receivers[0].discord_id)
+        self.assertEqual(result[0].rank, 1)
+        self.assertEqual(result[0].total_rep, 1)
+        self.assertEqual(result[0].unique_rep, 1)
+        self.assertEqual(result[1].discord_id, receivers[1].discord_id)
+        self.assertEqual(result[1].rank, 1)
+        self.assertEqual(result[1].total_rep, 1)
+        self.assertEqual(result[1].unique_rep, 1)
+
+        # Four receivers in DB with first ahead of the second two, who are tied for second, and fourth place alone
+        plus_rep_3 = plus_rep_factory(self.user, givers[0], receivers[0])
+        plus_rep_3.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_3.save()
+        plus_rep_4 = plus_rep_factory(self.user, givers[0], receivers[1])
+        plus_rep_4.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_4.save()
+        plus_rep_5 = plus_rep_factory(self.user, givers[0], receivers[2])
+        plus_rep_5.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_5.save()
+        plus_rep_6 = plus_rep_factory(self.user, givers[1], receivers[2])
+        plus_rep_6.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_6.save()
+        plus_rep_7 = plus_rep_factory(self.user, givers[1], receivers[2])
+        plus_rep_7.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_7.save()
+        plus_rep_8 = plus_rep_factory(self.user, givers[0], receivers[3])
+        plus_rep_8.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_8.save()
+        result = get_top_rep_past_year(10)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].discord_id, receivers[2].discord_id)
+        self.assertEqual(result[0].rank, 1)
+        self.assertEqual(result[0].total_rep, 3)
+        self.assertEqual(result[0].unique_rep, 2)
+        self.assertEqual(result[1].discord_id, receivers[1].discord_id)
+        self.assertEqual(result[1].rank, 2)
+        self.assertEqual(result[1].total_rep, 2)
+        self.assertEqual(result[1].unique_rep, 2)
+        self.assertEqual(result[2].discord_id, receivers[0].discord_id)
+        self.assertEqual(result[2].rank, 2)
+        self.assertEqual(result[2].total_rep, 2)
+        self.assertEqual(result[2].unique_rep, 1)
+        self.assertEqual(result[3].discord_id, receivers[3].discord_id)
+        self.assertEqual(result[3].rank, 4)
+        self.assertEqual(result[3].total_rep, 1)
+        self.assertEqual(result[3].unique_rep, 1)
+
+        # Clean up earlier test cases
+        plus_rep_1.delete()
+        plus_rep_2.delete()
+        plus_rep_3.delete()
+        plus_rep_4.delete()
+        plus_rep_5.delete()
+        plus_rep_6.delete()
+        plus_rep_7.delete()
+        plus_rep_8.delete()
 
         # Add rep across all receivers so that the first one has most rep, second second most, etc.
         for i in range(1, 11):
@@ -571,8 +738,9 @@ class UtilsTestCase(TestCase):
         for i in range(1, 11):
             self.assertEqual(len(get_top_rep_past_year(i)), i)
         # Top 10 receivers remain appropriately ordered
+        result = get_top_rep_past_year(10)
         self.assertEqual(
-            get_top_rep_past_year(10),
+            result,
             [
                 receivers[0],
                 receivers[1],
@@ -586,6 +754,11 @@ class UtilsTestCase(TestCase):
                 receivers[9],
             ],
         )
+        # Top 10 receivers have appropriate rank, total, and unique data
+        for i in range(10):
+            self.assertEqual(result[i].rank, i + 1)
+            self.assertEqual(result[i].total_rep, 10 - i)
+            self.assertEqual(result[i].unique_rep, 10 - i)
 
         # Add 20 rep to each "giver" but given over a year ago
         for i in range(10):
@@ -611,7 +784,7 @@ class UtilsTestCase(TestCase):
             ],
         )
 
-        # Selecting 0 (with a bunch of rep in the DB) should result in empty list
+        # Selecting 0 (with a bunch of rep in the DB) should still result in empty list
         self.assertEqual(get_top_rep_past_year(0), [])
 
     def test_get_week_start_time(self):

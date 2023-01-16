@@ -6,6 +6,13 @@ from apps.reputation.models import PlusRep
 
 @admin.register(PlusRep)
 class PlusRepAdmin(AutofillCreatorModelAdmin):
-    list_display = ("giver", "receiver", "message", "creator")
+    list_display = (
+        "created_at",
+        "updated_at",
+        "giver",
+        "receiver",
+        "message",
+        "creator",
+    )
     list_filter = ("creator",)
     fields = ("giver", "receiver", "message", "creator")

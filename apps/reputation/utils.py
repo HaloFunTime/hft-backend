@@ -113,15 +113,46 @@ def get_top_rep_past_year(count: int) -> list[DiscordAccount]:
                 "receivers", filter=Q(receivers__created_at__range=(start, end))
             ),
             unique_rep=Count(
-                "receivers",
+                "receivers__giver__discord_id",
                 distinct=True,
                 filter=Q(receivers__created_at__range=(start, end)),
             ),
         )
         .filter(total_rep__gt=0)
-        .order_by("-total_rep", "created_at")[:count]
+        .order_by("-total_rep", "-unique_rep", "created_at")[:count]
     )
+
+    # Evaluate the queryset at this stage
     top_rep = []
     for receiver in receivers:
         top_rep.append(receiver)
+
+    # Rank every DiscordAccount in the list by `total_rep`
+    def rank_data(a):
+        def rank_simple(vector):
+            return sorted(range(len(vector)), key=vector.__getitem__)
+
+        n = len(a)
+        ivec = rank_simple(a)
+        svec = [a[rank] for rank in ivec]
+        sumranks = 0
+        dupcount = 0
+        newarray = [0] * n
+        for i in range(n):
+            sumranks += i
+            dupcount += 1
+            if i == n - 1 or svec[i] != svec[i + 1]:
+                avgrank = sumranks / float(dupcount) + 1
+                for j in range(i - dupcount + 1, i + 1):
+                    newarray[ivec[j]] = avgrank
+                sumranks = 0
+                dupcount = 0
+        return newarray
+
+    rep_ranks = rank_data([account.total_rep * -1 for account in top_rep])
+
+    # Tack the rank data on too
+    for i in range(len(top_rep)):
+        top_rep[i].rank = int(rep_ranks[i])
+
     return top_rep
