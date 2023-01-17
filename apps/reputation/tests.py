@@ -680,7 +680,7 @@ class UtilsTestCase(TestCase):
         self.assertEqual(result[1].total_rep, 1)
         self.assertEqual(result[1].unique_rep, 1)
 
-        # Four receivers in DB with first ahead of the second two, who are tied for second, and fourth place alone
+        # Five receivers in DB with first ahead of the second three, who are tied for second, and fifth place alone
         plus_rep_3 = plus_rep_factory(self.user, givers[0], receivers[0])
         plus_rep_3.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
         plus_rep_3.save()
@@ -699,8 +699,14 @@ class UtilsTestCase(TestCase):
         plus_rep_8 = plus_rep_factory(self.user, givers[0], receivers[3])
         plus_rep_8.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
         plus_rep_8.save()
+        plus_rep_9 = plus_rep_factory(self.user, givers[0], receivers[3])
+        plus_rep_9.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_9.save()
+        plus_rep_10 = plus_rep_factory(self.user, givers[0], receivers[4])
+        plus_rep_10.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_10.save()
         result = get_top_rep_past_year(10)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result), 5)
         self.assertEqual(result[0].discord_id, receivers[2].discord_id)
         self.assertEqual(result[0].rank, 1)
         self.assertEqual(result[0].total_rep, 3)
@@ -714,9 +720,13 @@ class UtilsTestCase(TestCase):
         self.assertEqual(result[2].total_rep, 2)
         self.assertEqual(result[2].unique_rep, 1)
         self.assertEqual(result[3].discord_id, receivers[3].discord_id)
-        self.assertEqual(result[3].rank, 4)
-        self.assertEqual(result[3].total_rep, 1)
+        self.assertEqual(result[3].rank, 2)
+        self.assertEqual(result[3].total_rep, 2)
         self.assertEqual(result[3].unique_rep, 1)
+        self.assertEqual(result[4].discord_id, receivers[4].discord_id)
+        self.assertEqual(result[4].rank, 5)
+        self.assertEqual(result[4].total_rep, 1)
+        self.assertEqual(result[4].unique_rep, 1)
 
         # Clean up earlier test cases
         plus_rep_1.delete()
@@ -727,6 +737,8 @@ class UtilsTestCase(TestCase):
         plus_rep_6.delete()
         plus_rep_7.delete()
         plus_rep_8.delete()
+        plus_rep_9.delete()
+        plus_rep_10.delete()
 
         # Add rep across all receivers so that the first one has most rep, second second most, etc.
         for i in range(1, 11):

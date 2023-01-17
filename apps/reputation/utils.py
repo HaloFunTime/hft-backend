@@ -128,28 +128,10 @@ def get_top_rep_past_year(count: int) -> list[DiscordAccount]:
         top_rep.append(receiver)
 
     # Rank every DiscordAccount in the list by `total_rep`
-    def rank_data(a):
-        def rank_simple(vector):
-            return sorted(range(len(vector)), key=vector.__getitem__)
-
-        n = len(a)
-        ivec = rank_simple(a)
-        svec = [a[rank] for rank in ivec]
-        sumranks = 0
-        dupcount = 0
-        newarray = [0] * n
-        for i in range(n):
-            sumranks += i
-            dupcount += 1
-            if i == n - 1 or svec[i] != svec[i + 1]:
-                avgrank = sumranks / float(dupcount) + 1
-                for j in range(i - dupcount + 1, i + 1):
-                    newarray[ivec[j]] = avgrank
-                sumranks = 0
-                dupcount = 0
-        return newarray
-
-    rep_ranks = rank_data([account.total_rep * -1 for account in top_rep])
+    sorted_rep = [account.total_rep for account in top_rep]
+    sorted_rep.sort()
+    sorted_rep.reverse()
+    rep_ranks = [sorted_rep.index(account.total_rep) + 1 for account in top_rep]
 
     # Tack the rank data on too
     for i in range(len(top_rep)):
