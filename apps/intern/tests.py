@@ -9,7 +9,13 @@ from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
     InternChatterPause,
+    InternChatterPauseAcceptanceQuip,
+    InternChatterPauseDenialQuip,
+    InternChatterPauseReverenceQuip,
     InternHelpfulHint,
+    InternNewHereWelcomeQuip,
+    InternNewHereYeetQuip,
+    InternPlusRepQuip,
 )
 from apps.intern.views import (
     INTERN_CHATTER_DEFAULT_MESSAGE,
@@ -17,9 +23,15 @@ from apps.intern.views import (
     INTERN_CHATTER_ERROR_INVALID_CHANNEL_ID,
     INTERN_CHATTER_ERROR_MISSING_CHANNEL_ID,
     INTERN_CHATTER_ERROR_PAUSED,
+    INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_DEFAULT,
+    INTERN_CHATTER_PAUSE_DENIAL_QUIP_DEFAULT,
     INTERN_CHATTER_PAUSE_ERROR_MISSING_ID,
     INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG,
+    INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT,
     INTERN_HELPFUL_HINT_DEFAULT_MESSAGE,
+    INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT,
+    INTERN_NEW_HERE_YEET_QUIP_DEFAULT,
+    INTERN_PLUS_REP_QUIP_DEFAULT,
 )
 
 
@@ -56,6 +68,60 @@ def helpful_hint_factory(creator: User, message_text: str = None) -> InternHelpf
     return InternHelpfulHint.objects.create(
         creator=creator,
         message_text=uuid.uuid4().hex if message_text is None else message_text,
+    )
+
+
+def intern_chatter_pause_acceptance_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternChatterPauseAcceptanceQuip:
+    return InternChatterPauseAcceptanceQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_chatter_pause_denial_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternChatterPauseDenialQuip:
+    return InternChatterPauseDenialQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_chatter_pause_reverence_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternChatterPauseReverenceQuip:
+    return InternChatterPauseReverenceQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_new_here_welcome_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternNewHereWelcomeQuip:
+    return InternNewHereWelcomeQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_new_here_yeet_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternNewHereYeetQuip:
+    return InternNewHereYeetQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_plus_rep_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternPlusRepQuip:
+    return InternPlusRepQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
     )
 
 
@@ -174,6 +240,78 @@ class InternChatterTestCase(APITestCase):
         self.assertEqual(InternChatterPause.objects.count(), 1)
 
 
+class InternChatterPauseAcceptanceQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_chatter_pause_acceptance_quip(self):
+        # Empty InternChatterPauseAcceptanceQuip table returns default quip
+        response = self.client.get("/intern/random-chatter-pause-acceptance-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_chatter_pause_acceptance_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-chatter-pause-acceptance-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternChatterPauseDenialQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_chatter_pause_denial_quip(self):
+        # Empty InternChatterPauseDenialQuip table returns default quip
+        response = self.client.get("/intern/random-chatter-pause-denial-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_CHATTER_PAUSE_DENIAL_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_chatter_pause_denial_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-chatter-pause-denial-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternChatterPauseReverenceQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_chatter_pause_reverence_quip(self):
+        # Empty InternChatterPauseReverenceQuip table returns default quip
+        response = self.client.get("/intern/random-chatter-pause-reverence-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_chatter_pause_reverence_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-chatter-pause-reverence-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
 class InternHelpfulHintTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -194,3 +332,69 @@ class InternHelpfulHintTestCase(APITestCase):
         response = self.client.get("/intern/random-helpful-hint")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"hint": hint_message_text})
+
+
+class InternNewHereWelcomeQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_new_here_welcome_quip(self):
+        # Empty InternNewHereWelcomeQuip table returns default quip
+        response = self.client.get("/intern/random-new-here-welcome-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT})
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_new_here_welcome_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-new-here-welcome-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternNewHereYeetQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_new_here_yeet_quip(self):
+        # Empty InternNewHereYeetQuip table returns default quip
+        response = self.client.get("/intern/random-new-here-yeet-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": INTERN_NEW_HERE_YEET_QUIP_DEFAULT})
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_new_here_yeet_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-new-here-yeet-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternPlusRepQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_plus_rep_quip(self):
+        # Empty InternPlusRepQuip table returns default quip
+        response = self.client.get("/intern/random-plus-rep-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": INTERN_PLUS_REP_QUIP_DEFAULT})
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_plus_rep_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-plus-rep-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})

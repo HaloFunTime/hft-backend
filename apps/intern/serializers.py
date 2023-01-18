@@ -9,6 +9,30 @@ class InternChatterSerializer(serializers.Serializer):
     chatter = serializers.CharField()
 
 
+class InternChatterPauseAcceptanceQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternChatterPauseAcceptanceQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternChatterPauseDenialQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternChatterPauseDenialQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternChatterPauseReverenceQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternChatterPauseReverenceQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
 class InternChatterPauseErrorSerializer(serializers.Serializer):
     error = serializers.CharField()
 
@@ -27,4 +51,28 @@ class InternHelpfulHintSerializer(serializers.Serializer):
 
 
 class InternHelpfulHintErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternNewHereWelcomeQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternNewHereWelcomeQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternNewHereYeetQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternNewHereYeetQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternPlusRepQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternPlusRepQuipErrorSerializer(serializers.Serializer):
     error = serializers.CharField()

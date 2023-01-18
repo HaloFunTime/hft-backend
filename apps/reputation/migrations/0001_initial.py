@@ -12,26 +12,55 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('discord', '0001_initial'),
+        ("discord", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlusRep',
+            name="PlusRep",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('message', models.TextField(blank=True, verbose_name='Message')),
-                ('creator', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('giver', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='givers', to='discord.discordaccount')),
-                ('receiver', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='receivers', to='discord.discordaccount')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("message", models.TextField(blank=True, verbose_name="Message")),
+                (
+                    "creator",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "giver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        related_name="givers",
+                        to="discord.discordaccount",
+                    ),
+                ),
+                (
+                    "receiver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        related_name="receivers",
+                        to="discord.discordaccount",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Plus Rep',
-                'verbose_name_plural': 'Plus Reps',
-                'db_table': 'PlusRep',
-                'ordering': ['-updated_at'],
+                "verbose_name": "Plus Rep",
+                "verbose_name_plural": "Plus Reps",
+                "db_table": "PlusRep",
+                "ordering": ["-updated_at"],
             },
         ),
     ]

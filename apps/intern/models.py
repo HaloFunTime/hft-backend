@@ -60,6 +60,69 @@ class InternChatterPause(Base):
         return str(self.created_at)
 
 
+class InternChatterPauseAcceptanceQuip(Base):
+    class Meta:
+        db_table = "InternChatterPauseAcceptanceQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Chatter Pause Acceptance Quip"
+        verbose_name_plural = "Chatter Pause Acceptance Quips"
+
+    quip_text = models.CharField(max_length=100, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternChatterPauseDenialQuip(Base):
+    class Meta:
+        db_table = "InternChatterPauseDenialQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Chatter Pause Denial Quip"
+        verbose_name_plural = "Chatter Pause Denial Quips"
+
+    quip_text = models.CharField(max_length=100, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternChatterPauseReverenceQuip(Base):
+    class Meta:
+        db_table = "InternChatterPauseReverenceQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Chatter Pause Reverence Quip"
+        verbose_name_plural = "Chatter Pause Reverence Quips"
+
+    quip_text = models.CharField(max_length=100, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
 class InternHelpfulHint(Base):
     class Meta:
         db_table = "InternHelpfulHint"
@@ -81,3 +144,66 @@ class InternHelpfulHint(Base):
 
     def __str__(self):
         return self.short_message_text
+
+
+class InternNewHereWelcomeQuip(Base):
+    class Meta:
+        db_table = "InternNewHereWelcomeQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "New Here Welcome Quip"
+        verbose_name_plural = "New Here Welcome Quips"
+
+    quip_text = models.CharField(max_length=100, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternNewHereYeetQuip(Base):
+    class Meta:
+        db_table = "InternNewHereYeetQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "New Here Yeet Quip"
+        verbose_name_plural = "New Here Yeet Quips"
+
+    quip_text = models.CharField(max_length=100, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternPlusRepQuip(Base):
+    class Meta:
+        db_table = "InternPlusRepQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Plus Rep Quip"
+        verbose_name_plural = "Plus Rep Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text

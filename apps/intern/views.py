@@ -9,16 +9,34 @@ from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
     InternChatterPause,
+    InternChatterPauseAcceptanceQuip,
+    InternChatterPauseDenialQuip,
+    InternChatterPauseReverenceQuip,
     InternHelpfulHint,
+    InternNewHereWelcomeQuip,
+    InternNewHereYeetQuip,
+    InternPlusRepQuip,
 )
 from apps.intern.serializers import (
     InternChatterErrorSerializer,
+    InternChatterPauseAcceptanceQuipErrorSerializer,
+    InternChatterPauseAcceptanceQuipSerializer,
+    InternChatterPauseDenialQuipErrorSerializer,
+    InternChatterPauseDenialQuipSerializer,
     InternChatterPauseErrorSerializer,
     InternChatterPauseRequestSerializer,
     InternChatterPauseResponseSerializer,
+    InternChatterPauseReverenceQuipErrorSerializer,
+    InternChatterPauseReverenceQuipSerializer,
     InternChatterSerializer,
     InternHelpfulHintErrorSerializer,
     InternHelpfulHintSerializer,
+    InternNewHereWelcomeQuipErrorSerializer,
+    InternNewHereWelcomeQuipSerializer,
+    InternNewHereYeetQuipErrorSerializer,
+    InternNewHereYeetQuipSerializer,
+    InternPlusRepQuipErrorSerializer,
+    InternPlusRepQuipSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +53,10 @@ INTERN_CHATTER_ERROR_MISSING_CHANNEL_ID = (
 )
 INTERN_CHATTER_ERROR_PAUSED = "Intern chatter is currently paused."
 INTERN_CHATTER_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_DEFAULT = "Okay."
+INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_CHATTER_PAUSE_DENIAL_QUIP_DEFAULT = "No."
+INTERN_CHATTER_PAUSE_DENIAL_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_CHATTER_PAUSE_ERROR_MISSING_ID = (
     "A valid discordUserId (numeric string) must be provided."
 )
@@ -42,10 +64,18 @@ INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG = (
     "A valid discordUserTag (string with one '#' character) must be provided."
 )
 INTERN_CHATTER_PAUSE_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT = "Absolutely!"
+INTERN_CHATTER_PAUSE_REVERENCE_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_HELPFUL_HINT_DEFAULT_MESSAGE = (
     "I do my best to help out by providing helpful hints!"
 )
 INTERN_HELPFUL_HINT_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT = "Glad you're here!"
+INTERN_NEW_HERE_WELCOME_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_NEW_HERE_YEET_QUIP_DEFAULT = "Bye!"
+INTERN_NEW_HERE_YEET_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_PLUS_REP_QUIP_DEFAULT = "Giving rep is a great way to thank someone."
+INTERN_PLUS_REP_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 
 
 class RandomInternChatter(APIView):
@@ -134,6 +164,180 @@ class RandomInternChatter(APIView):
             )
             return Response(serializer.data, status=404)
         serializer = InternChatterSerializer({"chatter": random_chatter_message})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternChatterPauseAcceptanceQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternChatterPauseAcceptanceQuipSerializer,
+            500: InternChatterPauseAcceptanceQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternChatterPauseAcceptanceQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_DEFAULT
+        try:
+            random_quips = InternChatterPauseAcceptanceQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternChatterPauseAcceptanceQuipErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternChatterPauseAcceptanceQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternChatterPauseDenialQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternChatterPauseDenialQuipSerializer,
+            500: InternChatterPauseDenialQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternChatterPauseDenialQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_CHATTER_PAUSE_DENIAL_QUIP_DEFAULT
+        try:
+            random_quips = InternChatterPauseDenialQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternChatterPauseDenialQuipErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_DENIAL_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternChatterPauseDenialQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternChatterPauseReverenceQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternChatterPauseReverenceQuipSerializer,
+            500: InternChatterPauseReverenceQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternChatterPauseReverenceQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT
+        try:
+            random_quips = InternChatterPauseReverenceQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternChatterPauseReverenceQuipErrorSerializer(
+                {"error": INTERN_CHATTER_PAUSE_REVERENCE_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternChatterPauseReverenceQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternNewHereWelcomeQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternNewHereWelcomeQuipSerializer,
+            500: InternNewHereWelcomeQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternNewHereWelcomeQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT
+        try:
+            random_quips = InternNewHereWelcomeQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternNewHereWelcomeQuipErrorSerializer(
+                {"error": INTERN_NEW_HERE_WELCOME_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternNewHereWelcomeQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternNewHereYeetQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternNewHereYeetQuipSerializer,
+            500: InternNewHereYeetQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternNewHereYeetQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_NEW_HERE_YEET_QUIP_DEFAULT
+        try:
+            random_quips = InternNewHereYeetQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternNewHereYeetQuipErrorSerializer(
+                {"error": INTERN_NEW_HERE_YEET_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternNewHereYeetQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternPlusRepQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternPlusRepQuipSerializer,
+            500: InternPlusRepQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternPlusRepQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_PLUS_REP_QUIP_DEFAULT
+        try:
+            random_quips = InternPlusRepQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternPlusRepQuipErrorSerializer(
+                {"error": INTERN_PLUS_REP_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternPlusRepQuipSerializer({"quip": random_quip})
         return Response(
             serializer.data, status=200, headers={"Cache-Control": "no-cache"}
         )
