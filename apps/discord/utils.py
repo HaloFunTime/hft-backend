@@ -1,9 +1,9 @@
 from apps.discord.models import DiscordAccount
 
 
-def get_or_create_discord_account(discord_id, user):
+def get_or_create_discord_account(discord_id, user, discord_tag=""):
     return DiscordAccount.objects.get_or_create(
-        discord_id=discord_id, defaults={"creator": user}
+        discord_id=discord_id, defaults={"discord_tag": discord_tag, "creator": user}
     )[0]
 
 

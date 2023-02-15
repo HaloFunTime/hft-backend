@@ -31,6 +31,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Application config
 ALLOWED_HOSTS = env.str("ALLOWED_HOSTS", "*").split(" ")
+AZURE_CLIENT_ID = env.str("AZURE_CLIENT_ID", "")
+AZURE_CLIENT_SECRET = env.str("AZURE_CLIENT_SECRET", "")
 DEBUG = env("DEBUG")
 ENVIRONMENT = env.str("ENVIRONMENT", "dev")
 SECRET_KEY = env.str("SECRET_KEY", get_random_secret_key())

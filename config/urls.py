@@ -43,6 +43,7 @@ urlpatterns = [
     path("get-bearer-token/", obtain_auth_token, name="bearer-token"),
     # Import urls from /apps here:
     path("intern/", include("apps.intern.urls")),
+    path("link/", include("apps.link.urls")),
     path("ping/", include("apps.ping.urls")),
     path("reputation/", include("apps.reputation.urls")),
     path("series/", include("apps.series.urls")),
