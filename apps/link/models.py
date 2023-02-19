@@ -11,8 +11,8 @@ class DiscordXboxLiveLink(Base):
         ordering = [
             "-updated_at",
         ]
-        verbose_name = "Discord/Xbox Live Link"
-        verbose_name_plural = "Discord/Xbox Live Links"
+        verbose_name = "Discord <-> Xbox Live Link"
+        verbose_name_plural = "Discord <-> Xbox Live Links"
 
     def __str__(self):
         return f"{str(self.discord_account)} <-> {str(self.xbox_live_account)}"

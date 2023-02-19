@@ -6,6 +6,6 @@ from apps.overrides.admin import AutofillCreatorModelAdmin
 
 @admin.register(DiscordXboxLiveLink)
 class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
-    list_display = ("discord_account", "xbox_live_account", "verified", "creator")
+    list_display = ("id", "discord_account", "xbox_live_account", "verified", "creator")
     list_filter = ("creator",)
-    fields = ("discord_account", "xbox_live_account", "verified", "creator")
+    fields = ("id", "discord_account", "xbox_live_account", "verified", "creator")
