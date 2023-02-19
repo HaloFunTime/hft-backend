@@ -215,7 +215,15 @@ class TopRep(APIView):
                 required=False,
                 style="form",
                 explode=False,
-            )
+            ),
+            OpenApiParameter(
+                name="excludeIds",
+                type={"type": "string"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                style="form",
+                explode=False,
+            ),
         ],
         responses={
             200: TopRepResponseSerializer,
@@ -247,8 +255,17 @@ class TopRep(APIView):
             )
             return Response(serializer.data, status=400)
 
-        # Retrieve the top `count` DiscordAccounts, ordered by total_rep
-        top_accounts = get_top_rep_past_year(count)
+        # Check whether excludeIds was specified
+        excludeIds = request.query_params.get("excludeIds")
+        if excludeIds is None:
+            excludeIds = []  # Default to empty list
+        elif excludeIds == "":
+            excludeIds = []  # Default to empty list
+        else:
+            excludeIds = excludeIds.split(",")
+
+        # Retrieve the top `count` DiscordAccounts, ordered by total_rep and excluding `excludeIds`
+        top_accounts = get_top_rep_past_year(count, excludeIds)
 
         # Build the serialized result
         top_reps = []

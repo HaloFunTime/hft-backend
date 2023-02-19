@@ -100,9 +100,12 @@ def check_past_year_rep(account: DiscordAccount) -> tuple[int, int]:
     return (total_rep, unique_rep)
 
 
-def get_top_rep_past_year(count: int) -> list[DiscordAccount]:
+def get_top_rep_past_year(
+    count: int, exclude_ids: list[str] = []
+) -> list[DiscordAccount]:
     # Returns a list of the top `count` DiscordAccounts, ordered by total rep in the last year,
-    # descending, excluding all DiscordAccounts with zero rep in the last year
+    # descending, excluding all DiscordAccounts with zero rep in the last year and excluding
+    # all DiscordAccounts specifically excluded in `exclude_ids`.
     if count == 0:
         return []
     end = get_current_time()
@@ -119,6 +122,7 @@ def get_top_rep_past_year(count: int) -> list[DiscordAccount]:
             ),
         )
         .filter(total_rep__gt=0)
+        .exclude(discord_id__in=exclude_ids)
         .order_by("-total_rep", "-unique_rep", "created_at")[:count]
     )
 

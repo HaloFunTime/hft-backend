@@ -341,13 +341,27 @@ class TopRepTestCase(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": REPUTATION_ERROR_INVALID_COUNT})
 
-        # Empty returned list results in no topRepReceivers; interior function gets called with value provided to count
+        # Interior function gets called with value provided to count & empty list for excludeIds
         for i in range(20):
             mock_get_top_rep_past_year.return_value = []
             response = self.client.get(f"/reputation/top-rep?count={i}")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, {"topRepReceivers": []})
-            mock_get_top_rep_past_year.assert_called_once_with(i)
+            mock_get_top_rep_past_year.assert_called_once_with(i, [])
+            mock_get_top_rep_past_year.reset_mock()
+
+        # Interior function gets called with values provided to count & excludeIds
+        for i in range(20):
+            mock_get_top_rep_past_year.return_value = []
+            exclude_ids_string = ",".join(map(str, [*range(i)]))
+            response = self.client.get(
+                f"/reputation/top-rep?count={i}&excludeIds={exclude_ids_string}"
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, {"topRepReceivers": []})
+            mock_get_top_rep_past_year.assert_called_once_with(
+                i, list(map(str, [*range(i)]))
+            )
             mock_get_top_rep_past_year.reset_mock()
 
         # Test output of nested serializers
@@ -361,6 +375,8 @@ class TopRepTestCase(APITestCase):
             account.unique_rep = i * 2
             accounts.append(account)
         accounts.reverse()
+
+        # No count or excludeIds specified
         mock_get_top_rep_past_year.return_value = accounts
         response = self.client.get("/reputation/top-rep")
         self.assertEqual(response.status_code, 200)
@@ -433,6 +449,94 @@ class TopRepTestCase(APITestCase):
                 }
             ),
         )
+        mock_get_top_rep_past_year.assert_called_once_with(10, [])
+        mock_get_top_rep_past_year.reset_mock()
+
+        # Count of 5 returns top 5, no excluded IDs
+        mock_get_top_rep_past_year.return_value = accounts[:5]
+        response = self.client.get("/reputation/top-rep?count=5")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "topRepReceivers": [
+                        {
+                            "rank": 1,
+                            "discordId": accounts[0].discord_id,
+                            "pastYearTotalRep": 90,
+                            "pastYearUniqueRep": 18,
+                        },
+                        {
+                            "rank": 2,
+                            "discordId": accounts[1].discord_id,
+                            "pastYearTotalRep": 80,
+                            "pastYearUniqueRep": 16,
+                        },
+                        {
+                            "rank": 3,
+                            "discordId": accounts[2].discord_id,
+                            "pastYearTotalRep": 70,
+                            "pastYearUniqueRep": 14,
+                        },
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                    ]
+                }
+            ),
+        )
+        mock_get_top_rep_past_year.assert_called_once_with(5, [])
+        mock_get_top_rep_past_year.reset_mock()
+
+        # Count of 3 returns top 3, excluded IDs bundled in call to service method
+        mock_get_top_rep_past_year.return_value = accounts[3:6]
+        exclude_ids_string = f"{accounts[0].discord_id},{accounts[1].discord_id},{accounts[2].discord_id}"
+        response = self.client.get(
+            f"/reputation/top-rep?count=3&excludeIds={exclude_ids_string}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.maxDiff = None
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "topRepReceivers": [
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                        {
+                            "rank": 6,
+                            "discordId": accounts[5].discord_id,
+                            "pastYearTotalRep": 40,
+                            "pastYearUniqueRep": 8,
+                        },
+                    ]
+                }
+            ),
+        )
+        mock_get_top_rep_past_year.assert_called_once_with(
+            3, [accounts[0].discord_id, accounts[1].discord_id, accounts[2].discord_id]
+        )
+        mock_get_top_rep_past_year.reset_mock()
 
 
 class UtilsTestCase(TestCase):
@@ -664,6 +768,9 @@ class UtilsTestCase(TestCase):
         plus_rep_1.save()
         for i in range(1, 11):
             self.assertEqual(get_top_rep_past_year(i), [receivers[0]])
+        # Excluding the one known receiver should result in empty list no matter how many we request
+        for i in range(1, 11):
+            self.assertEqual(get_top_rep_past_year(i, [receivers[0].discord_id]), [])
 
         # Two receivers in DB, but tied in equal total rep & rank
         plus_rep_2 = plus_rep_factory(self.user, givers[1], receivers[1])
