@@ -13,13 +13,16 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from http import HTTPStatus
+from typing import Any
+
 from django.conf import settings
 from django.conf.urls import include
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from rest_framework import routers
+from rest_framework import routers, views
 from rest_framework.authtoken.views import obtain_auth_token
 
 router = routers.DefaultRouter()
@@ -29,6 +32,32 @@ admin.site.site_title = "HaloFunTime Backend"
 admin.site.site_url = "/docs"
 admin.site.index_title = "Database Tables by App"
 admin.site.empty_value_display = "NULL"
+
+
+def root_exception_handler(exc: Exception, context: dict[str, Any]) -> views.Response:
+    # Call DRF's default exception handler first to get the standard error response
+    response = views.exception_handler(exc, context)
+
+    if response is not None:
+        # Use the descriptions from the HTTPStatus class as the error message
+        http_code_to_message = {v.value: v.description for v in HTTPStatus}
+
+        error_payload = {
+            "error": {
+                "status_code": 0,
+                "message": "",
+                "details": [],
+            }
+        }
+        error = error_payload["error"]
+        status_code = response.status_code
+
+        error["status_code"] = status_code
+        error["message"] = http_code_to_message[status_code]
+        error["details"] = response.data
+        response.data = error_payload
+    return response
+
 
 urlpatterns = [
     path("", include(router.urls)),

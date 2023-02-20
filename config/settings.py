@@ -117,6 +117,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("apps.overrides.models.BearerAuthentication",),
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "config.urls.root_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 

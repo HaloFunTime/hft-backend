@@ -8,4 +8,4 @@ from apps.overrides.admin import AutofillCreatorModelAdmin
 class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
     list_display = ("id", "discord_account", "xbox_live_account", "verified", "creator")
     list_filter = ("creator",)
-    fields = ("id", "discord_account", "xbox_live_account", "verified", "creator")
+    fields = ("discord_account", "xbox_live_account", "verified", "creator")

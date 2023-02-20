@@ -1,6 +1,16 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
+from django.db.utils import IntegrityError
+from django.test import TestCase
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
+
+from apps.discord.models import DiscordAccount
+from apps.link.models import DiscordXboxLiveLink
+from apps.link.utils import update_or_create_discord_xbox_live_link
+from apps.xbox_live.models import XboxLiveAccount
 
 
 class LinkTestCase(APITestCase):
@@ -10,3 +20,220 @@ class LinkTestCase(APITestCase):
         )
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    @patch("apps.xbox_live.utils.get_xuid_for_gamertag")
+    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
+    def test_discord_to_xbox_live(
+        self, mock_signals_get_xuid_for_gamertag, mock_utils_get_xuid_for_gamertag
+    ):
+        # Missing field values throw errors
+        response = self.client.post("/link/discord-to-xbox-live", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("xboxLiveGamertag", details)
+        self.assertEqual(
+            details.get("xboxLiveGamertag"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {"discordUserId": "ABC", "discordUserTag": "1", "xboxLiveGamertag": "2ed"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId"),
+            [
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                )
+            ],
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag"),
+            [ErrorDetail(string="One '#' character is required.", code="invalid")],
+        )
+        self.assertIn("xboxLiveGamertag", details)
+        self.assertEqual(
+            details.get("xboxLiveGamertag"),
+            [
+                ErrorDetail(
+                    string="Only characters constituting a valid Xbox Live Gamertag are allowed.",
+                    code="invalid",
+                )
+            ],
+        )
+
+        # Happy path - new record created
+        mock_signals_get_xuid_for_gamertag.return_value = 0
+        mock_utils_get_xuid_for_gamertag.return_value = 0
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {
+                "discordUserId": "123",
+                "discordUserTag": "Test#0123",
+                "xboxLiveGamertag": "Test",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
+        self.assertEqual(response.data.get("xboxLiveXuid"), 0)
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test")
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        self.assertEqual(XboxLiveAccount.objects.count(), 1)
+
+        # If another Discord Account attempts to claim an already-linked Xbox Live Account, an error should be thrown
+        mock_signals_get_xuid_for_gamertag.return_value = 0
+        mock_utils_get_xuid_for_gamertag.return_value = 0
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {
+                "discordUserId": "456",
+                "discordUserTag": "Test#0456",
+                "xboxLiveGamertag": "Test",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+        self.assertEqual(DiscordAccount.objects.count(), 2)
+        self.assertEqual(XboxLiveAccount.objects.count(), 1)
+
+        # If the original Discord Account attempts to link to a different Xbox Live Account, no error should be thrown
+        mock_signals_get_xuid_for_gamertag.return_value = 1
+        mock_utils_get_xuid_for_gamertag.return_value = 1
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {
+                "discordUserId": "123",
+                "discordUserTag": "Test#0123",
+                "xboxLiveGamertag": "Test1",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
+        self.assertEqual(response.data.get("xboxLiveXuid"), 1)
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test1")
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+        self.assertEqual(DiscordAccount.objects.count(), 2)
+        self.assertEqual(XboxLiveAccount.objects.count(), 2)
+
+        # Now the "other" Discord Account can link to the first Xbox Live Account without issue
+        mock_signals_get_xuid_for_gamertag.return_value = 0
+        mock_utils_get_xuid_for_gamertag.return_value = 0
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {
+                "discordUserId": "456",
+                "discordUserTag": "Test#0456",
+                "xboxLiveGamertag": "Test",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("discordUserId"), "456")
+        self.assertEqual(response.data.get("discordUserTag"), "Test#0456")
+        self.assertEqual(response.data.get("xboxLiveXuid"), 0)
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test")
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
+        self.assertEqual(DiscordAccount.objects.count(), 2)
+        self.assertEqual(XboxLiveAccount.objects.count(), 2)
+
+
+class LinkUtilsTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+
+    @patch("apps.xbox_live.utils.get_xuid_for_gamertag")
+    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
+    def test_update_or_create_discord_xbox_live_link(
+        self, mock_signals_get_xuid_for_gamertag, mock_utils_get_xuid_for_gamertag
+    ):
+        def set_both_mock_return_values(return_value):
+            mock_signals_get_xuid_for_gamertag.return_value = return_value
+            mock_utils_get_xuid_for_gamertag.return_value = return_value
+
+        def reset_both_mocks():
+            mock_signals_get_xuid_for_gamertag.reset_mock()
+            mock_utils_get_xuid_for_gamertag.reset_mock()
+
+        discord_account_1 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="123", discord_tag="ABC#1234"
+        )
+        discord_account_2 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="456", discord_tag="ABC#1234"
+        )
+        set_both_mock_return_values(1)
+        xbox_live_account_1 = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="XBL1"
+        )
+        reset_both_mocks()
+        set_both_mock_return_values(2)
+        xbox_live_account_2 = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="XBL2"
+        )
+        reset_both_mocks()
+
+        # Initial call creates DiscordXboxLiveLink
+        discord_xbox_live_link_1 = update_or_create_discord_xbox_live_link(
+            discord_account_1, xbox_live_account_1, self.user
+        )
+        self.assertEqual(discord_xbox_live_link_1.discord_account, discord_account_1)
+        self.assertEqual(
+            discord_xbox_live_link_1.xbox_live_account, xbox_live_account_1
+        )
+        self.assertEqual(discord_xbox_live_link_1.verified, False)
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+
+        # Call with same DiscordAccount and different XboxLiveAccount should update the existing link record
+        discord_xbox_live_link_2 = update_or_create_discord_xbox_live_link(
+            discord_account_1, xbox_live_account_2, self.user
+        )
+        self.assertEqual(discord_xbox_live_link_2.discord_account, discord_account_1)
+        self.assertEqual(
+            discord_xbox_live_link_2.xbox_live_account, xbox_live_account_2
+        )
+        self.assertEqual(discord_xbox_live_link_2.verified, False)
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+
+        # Call with different DiscordAccount trying to link to the already-linked XboxLiveAccount should raise
+        self.assertRaisesMessage(
+            IntegrityError,
+            'duplicate key value violates unique constraint "DiscordXboxLiveLink_xbox_live_account_id_key"',
+            lambda: update_or_create_discord_xbox_live_link(
+                discord_account_2, xbox_live_account_2, self.user
+            ),
+        )
+
+        # Call with orphaned records should allow creation of new DiscordXboxLiveLink
+        discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
+            discord_account_2, xbox_live_account_1, self.user
+        )
+        self.assertEqual(discord_xbox_live_link_3.discord_account, discord_account_2)
+        self.assertEqual(
+            discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
+        )
+        self.assertEqual(discord_xbox_live_link_3.verified, False)
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
