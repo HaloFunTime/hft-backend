@@ -21,6 +21,7 @@ def update_or_create_xbox_live_account(gamertag: str, user: User) -> XboxLiveAcc
 def get_xuid_and_exact_gamertag(
     gamertag: str, **kwargs
 ) -> tuple[str | None, str | None]:
+    assert gamertag is not None
     logger.debug(f"Called get_xuid_and_exact_gamertag with gamertag '{gamertag}'.")
     xsts_token = kwargs.get("XboxLiveXSTSToken")
     headers = {
