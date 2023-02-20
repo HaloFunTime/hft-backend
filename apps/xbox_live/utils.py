@@ -8,15 +8,11 @@ from apps.xbox_live.models import XboxLiveAccount
 logger = logging.getLogger(__name__)
 
 
-def get_or_create_xbox_live_account(gamertag):
-    try:
-        existing_xbox_live_account = XboxLiveAccount.objects.get(gamertag=gamertag)
-        return existing_xbox_live_account
-    except XboxLiveAccount.DoesNotExist:
-        pass
-    return XboxLiveAccount.objects.create(
-        gamertag=gamertag, xuid=get_xuid_for_gamertag(gamertag)
-    )
+def update_or_create_xbox_live_account(gamertag: str, user) -> XboxLiveAccount:
+    return XboxLiveAccount.objects.update_or_create(
+        xuid=get_xuid_for_gamertag(gamertag),
+        defaults={"creator": user, "gamertag": gamertag},
+    )[0]
 
 
 @xsts_token

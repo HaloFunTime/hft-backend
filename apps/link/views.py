@@ -3,13 +3,13 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.discord.utils import get_or_create_discord_account
+from apps.discord.utils import update_or_create_discord_account
 from apps.link.serializers import (
     DiscordXboxLiveLinkSerializer,
     LinkDiscordAndXboxLiveErrorSerializer,
     LinkDiscordAndXboxLiveSerializer,
 )
-from apps.xbox_live.utils import get_or_create_xbox_live_account
+from apps.xbox_live.utils import update_or_create_xbox_live_account
 
 
 class LinkDiscordAndXboxLive(APIView):
@@ -28,11 +28,11 @@ class LinkDiscordAndXboxLive(APIView):
         """
         validation_serializer = LinkDiscordAndXboxLiveSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
-            discord_account = get_or_create_discord_account(
+            discord_account = update_or_create_discord_account(
                 validation_serializer.data.get("discordUserId"),
                 validation_serializer.data.get("discordUserTag"),
             )
-            xbox_live_account = get_or_create_xbox_live_account(
+            xbox_live_account = update_or_create_xbox_live_account(
                 validation_serializer.data.get("xboxLiveGamertag")
             )
             serializer = DiscordXboxLiveLinkSerializer(
