@@ -11,7 +11,7 @@ from apps.xbox_live.models import (
 
 @admin.register(XboxLiveAccount)
 class XboxLiveAccountAdmin(AutofillCreatorModelAdmin):
-    list_display = ("gamertag", "xuid", "creator")
+    list_display = ("xuid", "gamertag", "creator")
     list_filter = ("creator",)
     fields = ("gamertag", "xuid", "creator")
 

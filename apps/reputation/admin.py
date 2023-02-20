@@ -1,18 +1,22 @@
 from django.contrib import admin
 
-from apps.overrides.admin import AutofillCreatorModelAdmin
+from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.reputation.models import PlusRep
 
 
 @admin.register(PlusRep)
 class PlusRepAdmin(AutofillCreatorModelAdmin):
     list_display = (
+        "id",
         "created_at",
-        "updated_at",
-        "giver",
-        "receiver",
+        linkify("giver"),
+        linkify("receiver"),
         "message",
         "creator",
     )
-    list_filter = ("creator",)
+    list_filter = (
+        "giver",
+        "receiver",
+        "creator",
+    )
     fields = ("giver", "receiver", "message", "creator")

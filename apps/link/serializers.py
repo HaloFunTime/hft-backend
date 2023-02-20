@@ -11,7 +11,7 @@ class DiscordXboxLiveLinkResponseSerializer(serializers.Serializer):
     verified = serializers.BooleanField()
 
 
-class LinkDiscordToXboxLiveSerializer(serializers.Serializer):
+class DiscordToXboxLiveRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(max_length=20)
     discordUserTag = serializers.CharField(max_length=37)
     xboxLiveGamertag = serializers.CharField(min_length=1, max_length=15)
@@ -43,3 +43,7 @@ class LinkDiscordToXboxLiveSerializer(serializers.Serializer):
                 "Only characters constituting a valid Xbox Live Gamertag are allowed."
             )
         return value
+
+
+class DiscordXboxLiveLinkErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()

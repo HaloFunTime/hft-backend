@@ -1,26 +1,26 @@
 from django.contrib import admin
 
-from apps.overrides.admin import AutofillCreatorModelAdmin
+from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.series.models import SeriesGametype, SeriesMap, SeriesMode, SeriesRuleset
 
 
 @admin.register(SeriesMap)
 class SeriesMapAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "hi_asset_id", "creator", "id")
+    list_display = ("id", "name", "hi_asset_id", "creator")
     list_filter = ("name",)
     fields = ("name", "hi_asset_id", "creator")
 
 
 @admin.register(SeriesMode)
 class SeriesModeAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "hi_asset_id", "creator", "id")
+    list_display = ("id", "name", "hi_asset_id", "creator")
     list_filter = ("name",)
     fields = ("name", "hi_asset_id", "creator")
 
 
 @admin.register(SeriesRuleset)
 class SeriesRulesetAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "creator", "id")
+    list_display = ("id", "name", "creator")
     list_filter = ("name",)
     fields = (
         "name",
@@ -38,10 +38,17 @@ class SeriesRulesetAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(SeriesGametype)
 class SeriesGametypeAdmin(AutofillCreatorModelAdmin):
-    list_display = ("gametype", "creator", "id")
+    list_display = (
+        "id",
+        linkify("ruleset"),
+        linkify("mode"),
+        linkify("map"),
+        "creator",
+    )
     list_filter = (
-        "map",
+        "ruleset",
         "mode",
+        "map",
     )
     fields = ("ruleset", "mode", "map", "creator")
 

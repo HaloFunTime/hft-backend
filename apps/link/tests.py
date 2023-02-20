@@ -10,6 +10,7 @@ from rest_framework.test import APIClient, APITestCase
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
 from apps.link.utils import update_or_create_discord_xbox_live_link
+from apps.link.views import LINK_ERROR_INVALID_DISCORD_ID, LINK_ERROR_MISSING_DISCORD_ID
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -21,9 +22,52 @@ class LinkTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
+    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
+    def test_discord_to_xbox_live_get(self, mock_get_xuid_for_gamertag):
+        # Missing `discordId` throws error
+        response = self.client.get("/link/discord-to-xbox-live")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": LINK_ERROR_MISSING_DISCORD_ID})
+
+        # Non-numeric `discordId` throws error
+        response = self.client.get("/link/discord-to-xbox-live?discordId=invalid")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_ID})
+
+        # No DiscordXboxLiveLink returns 404
+        response = self.client.get("/link/discord-to-xbox-live?discordId=123456789")
+        self.assertEqual(response.status_code, 404)
+
+        # Existing DiscordXboxLiveLink returns 200
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="123", discord_tag="ABC#1234"
+        )
+        mock_get_xuid_for_gamertag.return_value = 0
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="test123"
+        )
+        DiscordXboxLiveLink.objects.create(
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            creator=self.user,
+        )
+        response = self.client.get(
+            f"/link/discord-to-xbox-live?discordId={discord_account.discord_id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("discordUserId"), discord_account.discord_id)
+        self.assertEqual(
+            response.data.get("discordUserTag"), discord_account.discord_tag
+        )
+        self.assertEqual(response.data.get("xboxLiveXuid"), xbox_live_account.xuid)
+        self.assertEqual(
+            response.data.get("xboxLiveGamertag"), xbox_live_account.gamertag
+        )
+        self.assertEqual(response.data.get("verified"), False)
+
     @patch("apps.xbox_live.utils.get_xuid_for_gamertag")
     @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
-    def test_discord_to_xbox_live(
+    def test_discord_to_xbox_live_post(
         self, mock_signals_get_xuid_for_gamertag, mock_utils_get_xuid_for_gamertag
     ):
         # Missing field values throw errors

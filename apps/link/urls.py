@@ -5,7 +5,7 @@ from apps.link import views
 urlpatterns = [
     path(
         "discord-to-xbox-live",
-        views.LinkDiscordToXboxLive.as_view(),
+        views.DiscordToXboxLive.as_view(),
         name="discord-to-xbox-live",
     ),
 ]

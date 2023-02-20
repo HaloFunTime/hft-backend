@@ -6,6 +6,6 @@ from apps.overrides.admin import AutofillCreatorModelAdmin
 
 @admin.register(DiscordAccount)
 class DiscordAccountAdmin(AutofillCreatorModelAdmin):
-    list_display = ("discord_tag", "discord_id", "creator")
+    list_display = ("discord_id", "discord_tag", "creator")
     list_filter = ("creator",)
     fields = ("discord_tag", "discord_id", "creator")
