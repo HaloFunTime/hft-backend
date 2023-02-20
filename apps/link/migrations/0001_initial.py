@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("xbox_live", "0002_alter_xboxliveaccount_options"),
+        ("xbox_live", "0003_remove_xboxliveaccount_id_xboxliveaccount_xuid_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("discord", "0001_initial"),
     ]
