@@ -13,7 +13,6 @@ def update_or_create_discord_xbox_live_link(
     discord_account: DiscordAccount,
     xbox_live_account: XboxLiveAccount,
     user: User,
-    verified: bool = False,
 ) -> DiscordXboxLiveLink:
     # NOTE: The following method call prioritizes the DiscordAccount, so that the XboxLiveAccount
     # associated with the DiscordAccount may be changed without errors.
@@ -22,6 +21,5 @@ def update_or_create_discord_xbox_live_link(
         defaults={
             "xbox_live_account": xbox_live_account,
             "creator": user,
-            "verified": verified,
         },
     )[0]
