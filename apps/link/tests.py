@@ -22,8 +22,8 @@ class LinkTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
-    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
-    def test_discord_to_xbox_live_get(self, mock_get_xuid_for_gamertag):
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_discord_to_xbox_live_get(self, mock_get_xuid_and_exact_gamertag):
         # Missing `discordId` throws error
         response = self.client.get("/link/discord-to-xbox-live")
         self.assertEqual(response.status_code, 400)
@@ -42,7 +42,7 @@ class LinkTestCase(APITestCase):
         discord_account = DiscordAccount.objects.create(
             creator=self.user, discord_id="123", discord_tag="ABC#1234"
         )
-        mock_get_xuid_for_gamertag.return_value = 0
+        mock_get_xuid_and_exact_gamertag.return_value = (0, "Test123")
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="test123"
         )
@@ -65,10 +65,12 @@ class LinkTestCase(APITestCase):
         )
         self.assertEqual(response.data.get("verified"), False)
 
-    @patch("apps.xbox_live.utils.get_xuid_for_gamertag")
-    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
+    @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_discord_to_xbox_live_post(
-        self, mock_signals_get_xuid_for_gamertag, mock_utils_get_xuid_for_gamertag
+        self,
+        mock_signals_get_xuid_and_exact_gamertag,
+        mock_utils_get_xuid_and_exact_gamertag,
     ):
         # Missing field values throw errors
         response = self.client.post("/link/discord-to-xbox-live", {}, format="json")
@@ -124,8 +126,8 @@ class LinkTestCase(APITestCase):
         )
 
         # Happy path - new record created
-        mock_signals_get_xuid_for_gamertag.return_value = 0
-        mock_utils_get_xuid_for_gamertag.return_value = 0
+        mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
+        mock_utils_get_xuid_and_exact_gamertag.return_value = (0, "test")
         response = self.client.post(
             "/link/discord-to-xbox-live",
             {
@@ -139,14 +141,14 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserId"), "123")
         self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
-        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test")
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "test")
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 1)
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
 
         # If another Discord Account attempts to claim an already-linked Xbox Live Account, an error should be thrown
-        mock_signals_get_xuid_for_gamertag.return_value = 0
-        mock_utils_get_xuid_for_gamertag.return_value = 0
+        mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
+        mock_utils_get_xuid_and_exact_gamertag.return_value = (0, "test")
         response = self.client.post(
             "/link/discord-to-xbox-live",
             {
@@ -162,8 +164,8 @@ class LinkTestCase(APITestCase):
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
 
         # If the original Discord Account attempts to link to a different Xbox Live Account, no error should be thrown
-        mock_signals_get_xuid_for_gamertag.return_value = 1
-        mock_utils_get_xuid_for_gamertag.return_value = 1
+        mock_signals_get_xuid_and_exact_gamertag.return_value = (1, "test1")
+        mock_utils_get_xuid_and_exact_gamertag.return_value = (1, "test1")
         response = self.client.post(
             "/link/discord-to-xbox-live",
             {
@@ -177,14 +179,14 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserId"), "123")
         self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 1)
-        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test1")
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "test1")
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 2)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
 
         # Now the "other" Discord Account can link to the first Xbox Live Account without issue
-        mock_signals_get_xuid_for_gamertag.return_value = 0
-        mock_utils_get_xuid_for_gamertag.return_value = 0
+        mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
+        mock_utils_get_xuid_and_exact_gamertag.return_value = (0, "test")
         response = self.client.post(
             "/link/discord-to-xbox-live",
             {
@@ -198,7 +200,7 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserId"), "456")
         self.assertEqual(response.data.get("discordUserTag"), "Test#0456")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
-        self.assertEqual(response.data.get("xboxLiveGamertag"), "Test")
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "test")
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
         self.assertEqual(DiscordAccount.objects.count(), 2)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
@@ -210,18 +212,20 @@ class LinkUtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    @patch("apps.xbox_live.utils.get_xuid_for_gamertag")
-    @patch("apps.xbox_live.signals.get_xuid_for_gamertag")
+    @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_update_or_create_discord_xbox_live_link(
-        self, mock_signals_get_xuid_for_gamertag, mock_utils_get_xuid_for_gamertag
+        self,
+        mock_signals_get_xuid_and_exact_gamertag,
+        mock_utils_get_xuid_and_exact_gamertag,
     ):
         def set_both_mock_return_values(return_value):
-            mock_signals_get_xuid_for_gamertag.return_value = return_value
-            mock_utils_get_xuid_for_gamertag.return_value = return_value
+            mock_signals_get_xuid_and_exact_gamertag.return_value = return_value
+            mock_utils_get_xuid_and_exact_gamertag.return_value = return_value
 
         def reset_both_mocks():
-            mock_signals_get_xuid_for_gamertag.reset_mock()
-            mock_utils_get_xuid_for_gamertag.reset_mock()
+            mock_signals_get_xuid_and_exact_gamertag.reset_mock()
+            mock_utils_get_xuid_and_exact_gamertag.reset_mock()
 
         discord_account_1 = DiscordAccount.objects.create(
             creator=self.user, discord_id="123", discord_tag="ABC#1234"
@@ -229,12 +233,12 @@ class LinkUtilsTestCase(TestCase):
         discord_account_2 = DiscordAccount.objects.create(
             creator=self.user, discord_id="456", discord_tag="ABC#1234"
         )
-        set_both_mock_return_values(1)
+        set_both_mock_return_values((1, "xbl1"))
         xbox_live_account_1 = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="XBL1"
         )
         reset_both_mocks()
-        set_both_mock_return_values(2)
+        set_both_mock_return_values((2, "xbl2"))
         xbox_live_account_2 = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="XBL2"
         )

@@ -10,15 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 def update_or_create_xbox_live_account(gamertag: str, user: User) -> XboxLiveAccount:
+    xuid_gamertag_tuple = get_xuid_and_exact_gamertag(gamertag)
     return XboxLiveAccount.objects.update_or_create(
-        xuid=get_xuid_for_gamertag(gamertag),
-        defaults={"creator": user, "gamertag": gamertag},
+        xuid=xuid_gamertag_tuple[0],
+        defaults={"creator": user, "gamertag": xuid_gamertag_tuple[1]},
     )[0]
 
 
 @xsts_token
-def get_xuid_for_gamertag(gamertag: str, **kwargs) -> str | None:
-    logger.debug(f"Called get_xuid_for_gamertag with gamertag '{gamertag}'.")
+def get_xuid_and_exact_gamertag(
+    gamertag: str, **kwargs
+) -> tuple[str | None, str | None]:
+    logger.debug(f"Called get_xuid_and_exact_gamertag with gamertag '{gamertag}'.")
     xsts_token = kwargs.get("XboxLiveXSTSToken")
     headers = {
         "Authorization": f"XBL3.0 x={xsts_token.uhs};{xsts_token.token}",
@@ -27,13 +30,21 @@ def get_xuid_for_gamertag(gamertag: str, **kwargs) -> str | None:
     }
     with requests.Session() as s:
         xuid = None
+        exact_gamertag = None
         try:
+            params = {"settings": "Gamertag"}
             response = s.get(
                 f"https://profile.xboxlive.com/users/gt({gamertag})/profile/settings",
+                params=params,
                 headers=headers,
             )
-            xuid = response.json().get("profileUsers")[0].get("id")
+            resp_json = response.json()
+            xuid = resp_json.get("profileUsers")[0].get("id")
+            exact_gamertag = (
+                resp_json.get("profileUsers")[0].get("settings")[0].get("value")
+            )
             logger.debug(f"XUID is {xuid}.")
+            logger.debug(f"Exact gamertag is {exact_gamertag}.")
         except Exception:
-            logger.debug("Failed to get XUID.")
-    return xuid
+            logger.debug("Failed to get XUID and exact gamertag.")
+    return (xuid, exact_gamertag)
