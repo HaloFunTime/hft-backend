@@ -29,5 +29,8 @@ class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
         "verified",
         "creator",
     )
-    list_filter = ("creator",)
+    list_filter = (
+        "verifier",
+        "creator",
+    )
     fields = ("discord_account", "xbox_live_account", "verified", "verifier", "creator")
