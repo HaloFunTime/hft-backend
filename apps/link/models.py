@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from apps.discord.models import DiscordAccount
@@ -28,3 +29,10 @@ class DiscordXboxLiveLink(Base):
         verbose_name="Xbox Live Account",
     )
     verified = models.BooleanField(default=False, verbose_name="Verified?")
+    verifier = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        default=None,
+        null=True,
+        on_delete=models.RESTRICT,
+        related_name="verifiers",
+    )
