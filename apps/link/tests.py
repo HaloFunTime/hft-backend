@@ -258,6 +258,7 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_1.xbox_live_account, xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_1.verified, False)
+        self.assertIsNone(discord_xbox_live_link_1.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
 
         # Call with same DiscordAccount and different XboxLiveAccount should update the existing link record
@@ -269,6 +270,7 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_2.xbox_live_account, xbox_live_account_2
         )
         self.assertEqual(discord_xbox_live_link_2.verified, False)
+        self.assertIsNone(discord_xbox_live_link_2.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
 
         # Call with different DiscordAccount trying to link to the already-linked XboxLiveAccount should raise
@@ -289,6 +291,7 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
+        self.assertIsNone(discord_xbox_live_link_3.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
 
         # Update with same arguments should preserve existing verification status (False)
@@ -300,10 +303,12 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
+        self.assertIsNone(discord_xbox_live_link_3.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
 
         # Update with same arguments should preserve existing verification status (True)
         discord_xbox_live_link_3.verified = True
+        discord_xbox_live_link_3.verifier = self.user
         discord_xbox_live_link_3.save()
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
             discord_account_2, xbox_live_account_1, self.user
@@ -313,9 +318,10 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, True)
+        self.assertEqual(discord_xbox_live_link_3.verifier, self.user)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
 
-        # Update with a new XboxLiveAccount should reset verified to False
+        # Update with a new XboxLiveAccount should reset verified to False and clear verifier
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
             discord_account_2, xbox_live_account_3, self.user
         )
@@ -324,4 +330,5 @@ class LinkUtilsTestCase(TestCase):
             discord_xbox_live_link_3.xbox_live_account, xbox_live_account_3
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
+        self.assertIsNone(discord_xbox_live_link_3.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
