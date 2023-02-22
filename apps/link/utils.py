@@ -14,12 +14,29 @@ def update_or_create_discord_xbox_live_link(
     xbox_live_account: XboxLiveAccount,
     user: User,
 ) -> DiscordXboxLiveLink:
+    verified = False
+
+    # If a DiscordXboxLiveLink record already exists with this DiscordAccount/XboxLiveAccount pair,
+    # preserve its existing verification status.
+    existing_link_record = (
+        DiscordXboxLiveLink.objects.filter(discord_account=discord_account)
+        .select_related("xbox_live_account")
+        .first()
+    )
+    if (
+        existing_link_record is not None
+        and existing_link_record.xbox_live_account is not None
+        and existing_link_record.xbox_live_account.xuid == xbox_live_account.xuid
+    ):
+        verified = existing_link_record.verified
+
     # NOTE: The following method call prioritizes the DiscordAccount, so that the XboxLiveAccount
     # associated with the DiscordAccount may be changed without errors.
     return DiscordXboxLiveLink.objects.update_or_create(
         discord_account=discord_account,
         defaults={
             "xbox_live_account": xbox_live_account,
+            "verified": verified,
             "creator": user,
         },
     )[0]
