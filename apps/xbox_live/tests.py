@@ -603,6 +603,42 @@ class XboxLiveUtilsTestCase(TestCase):
         mock_get_xsts_token.reset_mock()
         mock_Session.reset_mock()
 
+        # Test a successful call with a modern # tag
+        mock_get_xsts_token.return_value = XboxLiveXSTSToken(
+            creator=self.user,
+            created_at=datetime.datetime.now(datetime.timezone.utc),
+            updated_at=datetime.datetime.now(datetime.timezone.utc),
+            issue_instant=datetime.datetime.now(datetime.timezone.utc),
+            not_after=datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(seconds=3600),
+            token="token",
+            uhs="uhs",
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "profileUsers": [
+                {
+                    "id": "2535405290989774",
+                    "hostId": "2535405290989774",
+                    "settings": [{"id": "Gamertag", "value": "Intern0123"}],
+                    "isSponsoredUser": False,
+                }
+            ]
+        }
+        xuid_gamertag_tuple = get_xuid_and_exact_gamertag("Intern#0123")
+        self.assertEqual(xuid_gamertag_tuple[0], "2535405290989774")
+        self.assertEqual(xuid_gamertag_tuple[1], "Intern0123")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://profile.xboxlive.com/users/gt(Intern0123)/profile/settings",
+            params={"settings": "Gamertag"},
+            headers={
+                "Authorization": "XBL3.0 x=uhs;token",
+                "Content-Type": "application/json; charset=utf-8",
+                "x-xbl-contract-version": "3",
+            },
+        )
+        mock_get_xsts_token.reset_mock()
+        mock_Session.reset_mock()
+
         # Test a failed call
         mock_get_xsts_token.return_value = XboxLiveXSTSToken(
             creator=self.user,

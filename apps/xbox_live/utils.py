@@ -23,6 +23,7 @@ def get_xuid_and_exact_gamertag(
 ) -> tuple[str | None, str | None]:
     assert gamertag is not None
     logger.debug(f"Called get_xuid_and_exact_gamertag with gamertag '{gamertag}'.")
+    gamertag = gamertag.replace("#", "", 1)  # Replace first # with an empty space
     xsts_token = kwargs.get("XboxLiveXSTSToken")
     headers = {
         "Authorization": f"XBL3.0 x={xsts_token.uhs};{xsts_token.token}",
