@@ -30,6 +30,7 @@ class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
         "creator",
     )
     list_filter = (
+        "verified",
         "verifier",
         "creator",
     )

@@ -74,7 +74,7 @@ class XboxLiveTokensTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    @patch("apps.xbox_live.utils.requests.Session")
+    @patch("apps.xbox_live.tokens.requests.Session")
     def test_refresh_oauth_token(self, mock_Session):
         oauth_token = XboxLiveOAuthToken.objects.create(
             creator=self.user,
@@ -196,7 +196,7 @@ class XboxLiveTokensTestCase(TestCase):
             get_oauth_token,
         )
 
-    @patch("apps.xbox_live.utils.requests.Session")
+    @patch("apps.xbox_live.tokens.requests.Session")
     def test_generate_user_token(self, mock_Session):
         oauth_token = XboxLiveOAuthToken.objects.create(
             creator=self.user,
@@ -208,7 +208,7 @@ class XboxLiveTokensTestCase(TestCase):
             user_id="user_id",
         )
 
-        # Successful status code should create another XboxLiveOAuthToken record with unique properties
+        # Successful status code should create another XboxLiveUserToken record with unique properties
         mock_Session.return_value.__enter__.return_value.post.return_value.status_code = (
             200
         )
@@ -347,7 +347,7 @@ class XboxLiveTokensTestCase(TestCase):
             get_user_token,
         )
 
-    @patch("apps.xbox_live.utils.requests.Session")
+    @patch("apps.xbox_live.tokens.requests.Session")
     def test_generate_xsts_token(self, mock_Session):
         user_token = XboxLiveUserToken.objects.create(
             creator=self.user,
@@ -358,7 +358,7 @@ class XboxLiveTokensTestCase(TestCase):
             uhs="test_uhs",
         )
 
-        # Successful status code should create another XboxLiveOAuthToken record with unique properties
+        # Successful status code should create another XboxLiveXSTSToken record with unique properties
         mock_Session.return_value.__enter__.return_value.post.return_value.status_code = (
             200
         )
@@ -405,7 +405,7 @@ class XboxLiveTokensTestCase(TestCase):
         self.assertEqual(new_xsts_token.token, "xsts_test_token")
         self.assertEqual(new_xsts_token.uhs, "xsts_test_uhs")
 
-        # Unsuccessful status code should return None and not create a new XboxLiveUserToken record
+        # Unsuccessful status code should return None and not create a new XboxLiveXSTSToken record
         mock_Session.reset_mock()
         mock_Session.return_value.__enter__.return_value.post.return_value.status_code = (
             401

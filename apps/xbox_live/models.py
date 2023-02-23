@@ -27,8 +27,8 @@ class XboxLiveOAuthToken(Base):
         ordering = [
             "created_at",
         ]
-        verbose_name = "OAuthToken"
-        verbose_name_plural = "OAuthTokens"
+        verbose_name = "OAuth Token"
+        verbose_name_plural = "OAuth Tokens"
 
     @property
     def expiration_datetime(self) -> datetime.datetime:
@@ -55,8 +55,8 @@ class XboxLiveUserToken(Base):
         ordering = [
             "created_at",
         ]
-        verbose_name = "UserToken"
-        verbose_name_plural = "UserTokens"
+        verbose_name = "User Token"
+        verbose_name_plural = "User Tokens"
 
     @property
     def expired(self) -> bool:
@@ -74,8 +74,8 @@ class XboxLiveXSTSToken(Base):
         ordering = [
             "created_at",
         ]
-        verbose_name = "XSTSToken"
-        verbose_name_plural = "XSTSTokens"
+        verbose_name = "XSTS Token"
+        verbose_name_plural = "XSTS Tokens"
 
     @property
     def expired(self) -> bool:
