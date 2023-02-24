@@ -4,6 +4,8 @@ from django.db import models
 
 from apps.overrides.models import Base, BaseWithoutPrimaryKey
 
+CLEARANCE_EXPIRATION_SECONDS = 900
+
 
 class HaloInfiniteBuildID(BaseWithoutPrimaryKey):
     class Meta:
@@ -65,5 +67,18 @@ class HaloInfiniteClearanceToken(Base):
         ]
         verbose_name = "Clearance Token"
         verbose_name_plural = "Clearance Tokens"
+
+    @property
+    def expiration_datetime(self) -> datetime.datetime:
+        # Expiration datetime is calculated by adding CLEARANCE_EXPIRATION_SECONDS to
+        # "created_at", less a small kludge factor to account for any latency
+        # that occurred between generating the token and databasing it.
+        return self.created_at + datetime.timedelta(
+            seconds=(CLEARANCE_EXPIRATION_SECONDS - 30)
+        )
+
+    @property
+    def expired(self) -> bool:
+        return datetime.datetime.now(datetime.timezone.utc) > self.expiration_datetime
 
     flight_configuration_id = models.CharField(max_length=256)

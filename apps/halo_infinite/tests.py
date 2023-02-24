@@ -1,17 +1,26 @@
 import datetime
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.halo_infinite.exceptions import (
+    HaloInfiniteClearanceTokenMissingException,
     HaloInfiniteSpartanTokenMissingException,
     HaloInfiniteXSTSTokenMissingException,
 )
-from apps.halo_infinite.models import HaloInfiniteSpartanToken, HaloInfiniteXSTSToken
+from apps.halo_infinite.models import (
+    HaloInfiniteBuildID,
+    HaloInfiniteClearanceToken,
+    HaloInfiniteSpartanToken,
+    HaloInfiniteXSTSToken,
+)
 from apps.halo_infinite.tokens import (
+    generate_clearance_token,
     generate_spartan_token,
     generate_xsts_token,
+    get_clearance_token,
     get_spartan_token,
     get_xsts_token,
 )
@@ -168,7 +177,7 @@ class HaloInfiniteTokensTestCase(TestCase):
         mock_get_user_token.reset_mock()
         mock_generate_xsts_token.reset_mock()
 
-        # If new token generation method fails to create a new token, result is HaloInfiniteXSTSTokenMissingException
+        # If new token generation method fails to create a new token, HaloInfiniteXSTSTokenMissingException
         mock_generate_xsts_token.return_value = None
         self.assertRaisesMessage(
             HaloInfiniteXSTSTokenMissingException,
@@ -312,10 +321,149 @@ class HaloInfiniteTokensTestCase(TestCase):
         mock_get_xsts_token.reset_mock()
         mock_generate_spartan_token.reset_mock()
 
-        # If new token generation method fails to create a new token, result is HaloInfiniteSpartanTokenMissingException
+        # If new token generation method fails to create a new token, HaloInfiniteSpartanTokenMissingException
         mock_generate_spartan_token.return_value = None
         self.assertRaisesMessage(
             HaloInfiniteSpartanTokenMissingException,
             "Could not retrieve an unexpired HaloInfiniteSpartanToken.",
             get_spartan_token,
+        )
+
+    @patch("apps.halo_infinite.tokens.requests.Session")
+    def test_generate_clearance_token(self, mock_Session):
+        spartan_token = HaloInfiniteSpartanToken.objects.create(
+            creator=self.user,
+            expires_utc=datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(seconds=3600),
+            token="new_token",
+            token_duration="new_duration",
+        )
+
+        # Successful status code should create another HaloInfiniteClearanceToken record with unique properties
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "FlightConfigurationId": "test_clearance_token"
+        }
+        test_xuid = "1234"
+        test_build_id = "v1.0.0"
+        new_clearance_token = generate_clearance_token(
+            spartan_token, test_xuid, test_build_id
+        )
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
+            f"xuid({test_xuid})/active?sandbox=UNUSED&build={test_build_id}",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": spartan_token.token,
+            },
+        )
+        self.assertEqual(HaloInfiniteClearanceToken.objects.all().count(), 1)
+        self.assertIsNotNone(new_clearance_token.id)
+        self.assertEqual(
+            new_clearance_token.flight_configuration_id, "test_clearance_token"
+        )
+
+        # Unsuccessful status code should return None and not create a new XboxLiveUserToken record
+        mock_Session.reset_mock()
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            401
+        )
+        test_xuid = "1234"
+        test_build_id = "v1.0.0"
+        new_clearance_token = generate_clearance_token(
+            spartan_token, test_xuid, test_build_id
+        )
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
+            f"xuid({test_xuid})/active?sandbox=UNUSED&build={test_build_id}",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": spartan_token.token,
+            },
+        )
+        self.assertEqual(HaloInfiniteClearanceToken.objects.all().count(), 1)
+        self.assertIsNone(new_clearance_token)
+
+    @patch("apps.halo_infinite.tokens.generate_clearance_token")
+    @patch("apps.halo_infinite.tokens.get_spartan_token")
+    def test_get_clearance_token(
+        self, mock_get_spartan_token, mock_generate_clearance_token
+    ):
+        in_memory_spartan_token = HaloInfiniteSpartanToken(
+            creator=self.user,
+            created_at=datetime.datetime.now(datetime.timezone.utc),
+            updated_at=datetime.datetime.now(datetime.timezone.utc),
+            expires_utc=datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(seconds=3600),
+            token="test_token",
+            token_duration="test_duration",
+        )
+        test_build_id = HaloInfiniteBuildID.objects.create(
+            creator=self.user,
+            build_date=datetime.datetime.now(datetime.timezone.utc),
+            build_id="1.0.0",
+        )
+
+        # No token in DB results in HaloInfiniteClearanceTokenMissingException
+        mock_get_spartan_token.return_value = in_memory_spartan_token
+        mock_generate_clearance_token.return_value = None
+        self.assertRaisesMessage(
+            HaloInfiniteClearanceTokenMissingException,
+            "Could not retrieve an unexpired HaloInfiniteClearanceToken.",
+            get_clearance_token,
+        )
+        mock_get_spartan_token.assert_called_once()
+        mock_generate_clearance_token.assert_called_once_with(
+            in_memory_spartan_token, settings.INTERN_XUID, test_build_id.build_id
+        )
+        mock_get_spartan_token.reset_mock()
+        mock_generate_clearance_token.reset_mock()
+
+        # Unexpired token in DB results in token being returned
+        clearance_token = HaloInfiniteClearanceToken.objects.create(
+            creator=self.user,
+            flight_configuration_id="test_clearance",
+        )
+        returned_clearance_token = get_clearance_token()
+        self.assertEqual(returned_clearance_token.id, clearance_token.id)
+        self.assertEqual(
+            returned_clearance_token.flight_configuration_id,
+            clearance_token.flight_configuration_id,
+        )
+
+        # Expired token in DB results in `generate_clearance_token` being called
+        clearance_token.created_at = datetime.datetime.now(
+            datetime.timezone.utc
+        ) - datetime.timedelta(seconds=3600)
+        clearance_token.save()
+        new_clearance_token = HaloInfiniteClearanceToken(
+            creator=self.user,
+            created_at=datetime.datetime.now(datetime.timezone.utc),
+            updated_at=datetime.datetime.now(datetime.timezone.utc),
+            flight_configuration_id="new_clearance",
+        )
+        mock_get_spartan_token.return_value = in_memory_spartan_token
+        mock_generate_clearance_token.return_value = new_clearance_token
+        returned_clearance_token = get_clearance_token()
+        self.assertEqual(returned_clearance_token.id, new_clearance_token.id)
+        self.assertEqual(
+            returned_clearance_token.flight_configuration_id,
+            new_clearance_token.flight_configuration_id,
+        )
+        mock_generate_clearance_token.assert_called_once_with(
+            in_memory_spartan_token, settings.INTERN_XUID, test_build_id.build_id
+        )
+        mock_get_spartan_token.reset_mock()
+        mock_generate_clearance_token.reset_mock()
+
+        # If new token generation method fails to create a new token, HaloInfiniteClearanceTokenMissingException
+        mock_generate_clearance_token.return_value = None
+        self.assertRaisesMessage(
+            HaloInfiniteClearanceTokenMissingException,
+            "Could not retrieve an unexpired HaloInfiniteClearanceToken.",
+            get_clearance_token,
         )

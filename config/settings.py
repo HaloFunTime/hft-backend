@@ -35,6 +35,7 @@ AZURE_CLIENT_ID = env.str("AZURE_CLIENT_ID", "")
 AZURE_CLIENT_SECRET = env.str("AZURE_CLIENT_SECRET", "")
 DEBUG = env("DEBUG")
 ENVIRONMENT = env.str("ENVIRONMENT", "dev")
+INTERN_XUID = env.str("INTERN_XUID", "")
 SECRET_KEY = env.str("SECRET_KEY", get_random_secret_key())
 
 

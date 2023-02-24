@@ -2,8 +2,10 @@ import datetime
 import logging
 
 import requests
+from django.conf import settings
 
 from apps.halo_infinite.exceptions import (
+    HaloInfiniteClearanceTokenMissingException,
     HaloInfiniteSpartanTokenMissingException,
     HaloInfiniteXSTSTokenMissingException,
 )
@@ -129,6 +131,7 @@ def get_spartan_token() -> HaloInfiniteSpartanToken:
 def generate_clearance_token(
     spartan_token: HaloInfiniteSpartanToken,
     xuid: str,
+    build_id: str,
 ) -> HaloInfiniteClearanceToken | None:
     headers = {
         "Accept": "application/json",
@@ -136,11 +139,10 @@ def generate_clearance_token(
         "x-343-authorization-spartan": spartan_token.token,
     }
     clearance_token = None
-    most_recent_build = HaloInfiniteBuildID.objects.order_by("-build_date").first()
     with requests.Session() as s:
         response = s.get(
             "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
-            f"xuid({xuid})/active?sandbox=UNUSED&build={most_recent_build.build_id}",
+            f"xuid({xuid})/active?sandbox=UNUSED&build={build_id}",
             headers=headers,
         )
         if response.status_code == 200:
@@ -150,3 +152,26 @@ def generate_clearance_token(
                 flight_configuration_id=response_dict.get("FlightConfigurationId"),
             )
     return clearance_token
+
+
+def get_clearance_token() -> HaloInfiniteClearanceToken:
+    # Get the freshest HaloInfiniteClearanceToken from the DB.
+    clearance_token = HaloInfiniteClearanceToken.objects.order_by("-created_at").first()
+
+    # If there is no token, or the token exists but is expired, try generating a new one
+    if not clearance_token or (clearance_token and clearance_token.expired):
+        # Retrieve a HaloInfiniteSpartanToken, XUID, and Build ID (needed for generating a new Clearance token)
+        spartan_token = get_spartan_token()
+        xuid = settings.INTERN_XUID
+        most_recent_build = HaloInfiniteBuildID.objects.order_by("-build_date").first()
+        clearance_token = generate_clearance_token(
+            spartan_token, xuid, most_recent_build.build_id
+        )
+
+    # If we get to this point with an unexpired token, return it
+    if clearance_token and not clearance_token.expired:
+        return clearance_token
+
+    raise HaloInfiniteClearanceTokenMissingException(
+        "Could not retrieve an unexpired HaloInfiniteClearanceToken."
+    )
