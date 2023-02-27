@@ -36,13 +36,13 @@ class DiscordToXboxLiveRequestSerializer(serializers.Serializer):
         """
         Validate that the xboxLiveGamertag contains valid characters.
         """
-        squished = value.replace(" ", "").replace("#", "", 1)
-        squished_gamertag_regex = r"[a-zA-Z][a-zA-Z0-9]{0,14}"
-        if not re.match(squished_gamertag_regex, squished):
+        normalized = value.replace("#", "", 1)
+        normalized_gamertag_regex = r"[ a-zA-Z][ a-zA-Z0-9]{0,14}"
+        if not re.match(normalized_gamertag_regex, normalized):
             raise serializers.ValidationError(
                 "Only characters constituting a valid Xbox Live Gamertag are allowed."
             )
-        return value
+        return normalized
 
 
 class DiscordXboxLiveLinkErrorSerializer(serializers.Serializer):

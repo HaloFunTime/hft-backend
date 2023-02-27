@@ -3,6 +3,8 @@ from django.contrib import admin
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
     HaloInfiniteClearanceToken,
+    HaloInfinitePlaylist,
+    HaloInfiniteSeason,
     HaloInfiniteSpartanToken,
     HaloInfiniteXSTSToken,
 )
@@ -18,6 +20,28 @@ class HaloInfiniteBuildIDAdmin(AutofillCreatorModelAdmin):
         "build_date",
         "creator",
     )
+
+
+@admin.register(HaloInfinitePlaylist)
+class HaloInfinitePlaylistAdmin(AutofillCreatorModelAdmin):
+    list_display = ("playlist_id", "name", "active", "ranked", "creator")
+    list_filter = ("ranked", "creator")
+    fields = (
+        "playlist_id",
+        "version_id",
+        "name",
+        "description",
+        "active",
+        "ranked",
+        "creator",
+    )
+
+
+@admin.register(HaloInfiniteSeason)
+class HaloInfiniteSeasonAdmin(AutofillCreatorModelAdmin):
+    list_display = ("season_id", "name", "start_date", "end_date", "creator")
+    list_filter = ("creator",)
+    fields = ("season_id", "name", "start_date", "end_date", "creator")
 
 
 @admin.register(HaloInfiniteXSTSToken)

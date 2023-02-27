@@ -1,8 +1,10 @@
 import datetime
+import uuid
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db.utils import IntegrityError
 from django.test import TestCase
 
 from apps.halo_infinite.exceptions import (
@@ -13,6 +15,7 @@ from apps.halo_infinite.exceptions import (
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
     HaloInfiniteClearanceToken,
+    HaloInfinitePlaylist,
     HaloInfiniteSpartanToken,
     HaloInfiniteXSTSToken,
 )
@@ -24,7 +27,88 @@ from apps.halo_infinite.tokens import (
     get_spartan_token,
     get_xsts_token,
 )
+from apps.halo_infinite.utils import (
+    get_csrs,
+    get_playlist_latest_version_info,
+    get_summary_stats,
+)
 from apps.xbox_live.models import XboxLiveUserToken
+
+
+class HaloInfinitePlaylistTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+
+    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
+    def test_halo_infinite_playlist_save(self, mock_get_playlist_latest_version_info):
+        # Creating a playlist should be successful if only Playlist ID is provided (rest is hydrated by pre_save)
+        test_1_playlist_id = uuid.uuid4()
+        test_1_version_id = uuid.uuid4()
+        mock_get_playlist_latest_version_info.return_value = {
+            "playlist_id": test_1_playlist_id,
+            "version_id": test_1_version_id,
+            "ranked": True,
+            "name": "name",
+            "description": "description",
+        }
+        playlist = HaloInfinitePlaylist.objects.create(
+            creator=self.user, playlist_id=test_1_playlist_id
+        )
+        self.assertEqual(playlist.playlist_id, test_1_playlist_id)
+        self.assertEqual(playlist.version_id, test_1_version_id)
+        self.assertEqual(playlist.ranked, True)
+        self.assertEqual(playlist.name, "name")
+        self.assertEqual(playlist.description, "description")
+
+        mock_get_playlist_latest_version_info.assert_called_once_with(
+            test_1_playlist_id
+        )
+        mock_get_playlist_latest_version_info.reset_mock()
+
+        # Playlist ID provided in create call should be replaced by the one retrieved in pre_save signal
+        test_2_playlist_id = uuid.uuid4()
+        test_2_version_id = uuid.uuid4()
+        mock_get_playlist_latest_version_info.return_value = {
+            "playlist_id": test_2_playlist_id,
+            "version_id": test_2_version_id,
+            "ranked": False,
+            "name": "test_name",
+            "description": "test_description",
+        }
+        playlist = HaloInfinitePlaylist.objects.create(
+            creator=self.user, playlist_id="test_wrong_playlist_id"
+        )
+        self.assertEqual(playlist.playlist_id, test_2_playlist_id)
+        self.assertEqual(playlist.version_id, test_2_version_id)
+        self.assertEqual(playlist.ranked, False)
+        self.assertEqual(playlist.name, "test_name")
+        self.assertEqual(playlist.description, "test_description")
+        mock_get_playlist_latest_version_info.assert_called_once_with(
+            "test_wrong_playlist_id"
+        )
+        mock_get_playlist_latest_version_info.reset_mock()
+
+        # Duplicate Playlist ID should fail to save
+        mock_get_playlist_latest_version_info.return_value = {
+            "playlist_id": test_1_playlist_id,
+            "version_id": test_1_version_id,
+            "ranked": True,
+            "name": "test_name",
+            "description": "test_description",
+        }
+        self.assertRaisesMessage(
+            IntegrityError,
+            'duplicate key value violates unique constraint "HaloInfinitePlaylist_pkey"',
+            lambda: HaloInfinitePlaylist.objects.create(
+                creator=self.user, playlist_id=test_1_playlist_id
+            ),
+        )
+        mock_get_playlist_latest_version_info.assert_called_once_with(
+            test_1_playlist_id
+        )
+        mock_get_playlist_latest_version_info.reset_mock()
 
 
 class HaloInfiniteTokensTestCase(TestCase):
@@ -198,7 +282,7 @@ class HaloInfiniteTokensTestCase(TestCase):
 
         # Successful status code should create another HaloInfiniteSpartanToken record with unique properties
         mock_Session.return_value.__enter__.return_value.post.return_value.status_code = (
-            200
+            201
         )
         mock_Session.return_value.__enter__.return_value.post.return_value.json.return_value = {
             "SpartanToken": "test_spartan_token",
@@ -467,3 +551,142 @@ class HaloInfiniteTokensTestCase(TestCase):
             "Could not retrieve an unexpired HaloInfiniteClearanceToken.",
             get_clearance_token,
         )
+
+
+class HaloInfiniteUtilsTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+
+    @patch("apps.halo_infinite.utils.csr")
+    def test_get_csrs(self, mock_csr):
+        mock_csr.return_value = {
+            "Value": [
+                {
+                    "Id": "xuid(2533274870001169)",
+                    "ResultCode": 0,
+                    "Result": {
+                        "Current": {
+                            "Value": 1518,
+                            "MeasurementMatchesRemaining": 0,
+                            "Tier": "Onyx",
+                            "TierStart": 1500,
+                            "SubTier": 0,
+                            "NextTier": "Onyx",
+                            "NextTierStart": 1500,
+                            "NextSubTier": 0,
+                            "InitialMeasurementMatches": 10,
+                        },
+                        "SeasonMax": {
+                            "Value": 1573,
+                            "MeasurementMatchesRemaining": 0,
+                            "Tier": "Onyx",
+                            "TierStart": 1500,
+                            "SubTier": 0,
+                            "NextTier": "Onyx",
+                            "NextTierStart": 1500,
+                            "NextSubTier": 0,
+                            "InitialMeasurementMatches": 10,
+                        },
+                        "AllTimeMax": {
+                            "Value": 1683,
+                            "MeasurementMatchesRemaining": 0,
+                            "Tier": "Onyx",
+                            "TierStart": 1500,
+                            "SubTier": 0,
+                            "NextTier": "Onyx",
+                            "NextTierStart": 1500,
+                            "NextSubTier": 0,
+                            "InitialMeasurementMatches": 10,
+                        },
+                    },
+                }
+            ]
+        }
+        data = get_csrs([2533274870001169], "test_playlist_id")
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_csr"), 1518
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_tier"), "Onyx"
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_subtier"), 0
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_reset_max_csr"), 1573
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_reset_max_tier"),
+            "Onyx",
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_reset_max_subtier"), 0
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("all_time_max_csr"), 1683
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("all_time_max_tier"), "Onyx"
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("all_time_max_subtier"), 0
+        )
+        mock_csr.assert_called_once_with([2533274870001169], "test_playlist_id")
+
+    @patch("apps.halo_infinite.utils.playlist_version")
+    @patch("apps.halo_infinite.utils.playlist_info")
+    def test_get_playlist_latest_version_info(
+        self, mock_playlist_info, mock_playlist_version
+    ):
+        mock_playlist_info.return_value = {
+            "UgcPlaylistVersion": "test_version_id",
+            "HasCsr": True,
+        }
+        mock_playlist_version.return_value = {
+            "AssetId": "return_playlist_id",
+            "VersionId": "return_version_id",
+            "PublicName": "Test Name",
+            "Description": "Test Description",
+        }
+        data = get_playlist_latest_version_info("test_playlist_id")
+        self.assertEqual(data.get("playlist_id"), "return_playlist_id")
+        self.assertEqual(data.get("version_id"), "return_version_id")
+        self.assertEqual(data.get("ranked"), True)
+        self.assertEqual(data.get("name"), "Test Name")
+        self.assertEqual(data.get("description"), "Test Description")
+        mock_playlist_info.assert_called_once_with("test_playlist_id")
+        mock_playlist_version.assert_called_once_with(
+            "test_playlist_id", "test_version_id"
+        )
+
+    @patch("apps.halo_infinite.utils.match_count")
+    @patch("apps.halo_infinite.utils.service_record")
+    def test_get_summary_stats(self, mock_service_record, mock_match_count):
+        mock_service_record.return_value = {
+            "Wins": 1,
+            "Losses": 2,
+            "Ties": 3,
+            "CoreStats": {"Kills": 4, "Deaths": 5, "Assists": 6, "AverageKDA": 7.89},
+        }
+        mock_match_count.return_value = {
+            "MatchmadeMatchesPlayedCount": 10,
+            "CustomMatchesPlayedCount": 11,
+            "LocalMatchesPlayedCount": 12,
+            "MatchesPlayedCount": 33,
+        }
+        data = get_summary_stats(0)
+        self.assertEqual(data.get("matchmaking").get("wins"), 1)
+        self.assertEqual(data.get("matchmaking").get("losses"), 2)
+        self.assertEqual(data.get("matchmaking").get("ties"), 3)
+        self.assertEqual(data.get("matchmaking").get("kills"), 4)
+        self.assertEqual(data.get("matchmaking").get("deaths"), 5)
+        self.assertEqual(data.get("matchmaking").get("assists"), 6)
+        self.assertEqual(data.get("matchmaking").get("kda"), 7.89)
+        self.assertEqual(data.get("matchmaking").get("games_played"), 10)
+        self.assertEqual(data.get("custom").get("games_played"), 11)
+        self.assertEqual(data.get("local").get("games_played"), 12)
+        self.assertEqual(data.get("games_played"), 33)
+        mock_service_record.assert_called_once_with(0)
+        mock_match_count.assert_called_once_with(0)

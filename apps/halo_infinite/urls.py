@@ -1,11 +1,8 @@
-# from django.urls import path
+from django.urls import path
 
-# from apps.halo_infinite import views
+from apps.halo_infinite import views
 
 urlpatterns = [
-    # path(
-    #     "discord-to-xbox-live",
-    #     views.DiscordToXboxLive.as_view(),
-    #     name="discord-to-xbox-live",
-    # ),
+    path("csr", views.CSRView.as_view(), name="csr"),
+    path("summary-stats", views.SummaryStatsView.as_view(), name="summary-stats"),
 ]

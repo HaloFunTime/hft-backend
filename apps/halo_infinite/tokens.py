@@ -94,7 +94,7 @@ def generate_spartan_token(
             json=payload,
             headers=headers,
         )
-        if response.status_code == 200:
+        if response.status_code == 201:
             # Create a new HaloInfiniteSpartanToken record
             response_dict = response.json()
             spartan_token = HaloInfiniteSpartanToken.objects.create(
@@ -116,6 +116,7 @@ def get_spartan_token() -> HaloInfiniteSpartanToken:
     # If there is no token, or the token exists but is expired, try generating a new one
     if not spartan_token or (spartan_token and spartan_token.expired):
         # Retrieve a HaloInfiniteXSTSToken (needed for generating a new Spartan token)
+        logger.warn("Attempting to generate new SpartanToken")
         xsts_token = get_xsts_token()
         spartan_token = generate_spartan_token(xsts_token)
 
