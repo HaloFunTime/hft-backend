@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -5,6 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
+from apps.halo_infinite.models import HaloInfinitePlaylist
 from apps.halo_infinite.views import (
     ERROR_GAMERTAG_INVALID,
     ERROR_GAMERTAG_MISSING,
@@ -21,8 +23,14 @@ class HaloInfiniteTestCase(APITestCase):
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
     @patch("apps.halo_infinite.views.get_csrs")
+    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
     @patch("apps.halo_infinite.views.get_xuid_and_exact_gamertag")
-    def test_csr_view(self, mock_get_xuid_and_exact_gamertag, mock_get_csrs):
+    def test_csr_view(
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_playlist_latest_version_info,
+        mock_get_csrs,
+    ):
         # Missing `gamertag` throws error
         response = self.client.get("/halo-infinite/csr")
         self.assertEqual(response.status_code, 400)
@@ -53,6 +61,29 @@ class HaloInfiniteTestCase(APITestCase):
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
         mock_get_xuid_and_exact_gamertag.reset_mock()
 
+        # No active ranked playlists in DB results in mostly empty payload
+        mock_get_xuid_and_exact_gamertag.return_value = (0, "InternActualGT")
+        response = self.client.get("/halo-infinite/csr?gamertag=Intern")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("gamertag"), "InternActualGT")
+        self.assertEqual(response.data.get("xuid"), "0")
+        self.assertEqual(response.data.get("playlists"), [])
+        mock_get_xuid_and_exact_gamertag.reset_mock()
+
+        # Add an active ranked playlist to the DB
+        ranked_test_playlist_id_1 = uuid.uuid4()
+        ranked_test_version_id_1 = uuid.uuid4()
+        mock_get_playlist_latest_version_info.return_value = {
+            "playlist_id": ranked_test_playlist_id_1,
+            "version_id": ranked_test_version_id_1,
+            "ranked": True,
+            "name": "name",
+            "description": "description",
+        }
+        ranked_test_playlist_1 = HaloInfinitePlaylist.objects.create(
+            creator=self.user, playlist_id=ranked_test_playlist_id_1, active=True
+        )
+
         # Exception in get_csrs throws error
         mock_get_xuid_and_exact_gamertag.return_value = (0, "InternActualGT")
         mock_get_csrs.side_effect = Exception()
@@ -66,9 +97,7 @@ class HaloInfiniteTestCase(APITestCase):
             ),
         )
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
-        mock_get_csrs.assert_called_once_with(
-            [0], "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
-        )
+        mock_get_csrs.assert_called_once_with([0], ranked_test_playlist_id_1)
         mock_get_xuid_and_exact_gamertag.reset_mock()
         mock_get_csrs.reset_mock()
 
@@ -94,28 +123,36 @@ class HaloInfiniteTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("gamertag"), "InternActualGT")
         self.assertEqual(response.data.get("xuid"), "0")
-        self.assertEqual(
-            response.data.get("playlist_id"), "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
-        )
-        current = response.data.get("current")
-        self.assertIsNotNone(current)
-        self.assertEqual(current.get("csr"), 1000)
-        self.assertEqual(current.get("tier"), "Platinum")
-        self.assertEqual(current.get("subtier"), 2)
-        current_reset_max = response.data.get("current_reset_max")
-        self.assertIsNotNone(current_reset_max)
-        self.assertEqual(current_reset_max.get("csr"), 1200)
-        self.assertEqual(current_reset_max.get("tier"), "Diamond")
-        self.assertEqual(current_reset_max.get("subtier"), 0)
-        all_time_max = response.data.get("all_time_max")
-        self.assertIsNotNone(all_time_max)
-        self.assertEqual(all_time_max.get("csr"), 1500)
-        self.assertEqual(all_time_max.get("tier"), "Onyx")
-        self.assertEqual(all_time_max.get("subtier"), 0)
+        playlists = response.data.get("playlists")
+        self.assertIsNotNone(playlists)
+        for playlist in playlists:
+            self.assertEqual(
+                playlist.get("playlist_id"), str(ranked_test_playlist_1.playlist_id)
+            )
+            self.assertEqual(
+                playlist.get("playlist_name"), str(ranked_test_playlist_1.name)
+            )
+            self.assertEqual(
+                playlist.get("playlist_description"),
+                str(ranked_test_playlist_1.description),
+            )
+            current = playlist.get("current")
+            self.assertIsNotNone(current)
+            self.assertEqual(current.get("csr"), 1000)
+            self.assertEqual(current.get("tier"), "Platinum")
+            self.assertEqual(current.get("subtier"), 2)
+            current_reset_max = playlist.get("current_reset_max")
+            self.assertIsNotNone(current_reset_max)
+            self.assertEqual(current_reset_max.get("csr"), 1200)
+            self.assertEqual(current_reset_max.get("tier"), "Diamond")
+            self.assertEqual(current_reset_max.get("subtier"), 0)
+            all_time_max = playlist.get("all_time_max")
+            self.assertIsNotNone(all_time_max)
+            self.assertEqual(all_time_max.get("csr"), 1500)
+            self.assertEqual(all_time_max.get("tier"), "Onyx")
+            self.assertEqual(all_time_max.get("subtier"), 0)
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
-        mock_get_csrs.assert_called_once_with(
-            [0], "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
-        )
+        mock_get_csrs.assert_called_once_with([0], ranked_test_playlist_id_1)
         mock_get_xuid_and_exact_gamertag.reset_mock()
         mock_get_csrs.reset_mock()
 

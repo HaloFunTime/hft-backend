@@ -11,13 +11,19 @@ class CSRDataSerializer(serializers.Serializer):
     subtier = serializers.IntegerField()
 
 
-class CSRResponseSerializer(serializers.Serializer):
-    gamertag = serializers.CharField()
-    xuid = serializers.CharField()
+class CSRPlaylistSerializer(serializers.Serializer):
     playlist_id = serializers.CharField()
+    playlist_name = serializers.CharField()
+    playlist_description = serializers.CharField()
     current = CSRDataSerializer()
     current_reset_max = CSRDataSerializer()
     all_time_max = CSRDataSerializer()
+
+
+class CSRResponseSerializer(serializers.Serializer):
+    gamertag = serializers.CharField()
+    xuid = serializers.CharField()
+    playlists = CSRPlaylistSerializer(many=True)
 
 
 class SummaryMatchmakingSerializer(serializers.Serializer):

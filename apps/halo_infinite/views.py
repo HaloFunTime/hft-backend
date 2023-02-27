@@ -8,8 +8,10 @@ from rest_framework.exceptions import APIException, NotFound, ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.halo_infinite.models import HaloInfinitePlaylist
 from apps.halo_infinite.serializers import (
     CSRDataSerializer,
+    CSRPlaylistSerializer,
     CSRResponseSerializer,
     SummaryCustomSerializer,
     SummaryLocalSerializer,
@@ -50,7 +52,7 @@ class CSRView(APIView):
     )
     def get(self, request, *args, **kwargs):
         """
-        Retrieves the current CSR for a given gamertag.
+        Retrieves the current CSR in all active Ranked playlists for a given gamertag.
         """
         # Validate that there is a passed-in gamertag
         gamertag_param = request.query_params.get("gamertag")
@@ -66,10 +68,49 @@ class CSRView(APIView):
         gamertag = gamertag_info[1]
         if xuid is None or gamertag is None:
             raise NotFound(ERROR_GAMERTAG_NOT_FOUND)
-        playlist_id = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"  # Ranked Crossplay
+
+        current_ranked_playlists = HaloInfinitePlaylist.objects.filter(
+            ranked=True, active=True
+        ).order_by("name")
+        playlists = []
         try:
-            csr_data = get_csrs([xuid], playlist_id)
-            xuid_csr_data = csr_data.get("csrs").get(xuid)
+            for playlist in current_ranked_playlists:
+                csr_data = get_csrs([xuid], playlist.playlist_id)
+                xuid_csr_data = csr_data.get("csrs").get(xuid)
+                playlists.append(
+                    CSRPlaylistSerializer(
+                        {
+                            "playlist_id": playlist.playlist_id,
+                            "playlist_name": playlist.name,
+                            "playlist_description": playlist.description,
+                            "current": CSRDataSerializer(
+                                {
+                                    "csr": xuid_csr_data.get("current_csr"),
+                                    "tier": xuid_csr_data.get("current_tier"),
+                                    "subtier": xuid_csr_data.get("current_subtier"),
+                                }
+                            ).data,
+                            "current_reset_max": CSRDataSerializer(
+                                {
+                                    "csr": xuid_csr_data.get("current_reset_max_csr"),
+                                    "tier": xuid_csr_data.get("current_reset_max_tier"),
+                                    "subtier": xuid_csr_data.get(
+                                        "current_reset_max_subtier"
+                                    ),
+                                }
+                            ).data,
+                            "all_time_max": CSRDataSerializer(
+                                {
+                                    "csr": xuid_csr_data.get("all_time_max_csr"),
+                                    "tier": xuid_csr_data.get("all_time_max_tier"),
+                                    "subtier": xuid_csr_data.get(
+                                        "all_time_max_subtier"
+                                    ),
+                                }
+                            ).data,
+                        }
+                    ).data
+                )
         except Exception as ex:
             logger.error(ex)
             raise APIException(f"Could not get CSR for gamertag {gamertag}.")
@@ -78,28 +119,7 @@ class CSRView(APIView):
             {
                 "gamertag": gamertag,
                 "xuid": xuid,
-                "playlist_id": playlist_id,
-                "current": CSRDataSerializer(
-                    {
-                        "csr": xuid_csr_data.get("current_csr"),
-                        "tier": xuid_csr_data.get("current_tier"),
-                        "subtier": xuid_csr_data.get("current_subtier"),
-                    }
-                ).data,
-                "current_reset_max": CSRDataSerializer(
-                    {
-                        "csr": xuid_csr_data.get("current_reset_max_csr"),
-                        "tier": xuid_csr_data.get("current_reset_max_tier"),
-                        "subtier": xuid_csr_data.get("current_reset_max_subtier"),
-                    }
-                ).data,
-                "all_time_max": CSRDataSerializer(
-                    {
-                        "csr": xuid_csr_data.get("all_time_max_csr"),
-                        "tier": xuid_csr_data.get("all_time_max_tier"),
-                        "subtier": xuid_csr_data.get("all_time_max_subtier"),
-                    }
-                ).data,
+                "playlists": playlists,
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
