@@ -108,13 +108,16 @@ class HaloInfiniteTestCase(APITestCase):
                 0: {
                     "current_csr": 1000,
                     "current_tier": "Platinum",
-                    "current_subtier": 2,
+                    "current_subtier": 3,
+                    "current_tier_description": "Platinum 3",
                     "current_reset_max_csr": 1200,
                     "current_reset_max_tier": "Diamond",
-                    "current_reset_max_subtier": 0,
+                    "current_reset_max_subtier": 1,
+                    "current_reset_max_tier_description": "Diamond 1",
                     "all_time_max_csr": 1500,
                     "all_time_max_tier": "Onyx",
-                    "all_time_max_subtier": 0,
+                    "all_time_max_subtier": 1,
+                    "all_time_max_tier_description": "Onyx",
                 }
             }
         }
@@ -127,30 +130,33 @@ class HaloInfiniteTestCase(APITestCase):
         self.assertIsNotNone(playlists)
         for playlist in playlists:
             self.assertEqual(
-                playlist.get("playlist_id"), str(ranked_test_playlist_1.playlist_id)
+                playlist.get("playlistId"), str(ranked_test_playlist_1.playlist_id)
             )
             self.assertEqual(
-                playlist.get("playlist_name"), str(ranked_test_playlist_1.name)
+                playlist.get("playlistName"), str(ranked_test_playlist_1.name)
             )
             self.assertEqual(
-                playlist.get("playlist_description"),
+                playlist.get("playlistDescription"),
                 str(ranked_test_playlist_1.description),
             )
             current = playlist.get("current")
             self.assertIsNotNone(current)
             self.assertEqual(current.get("csr"), 1000)
             self.assertEqual(current.get("tier"), "Platinum")
-            self.assertEqual(current.get("subtier"), 2)
-            current_reset_max = playlist.get("current_reset_max")
+            self.assertEqual(current.get("subtier"), 3)
+            self.assertEqual(current.get("tierDescription"), "Platinum 3")
+            current_reset_max = playlist.get("currentResetMax")
             self.assertIsNotNone(current_reset_max)
             self.assertEqual(current_reset_max.get("csr"), 1200)
             self.assertEqual(current_reset_max.get("tier"), "Diamond")
-            self.assertEqual(current_reset_max.get("subtier"), 0)
-            all_time_max = playlist.get("all_time_max")
+            self.assertEqual(current_reset_max.get("subtier"), 1)
+            self.assertEqual(current_reset_max.get("tierDescription"), "Diamond 1")
+            all_time_max = playlist.get("allTimeMax")
             self.assertIsNotNone(all_time_max)
             self.assertEqual(all_time_max.get("csr"), 1500)
             self.assertEqual(all_time_max.get("tier"), "Onyx")
-            self.assertEqual(all_time_max.get("subtier"), 0)
+            self.assertEqual(all_time_max.get("subtier"), 1)
+            self.assertEqual(all_time_max.get("tierDescription"), "Onyx")
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
         mock_get_csrs.assert_called_once_with([0], ranked_test_playlist_id_1)
         mock_get_xuid_and_exact_gamertag.reset_mock()
@@ -235,10 +241,10 @@ class HaloInfiniteTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("gamertag"), "InternActualGT")
         self.assertEqual(response.data.get("xuid"), "0")
-        self.assertEqual(response.data.get("games_played"), 33)
+        self.assertEqual(response.data.get("gamesPlayed"), 33)
         matchmaking = response.data.get("matchmaking")
         self.assertIsNotNone(matchmaking)
-        self.assertEqual(matchmaking.get("games_played"), 10)
+        self.assertEqual(matchmaking.get("gamesPlayed"), 10)
         self.assertEqual(matchmaking.get("wins"), 1)
         self.assertEqual(matchmaking.get("losses"), 2)
         self.assertEqual(matchmaking.get("ties"), 3)
@@ -248,10 +254,10 @@ class HaloInfiniteTestCase(APITestCase):
         self.assertEqual(matchmaking.get("kda"), 7.89)
         custom = response.data.get("custom")
         self.assertIsNotNone(custom)
-        self.assertEqual(custom.get("games_played"), 11)
+        self.assertEqual(custom.get("gamesPlayed"), 11)
         local = response.data.get("local")
         self.assertIsNotNone(local)
-        self.assertEqual(local.get("games_played"), 12)
+        self.assertEqual(local.get("gamesPlayed"), 12)
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
         mock_get_summary_stats.assert_called_once_with(0)
         mock_get_xuid_and_exact_gamertag.reset_mock()

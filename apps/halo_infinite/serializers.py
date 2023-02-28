@@ -9,15 +9,16 @@ class CSRDataSerializer(serializers.Serializer):
     csr = serializers.IntegerField()
     tier = serializers.CharField()
     subtier = serializers.IntegerField()
+    tierDescription = serializers.CharField()
 
 
 class CSRPlaylistSerializer(serializers.Serializer):
-    playlist_id = serializers.CharField()
-    playlist_name = serializers.CharField()
-    playlist_description = serializers.CharField()
+    playlistId = serializers.CharField()
+    playlistName = serializers.CharField()
+    playlistDescription = serializers.CharField()
     current = CSRDataSerializer()
-    current_reset_max = CSRDataSerializer()
-    all_time_max = CSRDataSerializer()
+    currentResetMax = CSRDataSerializer()
+    allTimeMax = CSRDataSerializer()
 
 
 class CSRResponseSerializer(serializers.Serializer):
@@ -27,7 +28,7 @@ class CSRResponseSerializer(serializers.Serializer):
 
 
 class SummaryMatchmakingSerializer(serializers.Serializer):
-    games_played = serializers.IntegerField()
+    gamesPlayed = serializers.IntegerField()
     wins = serializers.IntegerField()
     losses = serializers.IntegerField()
     ties = serializers.IntegerField()
@@ -38,11 +39,11 @@ class SummaryMatchmakingSerializer(serializers.Serializer):
 
 
 class SummaryCustomSerializer(serializers.Serializer):
-    games_played = serializers.IntegerField()
+    gamesPlayed = serializers.IntegerField()
 
 
 class SummaryLocalSerializer(serializers.Serializer):
-    games_played = serializers.IntegerField()
+    gamesPlayed = serializers.IntegerField()
 
 
 class SummaryStatsResponseSerializer(serializers.Serializer):
@@ -51,4 +52,4 @@ class SummaryStatsResponseSerializer(serializers.Serializer):
     matchmaking = SummaryMatchmakingSerializer()
     custom = SummaryCustomSerializer()
     local = SummaryLocalSerializer()
-    games_played = serializers.IntegerField()
+    gamesPlayed = serializers.IntegerField()

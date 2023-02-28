@@ -17,6 +17,9 @@ def get_active_ranked_playlists() -> list[HaloInfinitePlaylist]:
 
 
 def get_csrs(xuids: list[int], playlist_id: str):
+    def get_tier_description(tier, subtier):
+        return f"{tier}{f' {subtier}' if tier != 'Onyx' else ''}"
+
     return_dict = {
         "csrs": {},
     }
@@ -29,13 +32,22 @@ def get_csrs(xuids: list[int], playlist_id: str):
         return_dict["csrs"][xuid] = {
             "current_csr": current.get("Value"),
             "current_tier": current.get("Tier"),
-            "current_subtier": current.get("SubTier"),
+            "current_subtier": current.get("SubTier") + 1,
+            "current_tier_description": get_tier_description(
+                current.get("Tier"), current.get("SubTier") + 1
+            ),
             "current_reset_max_csr": current_reset_max.get("Value"),
             "current_reset_max_tier": current_reset_max.get("Tier"),
-            "current_reset_max_subtier": current_reset_max.get("SubTier"),
+            "current_reset_max_subtier": current_reset_max.get("SubTier") + 1,
+            "current_reset_max_tier_description": get_tier_description(
+                current_reset_max.get("Tier"), current_reset_max.get("SubTier") + 1
+            ),
             "all_time_max_csr": all_time_max.get("Value"),
             "all_time_max_tier": all_time_max.get("Tier"),
-            "all_time_max_subtier": all_time_max.get("SubTier"),
+            "all_time_max_subtier": all_time_max.get("SubTier") + 1,
+            "all_time_max_tier_description": get_tier_description(
+                all_time_max.get("Tier"), all_time_max.get("SubTier") + 1
+            ),
         }
     return return_dict
 

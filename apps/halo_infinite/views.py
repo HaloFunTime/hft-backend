@@ -25,10 +25,8 @@ from config.serializers import StandardErrorSerializer
 logger = logging.getLogger(__name__)
 
 ERROR_GAMERTAG_MISSING = "Missing 'gamertag' query parameter."
-ERROR_GAMERTAG_INVALID = (
-    "Only characters constituting a valid Xbox Live Gamertag are allowed."
-)
-ERROR_GAMERTAG_NOT_FOUND = "Gamertag not found on Xbox Live."
+ERROR_GAMERTAG_INVALID = "The gamertag you specified has invalid characters."
+ERROR_GAMERTAG_NOT_FOUND = "The gamertag you specified was not found on Xbox Live."
 
 
 class CSRView(APIView):
@@ -80,31 +78,40 @@ class CSRView(APIView):
                 playlists.append(
                     CSRPlaylistSerializer(
                         {
-                            "playlist_id": playlist.playlist_id,
-                            "playlist_name": playlist.name,
-                            "playlist_description": playlist.description,
+                            "playlistId": playlist.playlist_id,
+                            "playlistName": playlist.name,
+                            "playlistDescription": playlist.description,
                             "current": CSRDataSerializer(
                                 {
                                     "csr": xuid_csr_data.get("current_csr"),
                                     "tier": xuid_csr_data.get("current_tier"),
                                     "subtier": xuid_csr_data.get("current_subtier"),
+                                    "tierDescription": xuid_csr_data.get(
+                                        "current_tier_description"
+                                    ),
                                 }
                             ).data,
-                            "current_reset_max": CSRDataSerializer(
+                            "currentResetMax": CSRDataSerializer(
                                 {
                                     "csr": xuid_csr_data.get("current_reset_max_csr"),
                                     "tier": xuid_csr_data.get("current_reset_max_tier"),
                                     "subtier": xuid_csr_data.get(
                                         "current_reset_max_subtier"
                                     ),
+                                    "tierDescription": xuid_csr_data.get(
+                                        "current_reset_max_tier_description"
+                                    ),
                                 }
                             ).data,
-                            "all_time_max": CSRDataSerializer(
+                            "allTimeMax": CSRDataSerializer(
                                 {
                                     "csr": xuid_csr_data.get("all_time_max_csr"),
                                     "tier": xuid_csr_data.get("all_time_max_tier"),
                                     "subtier": xuid_csr_data.get(
                                         "all_time_max_subtier"
+                                    ),
+                                    "tierDescription": xuid_csr_data.get(
+                                        "all_time_max_tier_description"
                                     ),
                                 }
                             ).data,
@@ -164,6 +171,9 @@ class SummaryStatsView(APIView):
             raise NotFound(ERROR_GAMERTAG_NOT_FOUND)
         try:
             summary_data = get_summary_stats(xuid)
+            matchmaking_data = summary_data.get("matchmaking")
+            custom_data = summary_data.get("custom")
+            local_data = summary_data.get("local")
         except Exception as ex:
             logger.error(ex)
             raise APIException(f"Could not get summary stats for gamertag {gamertag}.")
@@ -173,11 +183,24 @@ class SummaryStatsView(APIView):
                 "gamertag": gamertag,
                 "xuid": xuid,
                 "matchmaking": SummaryMatchmakingSerializer(
-                    summary_data.get("matchmaking")
+                    {
+                        "gamesPlayed": matchmaking_data.get("games_played"),
+                        "wins": matchmaking_data.get("wins"),
+                        "losses": matchmaking_data.get("losses"),
+                        "ties": matchmaking_data.get("ties"),
+                        "kills": matchmaking_data.get("kills"),
+                        "deaths": matchmaking_data.get("deaths"),
+                        "assists": matchmaking_data.get("assists"),
+                        "kda": matchmaking_data.get("kda"),
+                    }
                 ).data,
-                "custom": SummaryCustomSerializer(summary_data.get("custom")).data,
-                "local": SummaryLocalSerializer(summary_data.get("local")).data,
-                "games_played": summary_data.get("games_played"),
+                "custom": SummaryCustomSerializer(
+                    {"gamesPlayed": custom_data.get("games_played")}
+                ).data,
+                "local": SummaryLocalSerializer(
+                    {"gamesPlayed": local_data.get("games_played")}
+                ).data,
+                "gamesPlayed": summary_data.get("games_played"),
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)

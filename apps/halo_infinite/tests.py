@@ -568,11 +568,11 @@ class HaloInfiniteUtilsTestCase(TestCase):
                     "ResultCode": 0,
                     "Result": {
                         "Current": {
-                            "Value": 1518,
+                            "Value": 1498,
                             "MeasurementMatchesRemaining": 0,
-                            "Tier": "Onyx",
-                            "TierStart": 1500,
-                            "SubTier": 0,
+                            "Tier": "Diamond",
+                            "TierStart": 1200,
+                            "SubTier": 5,
                             "NextTier": "Onyx",
                             "NextTierStart": 1500,
                             "NextSubTier": 0,
@@ -606,13 +606,17 @@ class HaloInfiniteUtilsTestCase(TestCase):
         }
         data = get_csrs([2533274870001169], "test_playlist_id")
         self.assertEqual(
-            data.get("csrs").get("2533274870001169").get("current_csr"), 1518
+            data.get("csrs").get("2533274870001169").get("current_csr"), 1498
         )
         self.assertEqual(
-            data.get("csrs").get("2533274870001169").get("current_tier"), "Onyx"
+            data.get("csrs").get("2533274870001169").get("current_tier"), "Diamond"
         )
         self.assertEqual(
-            data.get("csrs").get("2533274870001169").get("current_subtier"), 0
+            data.get("csrs").get("2533274870001169").get("current_subtier"), 6
+        )
+        self.assertEqual(
+            data.get("csrs").get("2533274870001169").get("current_tier_description"),
+            "Diamond 6",
         )
         self.assertEqual(
             data.get("csrs").get("2533274870001169").get("current_reset_max_csr"), 1573
@@ -622,7 +626,13 @@ class HaloInfiniteUtilsTestCase(TestCase):
             "Onyx",
         )
         self.assertEqual(
-            data.get("csrs").get("2533274870001169").get("current_reset_max_subtier"), 0
+            data.get("csrs").get("2533274870001169").get("current_reset_max_subtier"), 1
+        )
+        self.assertEqual(
+            data.get("csrs")
+            .get("2533274870001169")
+            .get("current_reset_max_tier_description"),
+            "Onyx",
         )
         self.assertEqual(
             data.get("csrs").get("2533274870001169").get("all_time_max_csr"), 1683
@@ -631,7 +641,13 @@ class HaloInfiniteUtilsTestCase(TestCase):
             data.get("csrs").get("2533274870001169").get("all_time_max_tier"), "Onyx"
         )
         self.assertEqual(
-            data.get("csrs").get("2533274870001169").get("all_time_max_subtier"), 0
+            data.get("csrs").get("2533274870001169").get("all_time_max_subtier"), 1
+        )
+        self.assertEqual(
+            data.get("csrs")
+            .get("2533274870001169")
+            .get("all_time_max_tier_description"),
+            "Onyx",
         )
         mock_csr.assert_called_once_with([2533274870001169], "test_playlist_id")
 
