@@ -1,4 +1,5 @@
 import logging
+import math
 
 import requests
 
@@ -20,18 +21,26 @@ def csr(xuids: list[int], playlist_id: str, **kwargs) -> dict:
         "x-343-authorization-spartan": spartan_token.token,
         "343-clearance": clearance_token.flight_configuration_id,
     }
-    xuid_string = ""
-    for xuid in xuids:
-        xuid_string += f"xuid({xuid}),"
-    xuid_string = xuid_string.rstrip(",")
-    return_dict = {}
+    # Build XUID strings for every 30 XUIDs, as that is the max allowed per API call
+    xuid_strings = []
+    for i in range(math.ceil(len(xuids) / 30)):
+        start = i * 30
+        end = (i + 1) * 30
+        xuid_string = ""
+        for xuid in xuids[start:end]:
+            xuid_string += f"xuid({xuid}),"
+        xuid_string = xuid_string.rstrip(",")
+        xuid_strings.append(xuid_string)
+    return_dict = {"Value": []}
     with requests.Session() as s:
-        response = s.get(
-            f"https://skill.svc.halowaypoint.com:443/hi/playlist/{playlist_id}/csrs?players={xuid_string}",
-            headers=headers,
-        )
-        if response.status_code == 200:
-            return_dict = response.json()
+        for xuid_string in xuid_strings:
+            response = s.get(
+                f"https://skill.svc.halowaypoint.com:443/hi/playlist/{playlist_id}/csrs?players={xuid_string}",
+                headers=headers,
+            )
+            if response.status_code == 200:
+                response_dict = response.json()
+                return_dict.get("Value").extend(response_dict.get("Value"))
     return return_dict
 
 

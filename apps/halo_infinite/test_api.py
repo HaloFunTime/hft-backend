@@ -237,13 +237,13 @@ class HaloInfiniteAPITestCase(TestCase):
         self.assertIn("2533274840205695", csr_data.get("Value")[2].get("Id"))
         mock_Session.reset_mock()
 
-        # Failed call returns empty dict
+        # Failed call returns empty values
         mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
             404
         )
-        self.assertDictEqual({}, csr([2533274870001169], "test_playlist_id"))
+        self.assertDictEqual({"Value": []}, csr([2533274870001169], "test_playlist_id"))
         self.assertDictEqual(
-            {},
+            {"Value": []},
             csr(
                 [2535405290989773, 2533274870001169, 2533274840205695],
                 "test_playlist_id",
