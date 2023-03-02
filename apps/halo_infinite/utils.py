@@ -25,7 +25,7 @@ def get_csrs(xuids: list[int], playlist_id: str):
     }
     csr_data = csr(xuids, playlist_id)
     for value in csr_data.get("Value"):
-        xuid = value.get("Id").lstrip("xuid(").rstrip(")")
+        xuid = int(value.get("Id").lstrip("xuid(").rstrip(")"))
         current = value.get("Result").get("Current")
         current_reset_max = value.get("Result").get("SeasonMax")
         all_time_max = value.get("Result").get("AllTimeMax")
