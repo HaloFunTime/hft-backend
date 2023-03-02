@@ -589,7 +589,7 @@ class XboxLiveUtilsTestCase(TestCase):
             ]
         }
         xuid_gamertag_tuple = get_xuid_and_exact_gamertag("hft intern")
-        self.assertEqual(xuid_gamertag_tuple[0], "2535405290989773")
+        self.assertEqual(xuid_gamertag_tuple[0], 2535405290989773)
         self.assertEqual(xuid_gamertag_tuple[1], "HFT Intern")
         mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
             "https://profile.xboxlive.com/users/gt(hft intern)/profile/settings",
@@ -625,7 +625,7 @@ class XboxLiveUtilsTestCase(TestCase):
             ]
         }
         xuid_gamertag_tuple = get_xuid_and_exact_gamertag("Intern#0123")
-        self.assertEqual(xuid_gamertag_tuple[0], "2535405290989774")
+        self.assertEqual(xuid_gamertag_tuple[0], 2535405290989774)
         self.assertEqual(xuid_gamertag_tuple[1], "Intern0123")
         mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
             "https://profile.xboxlive.com/users/gt(Intern0123)/profile/settings",

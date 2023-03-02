@@ -20,7 +20,7 @@ def update_or_create_xbox_live_account(gamertag: str, user: User) -> XboxLiveAcc
 @xsts_token
 def get_xuid_and_exact_gamertag(
     gamertag: str, **kwargs
-) -> tuple[str | None, str | None]:
+) -> tuple[int | None, str | None]:
     assert gamertag is not None
     logger.debug(f"Called get_xuid_and_exact_gamertag with gamertag '{gamertag}'.")
     gamertag = gamertag.replace("#", "", 1)  # Replace first # with an empty space
@@ -41,7 +41,7 @@ def get_xuid_and_exact_gamertag(
                 headers=headers,
             )
             resp_json = response.json()
-            xuid = resp_json.get("profileUsers")[0].get("id")
+            xuid = int(resp_json.get("profileUsers")[0].get("id"))
             exact_gamertag = (
                 resp_json.get("profileUsers")[0].get("settings")[0].get("value")
             )

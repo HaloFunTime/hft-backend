@@ -125,7 +125,7 @@ class LinkTestCase(APITestCase):
             ],
         )
 
-        # Happy path - new record created
+        # Happy path - new record created (defaults to unverified)
         mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
         mock_utils_get_xuid_and_exact_gamertag.return_value = (0, "test")
         response = self.client.post(
@@ -142,9 +142,42 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "test")
+        self.assertEqual(response.data.get("verified"), False)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 1)
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
+        # Approve the link record
+        link = DiscordXboxLiveLink.objects.all().first()
+        link.verifier = self.user
+        link.verified = True
+        link.save()
+
+        # Repeat call with same Discord/Xbox IDs shouldn't change the link record's verification status
+        mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "TEST")
+        mock_utils_get_xuid_and_exact_gamertag.return_value = (0, "TEST")
+        response = self.client.post(
+            "/link/discord-to-xbox-live",
+            {
+                "discordUserId": "123",
+                "discordUserTag": "TEST#0123",
+                "xboxLiveGamertag": "Test",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(response.data.get("discordUserTag"), "TEST#0123")
+        self.assertEqual(response.data.get("xboxLiveXuid"), 0)
+        self.assertEqual(response.data.get("xboxLiveGamertag"), "TEST")
+        self.assertEqual(response.data.get("verified"), True)
+        self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        self.assertEqual(XboxLiveAccount.objects.count(), 1)
+        link = DiscordXboxLiveLink.objects.all().first()
+        self.assertEqual(link.discord_account.discord_id, "123")
+        self.assertEqual(link.xbox_live_account.xuid, 0)
+        self.assertEqual(link.verified, True)
+        self.assertEqual(link.verifier, self.user)
 
         # If another Discord Account attempts to claim an already-linked Xbox Live Account, an error should be thrown
         mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
@@ -164,6 +197,7 @@ class LinkTestCase(APITestCase):
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
 
         # If the original Discord Account attempts to link to a different Xbox Live Account, no error should be thrown
+        # but the link record should now be unverified
         mock_signals_get_xuid_and_exact_gamertag.return_value = (1, "test1")
         mock_utils_get_xuid_and_exact_gamertag.return_value = (1, "test1")
         response = self.client.post(
@@ -180,9 +214,15 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 1)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "test1")
+        self.assertEqual(response.data.get("verified"), False)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 2)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
+        link = DiscordXboxLiveLink.objects.all().first()
+        self.assertEqual(link.discord_account.discord_id, "123")
+        self.assertEqual(link.xbox_live_account.xuid, 1)
+        self.assertEqual(link.verified, False)
+        self.assertEqual(link.verifier, None)
 
         # Now the "other" Discord Account can link to the first Xbox Live Account without issue
         mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
