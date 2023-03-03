@@ -4,9 +4,8 @@ from apps.trailblazers import views
 
 urlpatterns = [
     path(
-        "trailblazer-role-check",
-        views.TrailblazerRoleCheckView.as_view(),
-        name="trailblazer-role-check",
+        "seasonal-role-check",
+        views.SeasonalRoleCheckView.as_view(),
+        name="seasonal-role-check",
     ),
-    # path("pathfinder-role-check", views.PathfinderRoleCheckView.as_view(), name="pathfinder-role-check"),
 ]

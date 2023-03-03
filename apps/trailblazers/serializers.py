@@ -3,14 +3,14 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
-class TrailblazerRoleCheckRequestSerializer(serializers.Serializer):
+class SeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,
         child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
     )
 
 
-class TrailblazerRoleCheckResponseSerializer(serializers.Serializer):
+class SeasonalRoleCheckResponseSerializer(serializers.Serializer):
     sherpa = serializers.ListField(
         child=serializers.CharField(max_length=20, validators=[validate_discord_id])
     )

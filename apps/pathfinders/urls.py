@@ -4,8 +4,8 @@ from apps.pathfinders import views
 
 urlpatterns = [
     path(
-        "pathfinder-role-check",
-        views.PathfinderRoleCheckView.as_view(),
-        name="pathfinder-role-check",
+        "seasonal-role-check",
+        views.SeasonalRoleCheckView.as_view(),
+        name="seasonal-role-check",
     ),
 ]

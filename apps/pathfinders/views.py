@@ -8,8 +8,8 @@ from rest_framework.views import APIView
 
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinders.serializers import (
-    PathfinderRoleCheckRequestSerializer,
-    PathfinderRoleCheckResponseSerializer,
+    SeasonalRoleCheckRequestSerializer,
+    SeasonalRoleCheckResponseSerializer,
 )
 from apps.pathfinders.utils import get_dynamo_qualified, get_illuminated_qualified
 from config.serializers import StandardErrorSerializer
@@ -17,11 +17,11 @@ from config.serializers import StandardErrorSerializer
 logger = logging.getLogger(__name__)
 
 
-class PathfinderRoleCheckView(APIView):
+class SeasonalRoleCheckView(APIView):
     @extend_schema(
-        request=PathfinderRoleCheckRequestSerializer,
+        request=SeasonalRoleCheckRequestSerializer,
         responses={
-            200: PathfinderRoleCheckResponseSerializer,
+            200: SeasonalRoleCheckResponseSerializer,
             400: StandardErrorSerializer,
             500: StandardErrorSerializer,
         },
@@ -29,10 +29,10 @@ class PathfinderRoleCheckView(APIView):
     def post(self, request, format=None):
         """
         Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API and the HFT DB, and returning a payload indicating the special Pathfinder Progression Role
+        Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Pathfinder progression role
         each Discord ID qualifies for, if any.
         """
-        validation_serializer = PathfinderRoleCheckRequestSerializer(data=request.data)
+        validation_serializer = SeasonalRoleCheckRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             discord_ids = validation_serializer.data.get("discordUserIds")
             try:
@@ -49,10 +49,12 @@ class PathfinderRoleCheckView(APIView):
                 illuminated_discord_ids = get_illuminated_qualified(links)
                 dynamo_discord_ids = get_dynamo_qualified(links)
             except Exception as ex:
-                logger.error("Error attempting the Pathfinder role check.")
+                logger.error("Error attempting the Pathfinder seasonal role check.")
                 logger.error(ex)
-                raise APIException("Error attempting the Pathfinder role check.")
-            serializer = PathfinderRoleCheckResponseSerializer(
+                raise APIException(
+                    "Error attempting the Pathfinder seasonal role check."
+                )
+            serializer = SeasonalRoleCheckResponseSerializer(
                 {
                     "illuminated": illuminated_discord_ids,
                     "dynamo": dynamo_discord_ids,

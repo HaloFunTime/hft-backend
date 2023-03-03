@@ -8,8 +8,8 @@ from rest_framework.views import APIView
 
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazers.serializers import (
-    TrailblazerRoleCheckRequestSerializer,
-    TrailblazerRoleCheckResponseSerializer,
+    SeasonalRoleCheckRequestSerializer,
+    SeasonalRoleCheckResponseSerializer,
 )
 from apps.trailblazers.utils import get_scout_qualified, get_sherpa_qualified
 from config.serializers import StandardErrorSerializer
@@ -17,11 +17,11 @@ from config.serializers import StandardErrorSerializer
 logger = logging.getLogger(__name__)
 
 
-class TrailblazerRoleCheckView(APIView):
+class SeasonalRoleCheckView(APIView):
     @extend_schema(
-        request=TrailblazerRoleCheckRequestSerializer,
+        request=SeasonalRoleCheckRequestSerializer,
         responses={
-            200: TrailblazerRoleCheckResponseSerializer,
+            200: SeasonalRoleCheckResponseSerializer,
             400: StandardErrorSerializer,
             500: StandardErrorSerializer,
         },
@@ -29,10 +29,10 @@ class TrailblazerRoleCheckView(APIView):
     def post(self, request, format=None):
         """
         Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API and the HFT DB, and returning a payload indicating the special Trailblazer Progression Role
+        Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Trailblazer progression role
         each Discord ID qualifies for, if any.
         """
-        validation_serializer = TrailblazerRoleCheckRequestSerializer(data=request.data)
+        validation_serializer = SeasonalRoleCheckRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             discord_ids = validation_serializer.data.get("discordUserIds")
             try:
@@ -49,10 +49,12 @@ class TrailblazerRoleCheckView(APIView):
                 sherpa_discord_ids = get_sherpa_qualified(links)
                 scout_discord_ids = get_scout_qualified(links)
             except Exception as ex:
-                logger.error("Error attempting the Trailblazer role check.")
+                logger.error("Error attempting the Trailblazer seasonal role check.")
                 logger.error(ex)
-                raise APIException("Error attempting the Trailblazer role check.")
-            serializer = TrailblazerRoleCheckResponseSerializer(
+                raise APIException(
+                    "Error attempting the Trailblazer seasonal role check."
+                )
+            serializer = SeasonalRoleCheckResponseSerializer(
                 {
                     "sherpa": sherpa_discord_ids,
                     "scout": scout_discord_ids,
