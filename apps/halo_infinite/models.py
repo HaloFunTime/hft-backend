@@ -11,7 +11,7 @@ class HaloInfiniteBuildID(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfiniteBuildID"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "Build ID"
         verbose_name_plural = "Build IDs"
@@ -26,7 +26,7 @@ class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfinitePlaylist"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "Playlist"
         verbose_name_plural = "Playlists"
@@ -46,7 +46,7 @@ class HaloInfiniteSeason(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfiniteSeason"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "Season"
         verbose_name_plural = "Seasons"
@@ -66,7 +66,7 @@ class HaloInfiniteXSTSToken(Base):
     class Meta:
         db_table = "HaloInfiniteXSTSToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "XSTS Token"
         verbose_name_plural = "XSTS Tokens"
@@ -85,7 +85,7 @@ class HaloInfiniteSpartanToken(Base):
     class Meta:
         db_table = "HaloInfiniteSpartanToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "Spartan Token"
         verbose_name_plural = "Spartan Tokens"
@@ -103,7 +103,7 @@ class HaloInfiniteClearanceToken(Base):
     class Meta:
         db_table = "HaloInfiniteClearanceToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "Clearance Token"
         verbose_name_plural = "Clearance Tokens"

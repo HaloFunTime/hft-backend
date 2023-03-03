@@ -25,7 +25,7 @@ class XboxLiveOAuthToken(Base):
     class Meta:
         db_table = "XboxLiveOAuthToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "OAuth Token"
         verbose_name_plural = "OAuth Tokens"
@@ -53,7 +53,7 @@ class XboxLiveUserToken(Base):
     class Meta:
         db_table = "XboxLiveUserToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "User Token"
         verbose_name_plural = "User Tokens"
@@ -72,7 +72,7 @@ class XboxLiveXSTSToken(Base):
     class Meta:
         db_table = "XboxLiveXSTSToken"
         ordering = [
-            "created_at",
+            "-created_at",
         ]
         verbose_name = "XSTS Token"
         verbose_name_plural = "XSTS Tokens"
