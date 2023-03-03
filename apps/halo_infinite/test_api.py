@@ -7,6 +7,7 @@ from django.test import TestCase
 from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.match import match_count, match_privacy
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
+from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.models import (
     HaloInfiniteClearanceToken,
@@ -393,6 +394,294 @@ class HaloInfiniteAPITestCase(TestCase):
         self.assertDictEqual(
             {}, playlist_version("test_playlist_id", "test_version_id")
         )
+
+    @patch("apps.halo_infinite.api.service_record.requests.Session")
+    def test_recommended(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "CustomData": {},
+            "MapLinks": [
+                {
+                    "AssetId": "f633db01-3989-41d1-b6d4-bf2d220fc619",
+                    "VersionId": "9b3ac4e6-d248-4122-adc5-a6d6697a19d1",
+                    "PublicName": "Salvation",
+                    "Description": "Those who are condemned, come here seeking salvation.",
+                    "Files": {
+                        "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/map/f633db01-3989-41d1-b6d4-bf2d220fc619/9b3ac4e6-d248-4122-adc5-a6d6697a19d1/",  # noqa
+                        "FileRelativePaths": [
+                            "images/hero.jpg",
+                            "images/screenshot1.jpg",
+                            "images/screenshot2.jpg",
+                            "images/screenshot3.jpg",
+                            "images/thumbnail.jpg",
+                        ],
+                        "PrefixEndpoint": {
+                            "AuthorityId": "iUgcFiles",
+                            "Path": "/ugcstorage/map/f633db01-3989-41d1-b6d4-bf2d220fc619/9b3ac4e6-d248-4122-adc5-a6d6697a19d1/",  # noqa
+                            "QueryString": None,
+                            "RetryPolicyId": "linearretry",
+                            "TopicName": "",
+                            "AcknowledgementTypeId": 0,
+                            "AuthenticationLifetimeExtensionSupported": False,
+                            "ClearanceAware": False,
+                        },
+                    },
+                    "Contributors": [
+                        "xuid(2814660312652330)",
+                        "xuid(2533274795021402)",
+                        "xuid(2535425050848538)",
+                        "xuid(2533274801987300)",
+                        "xuid(2533274835876334)",
+                        "xuid(2535406614685708)",
+                    ],
+                    "AssetHome": 1,
+                    "AssetStats": {
+                        "PlaysRecent": 8561,
+                        "PlaysAllTime": 87238,
+                        "Favorites": 363,
+                        "Likes": 0,
+                        "Bookmarks": 0,
+                        "ParentAssetCount": 4,
+                        "AverageRating": 4.466666666666667,
+                        "NumberOfRatings": 15,
+                    },
+                    "InspectionResult": 0,
+                    "CloneBehavior": 0,
+                    "Order": 2,
+                    "PublishedDate": None,
+                    "VersionNumber": 1,
+                    "Admin": "xuid(2535406614685708)",
+                },
+                {
+                    "AssetId": "74e1d570-f7a6-4f37-a68e-a0a51ab5bc3d",
+                    "VersionId": "14fc528f-fbd7-4296-9bbd-00c68ca33177",
+                    "PublicName": "Absolution",
+                    "Description": "Imitation is the sincerest form of flattery.",
+                    "Files": {
+                        "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/map/74e1d570-f7a6-4f37-a68e-a0a51ab5bc3d/14fc528f-fbd7-4296-9bbd-00c68ca33177/",  # noqa
+                        "FileRelativePaths": [
+                            "images/hero.jpg",
+                            "images/screenshot1.jpg",
+                            "images/thumbnail.jpg",
+                        ],
+                        "PrefixEndpoint": {
+                            "AuthorityId": "iUgcFiles",
+                            "Path": "/ugcstorage/map/74e1d570-f7a6-4f37-a68e-a0a51ab5bc3d/14fc528f-fbd7-4296-9bbd-00c68ca33177/",  # noqa
+                            "QueryString": None,
+                            "RetryPolicyId": "linearretry",
+                            "TopicName": "",
+                            "AcknowledgementTypeId": 0,
+                            "AuthenticationLifetimeExtensionSupported": False,
+                            "ClearanceAware": False,
+                        },
+                    },
+                    "Contributors": [
+                        "xuid(2533274873806365)",
+                        "xuid(2533274906188134)",
+                        "xuid(2533274831077797)",
+                        "xuid(2535406614685708)",
+                    ],
+                    "AssetHome": 1,
+                    "AssetStats": {
+                        "PlaysRecent": 8547,
+                        "PlaysAllTime": 86947,
+                        "Favorites": 330,
+                        "Likes": 0,
+                        "Bookmarks": 0,
+                        "ParentAssetCount": 4,
+                        "AverageRating": 4,
+                        "NumberOfRatings": 14,
+                    },
+                    "InspectionResult": 0,
+                    "CloneBehavior": 0,
+                    "Order": 2,
+                    "PublishedDate": None,
+                    "VersionNumber": 1,
+                    "Admin": "xuid(2535406614685708)",
+                },
+                {
+                    "AssetId": "50771a22-62a7-4f1f-8982-3403857ba225",
+                    "VersionId": "88da3483-83a3-4b0c-909b-9125f4602141",
+                    "PublicName": "Starboard",
+                    "Description": "General quarters, general quarters. All hands man your battle stations.",
+                    "Files": {
+                        "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/map/50771a22-62a7-4f1f-8982-3403857ba225/88da3483-83a3-4b0c-909b-9125f4602141/",  # noqa
+                        "FileRelativePaths": [
+                            "images/hero.jpg",
+                            "images/screenshot1.jpg",
+                            "images/screenshot2.jpg",
+                            "images/screenshot3.jpg",
+                            "images/thumbnail.jpg",
+                        ],
+                        "PrefixEndpoint": {
+                            "AuthorityId": "iUgcFiles",
+                            "Path": "/ugcstorage/map/50771a22-62a7-4f1f-8982-3403857ba225/88da3483-83a3-4b0c-909b-9125f4602141/",  # noqa
+                            "QueryString": None,
+                            "RetryPolicyId": "linearretry",
+                            "TopicName": "",
+                            "AcknowledgementTypeId": 0,
+                            "AuthenticationLifetimeExtensionSupported": False,
+                            "ClearanceAware": False,
+                        },
+                    },
+                    "Contributors": [
+                        "xuid(2535419870450908)",
+                        "xuid(2533274968441932)",
+                        "xuid(2535472198826651)",
+                        "xuid(2533274876991706)",
+                        "xuid(2535427784773192)",
+                        "xuid(2533274825961918)",
+                        "xuid(2535406614685708)",
+                    ],
+                    "AssetHome": 1,
+                    "AssetStats": {
+                        "PlaysRecent": 8667,
+                        "PlaysAllTime": 87005,
+                        "Favorites": 397,
+                        "Likes": 0,
+                        "Bookmarks": 0,
+                        "ParentAssetCount": 4,
+                        "AverageRating": 3.8260869565217392,
+                        "NumberOfRatings": 23,
+                    },
+                    "InspectionResult": 0,
+                    "CloneBehavior": 0,
+                    "Order": 2,
+                    "PublishedDate": None,
+                    "VersionNumber": 1,
+                    "Admin": "xuid(2535406614685708)",
+                },
+                {
+                    "AssetId": "84254700-4df7-4677-904f-95d5ec391a8c",
+                    "VersionId": "3bb86680-90f8-4f6e-a831-7fee38b77afd",
+                    "PublicName": "Perilous",
+                    "Description": "There's something in the water...",
+                    "Files": {
+                        "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/map/84254700-4df7-4677-904f-95d5ec391a8c/3bb86680-90f8-4f6e-a831-7fee38b77afd/",  # noqa
+                        "FileRelativePaths": [
+                            "images/hero.jpg",
+                            "images/screenshot1.jpg",
+                            "images/screenshot2.jpg",
+                            "images/screenshot3.jpg",
+                            "images/thumbnail.jpg",
+                            "images/thumbnail.png",
+                        ],
+                        "PrefixEndpoint": {
+                            "AuthorityId": "iUgcFiles",
+                            "Path": "/ugcstorage/map/84254700-4df7-4677-904f-95d5ec391a8c/3bb86680-90f8-4f6e-a831-7fee38b77afd/",  # noqa
+                            "QueryString": None,
+                            "RetryPolicyId": "linearretry",
+                            "TopicName": "",
+                            "AcknowledgementTypeId": 0,
+                            "AuthenticationLifetimeExtensionSupported": False,
+                            "ClearanceAware": False,
+                        },
+                    },
+                    "Contributors": [
+                        "xuid(2599622463478870)",
+                        "xuid(2533274839415478)",
+                        "xuid(2535417458493667)",
+                        "xuid(2533274835876334)",
+                        "xuid(2533274807200960)",
+                        "xuid(2535406614685708)",
+                    ],
+                    "AssetHome": 1,
+                    "AssetStats": {
+                        "PlaysRecent": 8550,
+                        "PlaysAllTime": 86898,
+                        "Favorites": 391,
+                        "Likes": 0,
+                        "Bookmarks": 0,
+                        "ParentAssetCount": 4,
+                        "AverageRating": 3.7857142857142856,
+                        "NumberOfRatings": 28,
+                    },
+                    "InspectionResult": 0,
+                    "CloneBehavior": 0,
+                    "Order": 2,
+                    "PublishedDate": None,
+                    "VersionNumber": 1,
+                    "Admin": "xuid(2535406614685708)",
+                },
+            ],
+            "PlaylistLinks": [],
+            "PrefabLinks": [],
+            "UgcGameVariantLinks": [],
+            "MapModePairLinks": [],
+            "Tags": [],
+            "AssetId": "712add52-f989-48e1-b3bb-ac7cd8a1c17a",
+            "VersionId": "f4f63d62-9159-47f4-9fe6-1e976837f880",
+            "PublicName": "343 Recommended",
+            "Description": "A few things you might enjoy.",
+            "Files": {
+                "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/project/712add52-f989-48e1-b3bb-ac7cd8a1c17a/f4f63d62-9159-47f4-9fe6-1e976837f880/",  # noqa
+                "FileRelativePaths": [],
+                "PrefixEndpoint": {
+                    "AuthorityId": "iUgcFiles",
+                    "Path": "/ugcstorage/project/712add52-f989-48e1-b3bb-ac7cd8a1c17a/f4f63d62-9159-47f4-9fe6-1e976837f880/",  # noqa
+                    "QueryString": None,
+                    "RetryPolicyId": "linearretry",
+                    "TopicName": "",
+                    "AcknowledgementTypeId": 0,
+                    "AuthenticationLifetimeExtensionSupported": False,
+                    "ClearanceAware": False,
+                },
+            },
+            "Contributors": ["aaid(5c7909e9-3620-4920-8abf-f18cfb4333b6)"],
+            "AssetHome": 1,
+            "AssetStats": {
+                "PlaysRecent": 0,
+                "PlaysAllTime": 0,
+                "Favorites": 0,
+                "Likes": 0,
+                "Bookmarks": 0,
+                "ParentAssetCount": 0,
+                "AverageRating": 0,
+                "NumberOfRatings": 0,
+            },
+            "InspectionResult": 0,
+            "CloneBehavior": 0,
+            "Order": 0,
+            "PublishedDate": {"ISO8601Date": "2023-02-28T18:01:08.419Z"},
+            "VersionNumber": 47,
+            "Admin": "aaid(5c7909e9-3620-4920-8abf-f18cfb4333b6)",
+        }
+        recommended_data = recommended()
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://discovery-infiniteugc.svc.halowaypoint.com:443/hi/projects/712add52-f989-48e1-b3bb-ac7cd8a1c17a",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("CustomData", recommended_data)
+        self.assertIn("MapLinks", recommended_data)
+        self.assertIn("PlaylistLinks", recommended_data)
+        self.assertIn("PrefabLinks", recommended_data)
+        self.assertIn("UgcGameVariantLinks", recommended_data)
+        self.assertIn("MapModePairLinks", recommended_data)
+        self.assertIn("AssetId", recommended_data)
+        self.assertIn("VersionId", recommended_data)
+        self.assertIn("PublicName", recommended_data)
+        self.assertIn("Description", recommended_data)
+        self.assertIn("PublishedDate", recommended_data)
+        self.assertIn("VersionNumber", recommended_data)
+        map_links = recommended_data.get("MapLinks")
+        self.assertEqual("Salvation", map_links[0].get("PublicName"))
+        self.assertEqual("Absolution", map_links[1].get("PublicName"))
+        self.assertEqual("Starboard", map_links[2].get("PublicName"))
+        self.assertEqual("Perilous", map_links[3].get("PublicName"))
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, recommended())
 
     @patch("apps.halo_infinite.api.service_record.requests.Session")
     def test_service_record(self, mock_Session):

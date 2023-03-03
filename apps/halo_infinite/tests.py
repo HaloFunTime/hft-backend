@@ -28,6 +28,7 @@ from apps.halo_infinite.tokens import (
     get_xsts_token,
 )
 from apps.halo_infinite.utils import (
+    get_343_recommended_file_contributors,
     get_csrs,
     get_playlist_latest_version_info,
     get_summary_stats,
@@ -558,6 +559,73 @@ class HaloInfiniteUtilsTestCase(TestCase):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
         )
+
+    @patch("apps.halo_infinite.utils.recommended")
+    def test_get_343_recommended_file_contributors(self, mock_recommended):
+        mock_recommended.return_value = {
+            "MapLinks": [
+                {
+                    "Contributors": [
+                        "xuid(2814660312652330)",
+                        "xuid(2533274795021402)",
+                        "xuid(2535425050848538)",
+                        "xuid(2533274801987300)",
+                        "xuid(2533274835876334)",
+                        "xuid(2535406614685708)",
+                    ],
+                },
+                {
+                    "Contributors": [
+                        "xuid(2533274873806365)",
+                        "xuid(2533274906188134)",
+                        "xuid(2533274831077797)",
+                        "xuid(2535406614685708)",
+                    ],
+                },
+                {
+                    "Contributors": [
+                        "xuid(2535419870450908)",
+                        "xuid(2533274968441932)",
+                        "xuid(2535472198826651)",
+                        "xuid(2533274876991706)",
+                        "xuid(2535427784773192)",
+                        "xuid(2533274825961918)",
+                        "xuid(2535406614685708)",
+                    ],
+                },
+                {
+                    "Contributors": [
+                        "xuid(2599622463478870)",
+                        "xuid(2533274839415478)",
+                        "xuid(2535417458493667)",
+                        "xuid(2533274835876334)",
+                        "xuid(2533274807200960)",
+                        "xuid(2535406614685708)",
+                    ],
+                },
+            ],
+        }
+        data = get_343_recommended_file_contributors()
+        self.assertEqual(data.get(2814660312652330), 1)
+        self.assertEqual(data.get(2533274795021402), 1)
+        self.assertEqual(data.get(2535425050848538), 1)
+        self.assertEqual(data.get(2533274801987300), 1)
+        self.assertEqual(data.get(2533274835876334), 2)
+        self.assertEqual(data.get(2535406614685708), 4)
+        self.assertEqual(data.get(2533274873806365), 1)
+        self.assertEqual(data.get(2533274906188134), 1)
+        self.assertEqual(data.get(2533274831077797), 1)
+        self.assertEqual(data.get(2535419870450908), 1)
+        self.assertEqual(data.get(2533274968441932), 1)
+        self.assertEqual(data.get(2535472198826651), 1)
+        self.assertEqual(data.get(2533274876991706), 1)
+        self.assertEqual(data.get(2535427784773192), 1)
+        self.assertEqual(data.get(2533274825961918), 1)
+        self.assertEqual(data.get(2599622463478870), 1)
+        self.assertEqual(data.get(2533274839415478), 1)
+        self.assertEqual(data.get(2535417458493667), 1)
+        self.assertEqual(data.get(2533274807200960), 1)
+        mock_recommended.assert_called_once_with()
 
     @patch("apps.halo_infinite.utils.csr")
     def test_get_csrs(self, mock_csr):

@@ -3,10 +3,27 @@ import logging
 from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.match import match_count
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
+from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
+
+
+def get_343_recommended_file_contributors() -> list[int, int]:
+    """
+    Returns a dict mapping XUIDs to the count of files they have currently featured in 343's Recommended File list.
+    """
+    contributors = {}
+    recommended_data = recommended()
+    for map in recommended_data.get("MapLinks"):
+        for contributor in map.get("Contributors"):
+            xuid = int(contributor.lstrip("xuid(").rstrip(")"))
+            if xuid in contributors:
+                contributors[xuid] = contributors[xuid] + 1
+            else:
+                contributors[xuid] = 1
+    return contributors
 
 
 def get_active_ranked_playlists() -> list[HaloInfinitePlaylist]:
