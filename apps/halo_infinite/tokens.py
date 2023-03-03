@@ -61,6 +61,7 @@ def get_xsts_token() -> HaloInfiniteXSTSToken:
 
     # If there is no token, or the token exists but is expired, try generating a new one
     if not xsts_token or (xsts_token and xsts_token.expired):
+        logger.info("Attempting to generate new HaloInfiniteXSTSToken")
         # Retrieve an XboxLiveUserToken (needed for generating a new XSTS token)
         user_token = get_user_token()
         xsts_token = generate_xsts_token(user_token)
@@ -115,8 +116,8 @@ def get_spartan_token() -> HaloInfiniteSpartanToken:
 
     # If there is no token, or the token exists but is expired, try generating a new one
     if not spartan_token or (spartan_token and spartan_token.expired):
+        logger.info("Attempting to generate new HaloInfiniteSpartanToken")
         # Retrieve a HaloInfiniteXSTSToken (needed for generating a new Spartan token)
-        logger.warn("Attempting to generate new SpartanToken")
         xsts_token = get_xsts_token()
         spartan_token = generate_spartan_token(xsts_token)
 
@@ -161,6 +162,7 @@ def get_clearance_token() -> HaloInfiniteClearanceToken:
 
     # If there is no token, or the token exists but is expired, try generating a new one
     if not clearance_token or (clearance_token and clearance_token.expired):
+        logger.info("Attempting to generate new HaloInfiniteClearanceToken")
         # Retrieve a HaloInfiniteSpartanToken, XUID, and Build ID (needed for generating a new Clearance token)
         spartan_token = get_spartan_token()
         xuid = settings.INTERN_XUID

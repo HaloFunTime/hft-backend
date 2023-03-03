@@ -58,6 +58,7 @@ def get_oauth_token() -> XboxLiveOAuthToken:
 
     # If the token is expired but potentially refreshable, try refreshing it
     if oauth_token and oauth_token.expired and oauth_token.refresh_token:
+        logger.info("Attempting to refresh XboxLiveOAuthToken")
         oauth_token = refresh_oauth_token(oauth_token)
 
     # If we get to this point with an unexpired token, return it
@@ -113,6 +114,7 @@ def get_user_token() -> XboxLiveUserToken:
 
     # If there is no token, or the token exists but is expired, try generating a new one
     if not user_token or (user_token and user_token.expired):
+        logger.info("Attempting to generate new XboxLiveUserToken")
         # Retrieve an XboxLiveOAuthToken (needed for generating a new User token)
         oauth_token = get_oauth_token()
         user_token = generate_user_token(oauth_token)
@@ -166,6 +168,7 @@ def get_xsts_token() -> XboxLiveXSTSToken:
 
     # If there is no token, or the token exists but is expired, try generating a new one
     if not xsts_token or (xsts_token and xsts_token.expired):
+        logger.info("Attempting to generate new XboxLiveXSTSToken")
         # Retrieve an XboxLiveUserToken (needed for generating a new XSTS token)
         user_token = get_user_token()
         xsts_token = generate_xsts_token(user_token)
