@@ -78,4 +78,5 @@ urlpatterns = [
     path("ping/", include("apps.ping.urls")),
     path("reputation/", include("apps.reputation.urls")),
     path("series/", include("apps.series.urls")),
+    path("trailblazers/", include("apps.trailblazers.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

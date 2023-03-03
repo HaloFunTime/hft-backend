@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.ping",
     "apps.reputation",
     "apps.series",
+    "apps.trailblazers",
     "apps.xbox_live",
 ]
 MIDDLEWARE = [

@@ -1,8 +1,7 @@
-import uuid
-
 from rest_framework import serializers
 
 from apps.discord.models import DiscordAccount
+from apps.overrides.serializers import validate_uuid
 
 
 def validate_discord_id(value):
@@ -12,17 +11,6 @@ def validate_discord_id(value):
     if not value.isnumeric():
         raise serializers.ValidationError("Only numeric characters are allowed.")
     return value
-
-
-def validate_uuid(value):
-    """
-    Validate that a string represents a UUID.
-    """
-    try:
-        uuid.UUID(str(value))
-        return value
-    except ValueError:
-        raise serializers.ValidationError("Only a valid UUID string is allowed.")
 
 
 class DiscordAccountSerializer(serializers.ModelSerializer):
