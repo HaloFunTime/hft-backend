@@ -8,7 +8,7 @@ class TrailblazerTuesdayAttendance(Base):
     class Meta:
         db_table = "TrailblazerTuesdayAttendance"
         ordering = [
-            "-created_at",
+            "-attendance_date",
         ]
         verbose_name = "Tuesday Attendance"
         verbose_name_plural = "Tuesday Attendances"
@@ -29,7 +29,7 @@ class TrailblazerTuesdayReferral(Base):
     class Meta:
         db_table = "TrailblazerTuesdayReferral"
         ordering = [
-            "-created_at",
+            "-referral_date",
         ]
         verbose_name = "Tuesday Referral"
         verbose_name_plural = "Tuesday Referrals"
@@ -56,7 +56,7 @@ class TrailblazerVODReview(Base):
     class Meta:
         db_table = "TrailblazerVODReview"
         ordering = [
-            "-created_at",
+            "-submission_date",
         ]
         verbose_name = "VOD Review"
         verbose_name_plural = "VOD Reviews"
