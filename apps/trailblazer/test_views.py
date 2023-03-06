@@ -10,7 +10,7 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.xbox_live.models import XboxLiveAccount
 
 
-class TrailblazersTestCase(APITestCase):
+class TrailblazerTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"

@@ -55,7 +55,6 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "mode_1",
         "mode_2",
         "playtested",
-        "fully_playtested",
     )
     list_filter = (
         "scheduled_playtest_date",

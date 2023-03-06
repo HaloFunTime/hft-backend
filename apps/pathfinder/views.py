@@ -2,12 +2,16 @@ import logging
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.discord.utils import update_or_create_discord_account
 from apps.link.models import DiscordXboxLiveLink
+from apps.pathfinder.models import PathfinderHikeSubmission
 from apps.pathfinder.serializers import (
+    HikeSubmissionPostRequestSerializer,
+    HikeSubmissionPostResponseSerializer,
     SeasonalRoleCheckRequestSerializer,
     SeasonalRoleCheckResponseSerializer,
 )
@@ -15,6 +19,80 @@ from apps.pathfinder.utils import get_dynamo_qualified, get_illuminated_qualifie
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
+
+
+class HikeSubmissionView(APIView):
+    @extend_schema(
+        request=HikeSubmissionPostRequestSerializer,
+        responses={
+            200: HikeSubmissionPostResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Submit a map for playtesting consideration (if eligible) and record relevant info about the submitter.
+        """
+        validation_serializer = HikeSubmissionPostRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            waywo_post_title = validation_serializer.data.get("waywoPostTitle")
+            waywo_post_id = validation_serializer.data.get("waywoPostId")
+            map_submitter_discord_id = validation_serializer.data.get(
+                "mapSubmitterDiscordId"
+            )
+            map_submitter_discord_tag = validation_serializer.data.get(
+                "mapSubmitterDiscordTag"
+            )
+            scheduled_playtest_date = validation_serializer.data.get(
+                "scheduledPlaytestDate"
+            )
+            map = validation_serializer.data.get("map")
+            mode_1 = validation_serializer.data.get("mode1")
+            mode_2 = validation_serializer.data.get("mode2")
+            try:
+                map_submitter_discord = update_or_create_discord_account(
+                    map_submitter_discord_id, map_submitter_discord_tag, request.user
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to submit a PathfinderHikeSubmission."
+                )
+            hikes_for_post_id = PathfinderHikeSubmission.objects.filter(
+                scheduled_playtest_date=scheduled_playtest_date,
+                waywo_post_id=waywo_post_id,
+            )
+            if len(hikes_for_post_id) > 0:
+                raise PermissionDenied(
+                    "A Pathfinder Hike submission already exists for this post."
+                )
+            hikes_for_submitter = PathfinderHikeSubmission.objects.filter(
+                scheduled_playtest_date=scheduled_playtest_date,
+                map_submitter_discord_id=map_submitter_discord.discord_id,
+            )
+            if len(hikes_for_submitter) > 0:
+                raise PermissionDenied(
+                    "A Pathfinder Hike submission has already been created by this Discord user."
+                )
+            try:
+                PathfinderHikeSubmission.objects.create(
+                    creator=request.user,
+                    waywo_post_title=waywo_post_title,
+                    waywo_post_id=waywo_post_id,
+                    map_submitter_discord=map_submitter_discord,
+                    scheduled_playtest_date=scheduled_playtest_date,
+                    map=map,
+                    mode_1=mode_1,
+                    mode_2=mode_2,
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to submit a PathfinderHikeSubmission."
+                )
+            serializer = HikeSubmissionPostResponseSerializer({"success": True})
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class SeasonalRoleCheckView(APIView):

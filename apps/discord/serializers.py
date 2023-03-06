@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 
 from apps.discord.models import DiscordAccount
@@ -10,6 +12,18 @@ def validate_discord_id(value):
     """
     if not value.isnumeric():
         raise serializers.ValidationError("Only numeric characters are allowed.")
+    return value
+
+
+def validate_discord_tag(value):
+    """
+    Validate that a Discord Tag has a username, # character, and a four-digit numeric discriminator.
+    """
+    discord_tag_regex = r".+\d{4}$"
+    if not re.match(discord_tag_regex, value):
+        raise serializers.ValidationError(
+            "Only characters constituting a valid Discord Tag are allowed."
+        )
     return value
 
 
