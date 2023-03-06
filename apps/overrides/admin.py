@@ -21,7 +21,7 @@ def linkify(field_name):
         link_url = reverse(view_name, args=[linked_obj.pk])
         return format_html('<a href="{}">{}</a>', link_url, linked_obj)
 
-    _linkify.short_description = field_name  # Sets column name
+    _linkify.short_description = field_name.replace("_", " ")
     return _linkify
 
 

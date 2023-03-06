@@ -7,11 +7,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.link.models import DiscordXboxLiveLink
-from apps.trailblazers.serializers import (
+from apps.trailblazer.serializers import (
     SeasonalRoleCheckRequestSerializer,
     SeasonalRoleCheckResponseSerializer,
 )
-from apps.trailblazers.utils import get_scout_qualified, get_sherpa_qualified
+from apps.trailblazer.utils import get_scout_qualified, get_sherpa_qualified
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)

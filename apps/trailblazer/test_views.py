@@ -18,8 +18,8 @@ class TrailblazersTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
-    @patch("apps.trailblazers.views.get_scout_qualified")
-    @patch("apps.trailblazers.views.get_sherpa_qualified")
+    @patch("apps.trailblazer.views.get_scout_qualified")
+    @patch("apps.trailblazer.views.get_sherpa_qualified")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_seasonal_role_check_view(
         self,
@@ -29,7 +29,7 @@ class TrailblazersTestCase(APITestCase):
     ):
         # Missing field values throw errors
         response = self.client.post(
-            "/trailblazers/seasonal-role-check", {}, format="json"
+            "/trailblazer/seasonal-role-check", {}, format="json"
         )
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
@@ -41,7 +41,7 @@ class TrailblazersTestCase(APITestCase):
 
         # Improperly formatted value throws errors
         response = self.client.post(
-            "/trailblazers/seasonal-role-check",
+            "/trailblazer/seasonal-role-check",
             {"discordUserIds": ["abc"]},
             format="json",
         )
@@ -79,7 +79,7 @@ class TrailblazersTestCase(APITestCase):
         # Exception in get_sherpa_qualified throws error
         mock_get_sherpa_qualified.side_effect = Exception()
         response = self.client.post(
-            "/trailblazers/seasonal-role-check",
+            "/trailblazer/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -111,7 +111,7 @@ class TrailblazersTestCase(APITestCase):
         # Exception in get_scout_qualified throws error
         mock_get_scout_qualified.side_effect = Exception()
         response = self.client.post(
-            "/trailblazers/seasonal-role-check",
+            "/trailblazer/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -157,7 +157,7 @@ class TrailblazersTestCase(APITestCase):
             links[9].discord_account_id,
         ]
         response = self.client.post(
-            "/trailblazers/seasonal-role-check",
+            "/trailblazer/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -230,7 +230,7 @@ class TrailblazersTestCase(APITestCase):
         mock_get_sherpa_qualified.return_value = []
         mock_get_scout_qualified.return_value = []
         response = self.client.post(
-            "/trailblazers/seasonal-role-check",
+            "/trailblazer/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,

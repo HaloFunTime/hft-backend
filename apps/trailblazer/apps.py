@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class TrailblazersConfig(AppConfig):
-    name = "apps.trailblazers"
+class TrailblazerConfig(AppConfig):
+    name = "apps.trailblazer"
     verbose_name = "Trailblazers"

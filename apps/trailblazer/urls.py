@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.pathfinders import views
+from apps.trailblazer import views
 
 urlpatterns = [
     path(

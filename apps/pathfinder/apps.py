@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class PathfindersConfig(AppConfig):
-    name = "apps.pathfinders"
+class PathfinderConfig(AppConfig):
+    name = "apps.pathfinder"
     verbose_name = "Pathfinders"

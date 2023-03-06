@@ -56,11 +56,11 @@ INSTALLED_APPS = [
     "apps.intern",
     "apps.link",
     "apps.overrides",
-    "apps.pathfinders",
+    "apps.pathfinder",
     "apps.ping",
     "apps.reputation",
     "apps.series",
-    "apps.trailblazers",
+    "apps.trailblazer",
     "apps.xbox_live",
 ]
 MIDDLEWARE = [

@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinders.utils import get_illuminated_qualified
+from apps.pathfinder.utils import get_illuminated_qualified
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -15,7 +15,7 @@ class PathfinderUtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    @patch("apps.pathfinders.utils.get_343_recommended_file_contributors")
+    @patch("apps.pathfinder.utils.get_343_recommended_file_contributors")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_get_illuminated_qualified(
         self,

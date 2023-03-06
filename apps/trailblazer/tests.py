@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
-from apps.trailblazers.utils import get_sherpa_qualified
+from apps.trailblazer.utils import get_sherpa_qualified
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -15,7 +15,7 @@ class TrailblazerUtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    @patch("apps.trailblazers.utils.get_csrs")
+    @patch("apps.trailblazer.utils.get_csrs")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_get_sherpa_qualified(
         self, mock_get_xuid_and_exact_gamertag, mock_get_csrs

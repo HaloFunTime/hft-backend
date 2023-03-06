@@ -7,11 +7,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinders.serializers import (
+from apps.pathfinder.serializers import (
     SeasonalRoleCheckRequestSerializer,
     SeasonalRoleCheckResponseSerializer,
 )
-from apps.pathfinders.utils import get_dynamo_qualified, get_illuminated_qualified
+from apps.pathfinder.utils import get_dynamo_qualified, get_illuminated_qualified
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)

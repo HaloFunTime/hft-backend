@@ -10,7 +10,7 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.xbox_live.models import XboxLiveAccount
 
 
-class PathfindersTestCase(APITestCase):
+class PathfinderTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
@@ -18,8 +18,8 @@ class PathfindersTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
-    @patch("apps.pathfinders.views.get_dynamo_qualified")
-    @patch("apps.pathfinders.views.get_illuminated_qualified")
+    @patch("apps.pathfinder.views.get_dynamo_qualified")
+    @patch("apps.pathfinder.views.get_illuminated_qualified")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_seasonal_role_check_view(
         self,
@@ -29,7 +29,7 @@ class PathfindersTestCase(APITestCase):
     ):
         # Missing field values throw errors
         response = self.client.post(
-            "/pathfinders/seasonal-role-check", {}, format="json"
+            "/pathfinder/seasonal-role-check", {}, format="json"
         )
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
@@ -41,7 +41,7 @@ class PathfindersTestCase(APITestCase):
 
         # Improperly formatted value throws errors
         response = self.client.post(
-            "/pathfinders/seasonal-role-check",
+            "/pathfinder/seasonal-role-check",
             {"discordUserIds": ["abc"]},
             format="json",
         )
@@ -79,7 +79,7 @@ class PathfindersTestCase(APITestCase):
         # Exception in get_illuminated_qualified throws error
         mock_get_illuminated_qualified.side_effect = Exception()
         response = self.client.post(
-            "/pathfinders/seasonal-role-check",
+            "/pathfinder/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -111,7 +111,7 @@ class PathfindersTestCase(APITestCase):
         # Exception in get_dynamo_qualified throws error
         mock_get_dynamo_qualified.side_effect = Exception()
         response = self.client.post(
-            "/pathfinders/seasonal-role-check",
+            "/pathfinder/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -157,7 +157,7 @@ class PathfindersTestCase(APITestCase):
             links[9].discord_account_id,
         ]
         response = self.client.post(
-            "/pathfinders/seasonal-role-check",
+            "/pathfinder/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
@@ -230,7 +230,7 @@ class PathfindersTestCase(APITestCase):
         mock_get_illuminated_qualified.return_value = []
         mock_get_dynamo_qualified.return_value = []
         response = self.client.post(
-            "/pathfinders/seasonal-role-check",
+            "/pathfinder/seasonal-role-check",
             {
                 "discordUserIds": [
                     links[0].discord_account_id,
