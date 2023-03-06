@@ -10,7 +10,12 @@ from rest_framework.test import APIClient, APITestCase
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
 from apps.link.utils import update_or_create_discord_xbox_live_link
-from apps.link.views import LINK_ERROR_INVALID_DISCORD_ID, LINK_ERROR_MISSING_DISCORD_ID
+from apps.link.views import (
+    LINK_ERROR_INVALID_DISCORD_ID,
+    LINK_ERROR_INVALID_DISCORD_TAG,
+    LINK_ERROR_MISSING_DISCORD_ID,
+    LINK_ERROR_MISSING_DISCORD_TAG,
+)
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -34,8 +39,22 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_ID})
 
+        # Missing `discordTag` throws error
+        response = self.client.get("/link/discord-to-xbox-live?discordId=123")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": LINK_ERROR_MISSING_DISCORD_TAG})
+
+        # Invalid `discordTag` throws error
+        response = self.client.get(
+            "/link/discord-to-xbox-live?discordId=123&discordTag=invalid"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_TAG})
+
         # No DiscordXboxLiveLink returns 404
-        response = self.client.get("/link/discord-to-xbox-live?discordId=123456789")
+        response = self.client.get(
+            "/link/discord-to-xbox-live?discordId=123456789&discordTag=Test#0123"
+        )
         self.assertEqual(response.status_code, 404)
 
         # Existing DiscordXboxLiveLink returns 200
@@ -53,6 +72,7 @@ class LinkTestCase(APITestCase):
         )
         response = self.client.get(
             f"/link/discord-to-xbox-live?discordId={discord_account.discord_id}"
+            f"&discordTag={discord_account.discord_tag}"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), discord_account.discord_id)

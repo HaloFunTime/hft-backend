@@ -1,4 +1,5 @@
 import logging
+import re
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -25,7 +26,9 @@ logger = logging.getLogger(__name__)
 LINK_ERROR_INVALID_DISCORD_ID = (
     "The provided discordId must be a string representing a valid positive integer."
 )
+LINK_ERROR_INVALID_DISCORD_TAG = "The provided discordTag must be a valid Discord tag."
 LINK_ERROR_MISSING_DISCORD_ID = "A discordId must be provided as a query parameter."
+LINK_ERROR_MISSING_DISCORD_TAG = "A discordTag must be provided as a query parameter."
 LINK_ERROR_NOT_FOUND = "Not found."
 
 
@@ -39,7 +42,15 @@ class DiscordToXboxLive(APIView):
                 required=True,
                 style="form",
                 explode=False,
-            )
+            ),
+            OpenApiParameter(
+                name="discordTag",
+                type={"type": "string"},
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
         ],
         responses={
             200: DiscordXboxLiveLinkResponseSerializer,
@@ -66,9 +77,26 @@ class DiscordToXboxLive(APIView):
             )
             return Response(serializer.data, status=400)
 
+        # Validate that there is a passed-in Discord Account Tag
+        discord_account_tag = request.query_params.get("discordTag")
+        if discord_account_tag is None:
+            serializer = DiscordXboxLiveLinkErrorSerializer(
+                {"error": LINK_ERROR_MISSING_DISCORD_TAG}
+            )
+            return Response(serializer.data, status=400)
+
+        # Validate that the string passed in as a Discord Account Tag matches the regex
+        if not re.match(r".+\d{4}$", discord_account_tag):
+            serializer = DiscordXboxLiveLinkErrorSerializer(
+                {"error": LINK_ERROR_INVALID_DISCORD_TAG}
+            )
+            return Response(serializer.data, status=400)
+
         # Get the DiscordAccount
         discord_account = get_or_create_discord_account(
-            discord_account_id, request.user
+            discord_account_id,
+            request.user,
+            discord_account_tag,
         )
 
         # Get the DiscordXboxLiveLink record for the DiscordAccount, if it exists
