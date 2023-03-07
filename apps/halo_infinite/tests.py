@@ -287,7 +287,7 @@ class HaloInfiniteTokensTestCase(TestCase):
         )
         mock_Session.return_value.__enter__.return_value.post.return_value.json.return_value = {
             "SpartanToken": "test_spartan_token",
-            "ExpiresUtc": {"ISO8601Date": "2023-02-23T08:23:26Z"},
+            "ExpiresUtc": {"ISO8601Date": "2023-02-23T08:23:26.123Z"},
             "TokenDuration": "test_duration",
         }
         new_spartan_token = generate_spartan_token(xsts_token)
