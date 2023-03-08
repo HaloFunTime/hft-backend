@@ -101,8 +101,8 @@ def generate_spartan_token(
             spartan_token = HaloInfiniteSpartanToken.objects.create(
                 creator=xsts_token.creator,
                 expires_utc=datetime.datetime.strptime(
-                    response_dict.get("ExpiresUtc").get("ISO8601Date")[:-5],
-                    "%Y-%m-%dT%H:%M:%S",
+                    response_dict.get("ExpiresUtc").get("ISO8601Date"),
+                    "%Y-%m-%dT%H:%M:%SZ",
                 ).replace(tzinfo=datetime.timezone.utc),
                 token=response_dict.get("SpartanToken"),
                 token_duration=response_dict.get("TokenDuration"),
