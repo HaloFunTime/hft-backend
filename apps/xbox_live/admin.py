@@ -14,6 +14,7 @@ class XboxLiveAccountAdmin(AutofillCreatorModelAdmin):
     list_display = ("xuid", "gamertag", "creator")
     list_filter = ("creator",)
     fields = ("gamertag", "xuid", "creator")
+    search_fields = ["gamertag"]
 
 
 @admin.register(XboxLiveOAuthToken)

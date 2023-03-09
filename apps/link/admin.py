@@ -22,6 +22,7 @@ class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
                 obj.verifier = None
         super().save_model(request, obj, form, change)
 
+    autocomplete_fields = ["discord_account", "xbox_live_account"]
     list_display = (
         "__str__",
         linkify("discord_account"),

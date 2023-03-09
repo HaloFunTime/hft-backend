@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 @admin.register(TrailblazerTuesdayAttendance)
 class TrailblazerTuesdayAttendanceAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["attendee_discord"]
     list_display = (
         "__str__",
         linkify("attendee_discord"),
@@ -30,6 +31,7 @@ class TrailblazerTuesdayAttendanceAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(TrailblazerTuesdayReferral)
 class TrailblazerTuesdayReferralAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["referrer_discord", "invitee_discord"]
     list_display = (
         "__str__",
         linkify("referrer_discord"),
@@ -48,6 +50,7 @@ class TrailblazerTuesdayReferralAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(TrailblazerVODReview)
 class TrailblazerVODReviewAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["submitter_discord"]
     list_display = (
         "__str__",
         linkify("submitter_discord"),

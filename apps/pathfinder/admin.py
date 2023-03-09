@@ -49,6 +49,7 @@ class IsFullyPlaytestedFilter(admin.SimpleListFilter):
 
 @admin.register(PathfinderHikeSubmission)
 class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["map_submitter_discord"]
     list_display = (
         "__str__",
         linkify("map_submitter_discord"),
