@@ -177,7 +177,7 @@ class PathfinderTestCase(APITestCase):
     @patch("apps.pathfinder.views.get_dynamo_qualified")
     @patch("apps.pathfinder.views.get_illuminated_qualified")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_seasonal_role_check_view(
+    def test_pathfinder_seasonal_role_check_view(
         self,
         mock_get_xuid_and_exact_gamertag,
         mock_get_illuminated_qualified,

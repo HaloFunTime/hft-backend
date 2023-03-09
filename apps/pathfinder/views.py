@@ -12,8 +12,8 @@ from apps.pathfinder.models import PathfinderHikeSubmission
 from apps.pathfinder.serializers import (
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
-    SeasonalRoleCheckRequestSerializer,
-    SeasonalRoleCheckResponseSerializer,
+    PathfinderSeasonalRoleCheckRequestSerializer,
+    PathfinderSeasonalRoleCheckResponseSerializer,
 )
 from apps.pathfinder.utils import get_dynamo_qualified, get_illuminated_qualified
 from config.serializers import StandardErrorSerializer
@@ -95,11 +95,11 @@ class HikeSubmissionView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class SeasonalRoleCheckView(APIView):
+class PathfinderSeasonalRoleCheckView(APIView):
     @extend_schema(
-        request=SeasonalRoleCheckRequestSerializer,
+        request=PathfinderSeasonalRoleCheckRequestSerializer,
         responses={
-            200: SeasonalRoleCheckResponseSerializer,
+            200: PathfinderSeasonalRoleCheckResponseSerializer,
             400: StandardErrorSerializer,
             500: StandardErrorSerializer,
         },
@@ -110,7 +110,9 @@ class SeasonalRoleCheckView(APIView):
         Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Pathfinder progression role
         each Discord ID qualifies for, if any.
         """
-        validation_serializer = SeasonalRoleCheckRequestSerializer(data=request.data)
+        validation_serializer = PathfinderSeasonalRoleCheckRequestSerializer(
+            data=request.data
+        )
         if validation_serializer.is_valid(raise_exception=True):
             discord_ids = validation_serializer.data.get("discordUserIds")
             try:
@@ -132,7 +134,7 @@ class SeasonalRoleCheckView(APIView):
                 raise APIException(
                     "Error attempting the Pathfinder seasonal role check."
                 )
-            serializer = SeasonalRoleCheckResponseSerializer(
+            serializer = PathfinderSeasonalRoleCheckResponseSerializer(
                 {
                     "illuminated": illuminated_discord_ids,
                     "dynamo": dynamo_discord_ids,

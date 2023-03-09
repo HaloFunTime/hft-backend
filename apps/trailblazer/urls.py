@@ -5,7 +5,7 @@ from apps.trailblazer import views
 urlpatterns = [
     path(
         "seasonal-role-check",
-        views.SeasonalRoleCheckView.as_view(),
+        views.TrailblazerSeasonalRoleCheckView.as_view(),
         name="seasonal-role-check",
     ),
 ]

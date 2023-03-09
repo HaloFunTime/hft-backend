@@ -21,7 +21,7 @@ class TrailblazerTestCase(APITestCase):
     @patch("apps.trailblazer.views.get_scout_qualified")
     @patch("apps.trailblazer.views.get_sherpa_qualified")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_seasonal_role_check_view(
+    def test_trailblazer_seasonal_role_check_view(
         self,
         mock_get_xuid_and_exact_gamertag,
         mock_get_sherpa_qualified,

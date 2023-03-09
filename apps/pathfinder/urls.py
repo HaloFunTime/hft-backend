@@ -6,7 +6,7 @@ urlpatterns = [
     path("hike-submission", views.HikeSubmissionView.as_view(), name="hike-submission"),
     path(
         "seasonal-role-check",
-        views.SeasonalRoleCheckView.as_view(),
+        views.PathfinderSeasonalRoleCheckView.as_view(),
         name="seasonal-role-check",
     ),
 ]

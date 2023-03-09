@@ -8,8 +8,8 @@ from rest_framework.views import APIView
 
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.serializers import (
-    SeasonalRoleCheckRequestSerializer,
-    SeasonalRoleCheckResponseSerializer,
+    TrailblazerSeasonalRoleCheckRequestSerializer,
+    TrailblazerSeasonalRoleCheckResponseSerializer,
 )
 from apps.trailblazer.utils import get_scout_qualified, get_sherpa_qualified
 from config.serializers import StandardErrorSerializer
@@ -17,11 +17,11 @@ from config.serializers import StandardErrorSerializer
 logger = logging.getLogger(__name__)
 
 
-class SeasonalRoleCheckView(APIView):
+class TrailblazerSeasonalRoleCheckView(APIView):
     @extend_schema(
-        request=SeasonalRoleCheckRequestSerializer,
+        request=TrailblazerSeasonalRoleCheckRequestSerializer,
         responses={
-            200: SeasonalRoleCheckResponseSerializer,
+            200: TrailblazerSeasonalRoleCheckResponseSerializer,
             400: StandardErrorSerializer,
             500: StandardErrorSerializer,
         },
@@ -32,7 +32,9 @@ class SeasonalRoleCheckView(APIView):
         Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Trailblazer progression role
         each Discord ID qualifies for, if any.
         """
-        validation_serializer = SeasonalRoleCheckRequestSerializer(data=request.data)
+        validation_serializer = TrailblazerSeasonalRoleCheckRequestSerializer(
+            data=request.data
+        )
         if validation_serializer.is_valid(raise_exception=True):
             discord_ids = validation_serializer.data.get("discordUserIds")
             try:
@@ -54,7 +56,7 @@ class SeasonalRoleCheckView(APIView):
                 raise APIException(
                     "Error attempting the Trailblazer seasonal role check."
                 )
-            serializer = SeasonalRoleCheckResponseSerializer(
+            serializer = TrailblazerSeasonalRoleCheckResponseSerializer(
                 {
                     "sherpa": sherpa_discord_ids,
                     "scout": scout_discord_ids,
