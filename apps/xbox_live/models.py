@@ -78,8 +78,18 @@ class XboxLiveXSTSToken(Base):
         verbose_name_plural = "XSTS Tokens"
 
     @property
+    def expiration_datetime(self) -> datetime.datetime:
+        # Expiration datetime is calculated by adding "expires_in" seconds to
+        # "created_at", less a small kludge factor to account for any latency
+        # that occurred between generating the token and databasing it.
+        return self.not_after + datetime.timedelta(seconds=(self.expires_in - 30))
+
+    @property
     def expired(self) -> bool:
-        return datetime.datetime.now(datetime.timezone.utc) > self.not_after
+        # Expired property returns True 5 minutes early to account for latency
+        return datetime.datetime.now(datetime.timezone.utc) > (
+            self.not_after - datetime.timedelta(minutes=5)
+        )
 
     issue_instant = models.DateTimeField()
     not_after = models.DateTimeField()
