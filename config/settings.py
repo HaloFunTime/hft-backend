@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_spectacular",
     "apps.discord",
+    "apps.fun_time_friday",
     "apps.halo_infinite",
     "apps.intern",
     "apps.link",
