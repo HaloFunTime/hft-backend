@@ -132,6 +132,11 @@ class TrailblazerTestCase(APITestCase):
         )
         mock_get_scout_qualified.assert_called_once_with(
             [
+                links[0].discord_account_id,
+                links[1].discord_account_id,
+                links[2].discord_account_id,
+            ],
+            [
                 links[0],
                 links[1],
                 links[2],
@@ -211,6 +216,18 @@ class TrailblazerTestCase(APITestCase):
         )
         mock_get_scout_qualified.assert_called_once_with(
             [
+                links[0].discord_account_id,
+                links[1].discord_account_id,
+                links[2].discord_account_id,
+                links[3].discord_account_id,
+                links[4].discord_account_id,
+                links[5].discord_account_id,
+                links[6].discord_account_id,
+                links[7].discord_account_id,
+                links[8].discord_account_id,
+                links[9].discord_account_id,
+            ],
+            [
                 links[0],
                 links[1],
                 links[2],
@@ -221,7 +238,7 @@ class TrailblazerTestCase(APITestCase):
                 links[7],
                 links[8],
                 links[9],
-            ]
+            ],
         )
         mock_get_sherpa_qualified.reset_mock()
         mock_get_scout_qualified.reset_mock()
@@ -266,6 +283,18 @@ class TrailblazerTestCase(APITestCase):
         )
         mock_get_scout_qualified.assert_called_once_with(
             [
+                links[0].discord_account_id,
+                links[1].discord_account_id,
+                links[2].discord_account_id,
+                links[3].discord_account_id,
+                links[4].discord_account_id,
+                links[5].discord_account_id,
+                links[6].discord_account_id,
+                links[7].discord_account_id,
+                links[8].discord_account_id,
+                links[9].discord_account_id,
+            ],
+            [
                 links[0],
                 links[1],
                 links[2],
@@ -276,7 +305,7 @@ class TrailblazerTestCase(APITestCase):
                 links[7],
                 links[8],
                 links[9],
-            ]
+            ],
         )
         mock_get_sherpa_qualified.reset_mock()
         mock_get_scout_qualified.reset_mock()

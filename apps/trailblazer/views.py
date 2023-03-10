@@ -49,7 +49,7 @@ class TrailblazerSeasonalRoleCheckView(APIView):
 
                 # Retrieve qualifying Sherpa/Scout IDs from the utility methods
                 sherpa_discord_ids = get_sherpa_qualified(links)
-                scout_discord_ids = get_scout_qualified(links)
+                scout_discord_ids = get_scout_qualified(discord_ids, links)
             except Exception as ex:
                 logger.error("Error attempting the Trailblazer seasonal role check.")
                 logger.error(ex)
