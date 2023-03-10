@@ -24,7 +24,7 @@ class FunTimeFridayVoiceConnect(Base):
     )
 
     def __str__(self):
-        return f"{str(self.connector_discord)} @ {self.connected_at}"
+        return f"{str(self.connector_discord)} connected"
 
 
 class FunTimeFridayVoiceDisconnect(Base):
@@ -47,4 +47,4 @@ class FunTimeFridayVoiceDisconnect(Base):
     )
 
     def __str__(self):
-        return f"{str(self.disconnector_discord)} @ {self.disconnected_at}"
+        return f"{str(self.disconnector_discord)} disconnected"
