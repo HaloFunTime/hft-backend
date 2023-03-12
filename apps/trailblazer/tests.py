@@ -100,22 +100,24 @@ class TrailblazerUtilsTestCase(TestCase):
         )
         mock_get_csrs.reset_mock()
 
-    @patch("apps.trailblazer.utils.earned_clean_sweep")
-    @patch("apps.trailblazer.utils.earned_online_warrior")
+    @patch("apps.trailblazer.utils.get_xbox_earn_sets")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_get_scout_qualified(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_earned_online_warrior,
-        mock_earned_clean_sweep,
+        mock_get_xbox_earn_sets,
     ):
         # Empty lists provided to method returns nothing
+        mock_get_xbox_earn_sets.return_value = (set(), set(), set())
         result = get_scout_qualified([], [])
         self.assertEqual(result, [])
 
         # Create some test data
         discord_accounts = []
         links = []
+        online_warrior_set = set()
+        clean_sweep_set = set()
+        extermination_set = set()
         for i in range(30):
             discord_account = DiscordAccount.objects.create(
                 creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
@@ -178,8 +180,20 @@ class TrailblazerUtilsTestCase(TestCase):
                     invitee_discord=discord_account,
                     referral_date=SEASON_3_START_DAY,
                 )
-        mock_earned_online_warrior.side_effect = lambda x: x % 2 == 0
-        mock_earned_clean_sweep.side_effect = lambda x: x % 3 == 0
+            # Every second account earns online warrior
+            if i % 2 == 0:
+                online_warrior_set.add(i)
+            # Every third account earns clean sweep
+            if i % 3 == 0:
+                clean_sweep_set.add(i)
+            # Every sixth account earns extermination
+            if i % 6 == 0:
+                extermination_set.add(i)
+        mock_get_xbox_earn_sets.return_value = (
+            online_warrior_set,
+            clean_sweep_set,
+            extermination_set,
+        )
 
         # The test data above results in every sixth account clearing the 500 point threshold
         result = get_scout_qualified([da.discord_id for da in discord_accounts], links)

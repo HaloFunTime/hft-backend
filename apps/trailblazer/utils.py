@@ -14,12 +14,11 @@ SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
 SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
 
 
-def earned_online_warrior(xuid: int) -> bool:
-    return False
-
-
-def earned_clean_sweep(xuid: int) -> bool:
-    return False
+def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set]:
+    online_warrior_earn_set = set()
+    clean_sweep_earn_set = set()
+    extermination_earn_set = set()
+    return (online_warrior_earn_set, clean_sweep_earn_set, extermination_earn_set)
 
 
 def get_sherpa_qualified(links: list[DiscordXboxLiveLink]) -> list[str]:
@@ -97,14 +96,23 @@ def get_scout_qualified(
         link.xbox_live_account_id: link.discord_account_id for link in links
     }
 
+    (
+        earned_online_warrior,
+        earned_clean_sweep,
+        earned_extermination,
+    ) = get_xbox_earn_sets(xuids)
+
     for xuid in xuids:
         xbox_points = 0
         # Online Warrior: 200 points each, max 1 per user
-        if earned_online_warrior(xuid):
+        if xuid in earned_online_warrior:
             xbox_points += 200
         # Clean Sweep: 200 points each, max 1 per user
-        if earned_clean_sweep(xuid):
+        if xuid in earned_clean_sweep:
             xbox_points += 200
+        # Extermination: 100 points each, max 1 per user
+        if xuid in earned_extermination:
+            xbox_points += 100
 
         discord_id = xuid_to_discord_id.get(xuid)
         points_by_discord_id[discord_id] = (
