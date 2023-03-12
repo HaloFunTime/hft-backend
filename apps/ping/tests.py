@@ -20,9 +20,9 @@ class PingTestCase(APITestCase):
             {"detail": "Database connectivity error", "success": False},
         )
 
-    @patch("apps.ping.views.connections")
-    def test_ping_failure_health_check(self, mock_connections):
-        mock_cursor = mock_connections.all.return_value.__getitem__.return_value.cursor
+    @patch("apps.ping.views.random")
+    def test_ping_failure_health_check(self, mock_random):
+        mock_cursor = mock_random.choice.return_value.cursor
         mock_execute = mock_cursor.return_value.execute
         mock_cursor.return_value.fetchone.return_value.__getitem__.return_value = 0
 
@@ -35,11 +35,9 @@ class PingTestCase(APITestCase):
             {"detail": "Health check error", "success": False},
         )
 
-    @patch("apps.ping.views.connections")
-    def test_ping_failure_operational_error(self, mock_connections):
-        mock_execute = (
-            mock_connections.all.return_value.__getitem__.return_value.cursor.return_value.execute
-        )
+    @patch("apps.ping.views.random")
+    def test_ping_failure_operational_error(self, mock_random):
+        mock_execute = mock_random.choice.return_value.cursor.return_value.execute
         mock_execute.side_effect = OperationalError()
 
         response = self.client.get("/ping/")
