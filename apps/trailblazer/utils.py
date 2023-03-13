@@ -59,7 +59,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     for account in annotated_discord_accounts:
         earn_dict[account.discord_id] = {
             "church_of_the_crab": min(account.attendances, 5),  # Max 5 per account
-            "sharing_is_caring": account.referrals,  # No maximum
+            "sharing_is_caring": min(account.referrals, 3),  # Max 3 per account
             "bookworm": min(account.submissions, 2),  # Max 2 per account
         }
     return earn_dict
