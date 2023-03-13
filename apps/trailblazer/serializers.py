@@ -3,6 +3,24 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
+class TrailblazerScoutProgressRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+
+
+class TrailblazerScoutProgressResponseSerializer(serializers.Serializer):
+    linkedGamertag = serializers.BooleanField()
+    totalPoints = serializers.IntegerField()
+    pointsChurchOfTheCrab = serializers.IntegerField()
+    pointsSharingIsCaring = serializers.IntegerField()
+    pointsBookworm = serializers.IntegerField()
+    pointsOnlineWarrior = serializers.IntegerField()
+    pointsHotStreak = serializers.IntegerField()
+    pointsOddlyEffective = serializers.IntegerField()
+    pointsTooStronk = serializers.IntegerField()
+
+
 class TrailblazerSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,

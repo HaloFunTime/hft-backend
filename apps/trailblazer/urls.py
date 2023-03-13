@@ -8,4 +8,9 @@ urlpatterns = [
         views.TrailblazerSeasonalRoleCheckView.as_view(),
         name="seasonal-role-check",
     ),
+    path(
+        "scout-progress",
+        views.TrailblazerScoutProgressView.as_view(),
+        name="scout-progress",
+    ),
 ]
