@@ -1,13 +1,18 @@
+import datetime
 import logging
 
 from apps.halo_infinite.api.csr import csr
-from apps.halo_infinite.api.match import match_count
+from apps.halo_infinite.api.match import match_count, match_skill, matches_between
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
 from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
+
+SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
+SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-27T17:00:00Z")
+SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 
 
 def get_343_recommended_file_contributors() -> list[int, int]:
@@ -31,6 +36,14 @@ def get_active_ranked_playlists() -> list[HaloInfinitePlaylist]:
         "name"
     )
     return playlists
+
+
+def get_csr_after_match(xuid: int, match_id: str) -> int:
+    skill = match_skill(xuid, match_id)
+    try:
+        return skill["Value"][0]["Result"]["RankRecap"]["PostMatchCsr"]["Value"]
+    except Exception:
+        return -1
 
 
 def get_csrs(xuids: list[int], playlist_id: str):
@@ -79,6 +92,18 @@ def get_playlist_latest_version_info(playlist_id: str):
         "name": version_dict.get("PublicName"),
         "description": version_dict.get("Description"),
     }
+
+
+def get_season_3_ranked_arena_matches(xuid: int) -> list[dict]:
+    season_3_matches = matches_between(
+        xuid, SEASON_3_START_TIME, SEASON_3_END_TIME, "Matchmaking"
+    )
+    return [
+        match
+        for match in season_3_matches
+        if match.get("MatchInfo", {}).get("Playlist", {}).get("AssetId")
+        == SEASON_3_RANKED_ARENA_PLAYLIST_ID
+    ]
 
 
 def get_summary_stats(xuid: int):

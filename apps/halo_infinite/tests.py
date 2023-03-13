@@ -28,9 +28,14 @@ from apps.halo_infinite.tokens import (
     get_xsts_token,
 )
 from apps.halo_infinite.utils import (
+    SEASON_3_END_TIME,
+    SEASON_3_RANKED_ARENA_PLAYLIST_ID,
+    SEASON_3_START_TIME,
     get_343_recommended_file_contributors,
+    get_csr_after_match,
     get_csrs,
     get_playlist_latest_version_info,
+    get_season_3_ranked_arena_matches,
     get_summary_stats,
 )
 from apps.xbox_live.models import XboxLiveUserToken
@@ -717,6 +722,22 @@ class HaloInfiniteUtilsTestCase(TestCase):
         )
         mock_csr.assert_called_once_with([2533274870001169], "test_playlist_id")
 
+    @patch("apps.halo_infinite.utils.match_skill")
+    def test_get_csr_after_match(self, mock_match_skill):
+        mock_match_skill.return_value = {
+            "Value": [{"Result": {"RankRecap": {"PostMatchCsr": {"Value": 1234}}}}]
+        }
+        result_csr = get_csr_after_match(123, "abc")
+        self.assertEqual(result_csr, 1234)
+        mock_match_skill.assert_called_once_with(123, "abc")
+        mock_match_skill.reset_mock()
+
+        mock_match_skill.return_value = {}
+        result_csr = get_csr_after_match(456, "def")
+        self.assertEqual(result_csr, -1)
+        mock_match_skill.assert_called_once_with(456, "def")
+        mock_match_skill.reset_mock()
+
     @patch("apps.halo_infinite.utils.playlist_version")
     @patch("apps.halo_infinite.utils.playlist_info")
     def test_get_playlist_latest_version_info(
@@ -741,6 +762,19 @@ class HaloInfiniteUtilsTestCase(TestCase):
         mock_playlist_info.assert_called_once_with("test_playlist_id")
         mock_playlist_version.assert_called_once_with(
             "test_playlist_id", "test_version_id"
+        )
+
+    @patch("apps.halo_infinite.utils.matches_between")
+    def test_get_season_3_ranked_arena_matches(self, mock_matches_between):
+        mock_matches_between.return_value = [
+            {"MatchInfo": {"Playlist": {"AssetId": SEASON_3_RANKED_ARENA_PLAYLIST_ID}}},
+            {"MatchInfo": {"Playlist": {"AssetId": "wrong_playlist"}}},
+            {"MatchInfo": {"Playlist": {"AssetId": SEASON_3_RANKED_ARENA_PLAYLIST_ID}}},
+        ]
+        season_3_ranked_arena_matches = get_season_3_ranked_arena_matches(123)
+        self.assertEqual(len(season_3_ranked_arena_matches), 2)
+        mock_matches_between.assert_called_once_with(
+            123, SEASON_3_START_TIME, SEASON_3_END_TIME, "Matchmaking"
         )
 
     @patch("apps.halo_infinite.utils.match_count")
