@@ -5,7 +5,12 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.halo_infinite.api.csr import csr
-from apps.halo_infinite.api.match import match_count, match_privacy
+from apps.halo_infinite.api.match import (
+    match_count,
+    match_privacy,
+    match_skill,
+    matches_between,
+)
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
 from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.service_record import service_record
@@ -312,6 +317,183 @@ class HaloInfiniteAPITestCase(TestCase):
             404
         )
         self.assertDictEqual({}, match_privacy(2535405290989773))
+
+    @patch("apps.halo_infinite.api.match.requests.Session")
+    def test_match_skill(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "Value": [
+                {
+                    "Id": "xuid(2535405290989773)",
+                    "Result": {
+                        "RankRecap": {
+                            "PreMatchCsr": {},
+                            "PostMatchCsr": {},
+                        },
+                    },
+                }
+            ]
+        }
+        match_skill_data = match_skill(2535405290989773, "test_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://skill.svc.halowaypoint.com/hi/matches/test_id/skill?players=xuid(2535405290989773)",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("Value", match_skill_data)
+        value = match_skill_data.get("Value")[0]
+        self.assertIn("Id", value)
+        self.assertIn("Result", value)
+        rank_recap = value.get("Result").get("RankRecap")
+        self.assertIn("PreMatchCsr", rank_recap)
+        self.assertIn("PostMatchCsr", rank_recap)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, match_skill(2535405290989773, "test_id"))
+
+    @patch("apps.halo_infinite.api.match.requests.Session")
+    def test_matches_between(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "Start": 0,
+            "Count": 25,
+            "ResultCount": 25,
+            "Results": [
+                {
+                    "MatchId": "test1",
+                    "MatchInfo": {
+                        "StartTime": "2023-01-02T07:50:24.936Z",
+                        "EndTime": "2023-01-02T08:06:04.702Z",
+                        "Duration": "PT15M18.2160311S",
+                        "MapVariant": {},
+                        "UgcGameVariant": {},
+                        "Playlist": {},
+                    },
+                    "Outcome": 2,
+                    "Rank": 1,
+                    "PresentAtEndOfMatch": True,
+                },
+                {
+                    "MatchId": "test2",
+                    "MatchInfo": {
+                        "StartTime": "2023-01-01T20:30:35.9Z",
+                        "EndTime": "2023-01-01T20:46:14.302Z",
+                        "Duration": "PT15M18.2009991S",
+                        "MapVariant": {},
+                        "UgcGameVariant": {},
+                        "Playlist": {},
+                    },
+                    "Outcome": 2,
+                    "Rank": 1,
+                    "PresentAtEndOfMatch": True,
+                },
+                {
+                    "MatchId": "test3",
+                    "MatchInfo": {
+                        "StartTime": "2022-12-30T05:09:18.875Z",
+                        "EndTime": "2022-12-30T05:18:30.758Z",
+                        "Duration": "PT8M37.3625903S",
+                        "MapVariant": {},
+                        "UgcGameVariant": {},
+                        "Playlist": {},
+                    },
+                    "Outcome": 3,
+                    "Rank": 12,
+                    "PresentAtEndOfMatch": True,
+                },
+                {
+                    "MatchId": "test4",
+                    "MatchInfo": {
+                        "StartTime": "2022-12-30T05:01:15.609Z",
+                        "EndTime": "2022-12-30T05:07:50.548Z",
+                        "Duration": "PT6M2.8487807S",
+                        "MapVariant": {},
+                        "UgcGameVariant": {},
+                        "Playlist": {},
+                    },
+                    "Outcome": 3,
+                    "Rank": 7,
+                    "PresentAtEndOfMatch": True,
+                },
+                {
+                    "MatchId": "90bd95ab-ea56-4f85-96ca-3c1aafc85cf1",
+                    "MatchInfo": {
+                        "StartTime": "2022-11-30T04:47:20.552Z",
+                        "EndTime": "2022-11-30T04:59:32.674Z",
+                        "Duration": "PT11M40.0166266S",
+                        "MapVariant": {},
+                        "UgcGameVariant": {},
+                        "Playlist": {},
+                    },
+                    "Outcome": 3,
+                    "Rank": 8,
+                    "PresentAtEndOfMatch": True,
+                },
+            ],
+        }
+        matches_between_data = matches_between(
+            2535405290989773,
+            datetime.datetime(
+                year=2022, month=12, day=30, tzinfo=datetime.timezone.utc
+            ),
+            datetime.datetime(year=2023, month=1, day=2, tzinfo=datetime.timezone.utc),
+            "Matchmaking",
+        )
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://halostats.svc.halowaypoint.com/hi/players/xuid(2535405290989773)/matches"
+            "?count=25&start=0&type=Matchmaking",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertEqual(3, len(matches_between_data))
+        for match_data in matches_between_data:
+            self.assertIn("MatchId", match_data)
+            self.assertIn("MatchInfo", match_data)
+            match_info = match_data.get("MatchInfo")
+            self.assertIn("StartTime", match_info)
+            self.assertIn("EndTime", match_info)
+            self.assertIn("Duration", match_info)
+            self.assertIn("MapVariant", match_info)
+            self.assertIn("UgcGameVariant", match_info)
+            self.assertIn("Playlist", match_info)
+            self.assertIn("Outcome", match_data)
+            self.assertIn("Rank", match_data)
+            self.assertIn("PresentAtEndOfMatch", match_data)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertEqual(
+            [],
+            matches_between(
+                2535405290989773,
+                datetime.datetime(
+                    year=2022, month=12, day=30, tzinfo=datetime.timezone.utc
+                ),
+                datetime.datetime(
+                    year=2023, month=1, day=2, tzinfo=datetime.timezone.utc
+                ),
+                "Matchmaking",
+            ),
+        )
 
     @patch("apps.halo_infinite.api.playlist.requests.Session")
     def test_playlist_info(self, mock_Session):
