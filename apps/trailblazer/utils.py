@@ -5,20 +5,99 @@ import logging
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
-from apps.halo_infinite.utils import get_csrs
+from apps.halo_infinite.utils import (
+    get_csr_after_match,
+    get_csrs,
+    get_season_3_ranked_arena_matches,
+)
 from apps.link.models import DiscordXboxLiveLink
 
 logger = logging.getLogger(__name__)
+
+MODE_RANKED_ODDBALL_ID = "751bcc9d-aace-45a1-8d71-358f0bc89f7e"
+MODE_RANKED_STRONGHOLDS_ID = "22b8a0eb-0d02-4eb3-8f56-5f63fc254f83"
 
 SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
 SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
 
 
-def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set]:
+def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set, set]:
+    # Get current CSRs for each XUID (needed for calculations)
+    csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
+
+    # Initialize sets
     online_warrior_earn_set = set()
-    clean_sweep_earn_set = set()
-    extermination_earn_set = set()
-    return (online_warrior_earn_set, clean_sweep_earn_set, extermination_earn_set)
+    hot_streak_earn_set = set()
+    oddly_effective_earn_set = set()
+    too_stronk_earn_set = set()
+    for xuid in xuids:
+        # Get matches for this XUID
+        matches = get_season_3_ranked_arena_matches(xuid)
+        matches_sorted = sorted(
+            matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("StartTime")
+            ),
+        )
+
+        # Online Warrior: Beat your placement CSR by 200 or more
+        # Validate player has placed and we have at least 5 matches of data for them
+        if csr_by_xuid[xuid]["current_csr"] != -1 and len(matches_sorted) >= 5:
+            placement_match_index = 4
+            placement_csr = None
+            while placement_csr is None:
+                placement_match = matches_sorted[placement_match_index]
+                possible_placement_csr = get_csr_after_match(
+                    xuid, placement_match.get("MatchId")
+                )
+                placement_csr = (
+                    possible_placement_csr if possible_placement_csr != -1 else None
+                )
+                placement_match_index += 1
+            if csr_by_xuid[xuid]["current_reset_max_csr"] >= placement_csr + 200:
+                online_warrior_earn_set.add(xuid)
+
+        # Hot Streak: Finish first on the postgame scoreboard in 3 consecutive games
+        for i in range(len(matches_sorted) - 3):
+            match_a = matches[i]
+            match_b = matches[i + 1]
+            match_c = matches[i + 2]
+            if (
+                match_a.get("Rank") == 1
+                and match_b.get("Rank") == 1
+                and match_c.get("Rank") == 1
+            ):
+                hot_streak_earn_set.add(xuid)
+                break
+
+        # Oddly Effective: Win 25 or more Oddball games
+        # Too Stronk: Win 25 or more Strongholds games
+        oddball_wins = 0
+        strongholds_wins = 0
+        for match in matches:
+            if (
+                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
+                == MODE_RANKED_ODDBALL_ID
+            ):
+                if match.get("Outcome") == 2:
+                    oddball_wins += 1
+            if (
+                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
+                == MODE_RANKED_STRONGHOLDS_ID
+            ):
+                if match.get("Outcome") == 2:
+                    strongholds_wins += 1
+        if oddball_wins >= 25:
+            oddly_effective_earn_set.add(xuid)
+        if strongholds_wins >= 25:
+            too_stronk_earn_set.add(xuid)
+
+    return (
+        online_warrior_earn_set,
+        hot_streak_earn_set,
+        oddly_effective_earn_set,
+        too_stronk_earn_set,
+    )
 
 
 def get_sherpa_qualified(links: list[DiscordXboxLiveLink]) -> list[str]:
@@ -98,8 +177,9 @@ def get_scout_qualified(
 
     (
         earned_online_warrior,
-        earned_clean_sweep,
-        earned_extermination,
+        earned_hot_streak,
+        earned_oddly_effective,
+        earned_too_stronk,
     ) = get_xbox_earn_sets(xuids)
 
     for xuid in xuids:
@@ -107,11 +187,14 @@ def get_scout_qualified(
         # Online Warrior: 200 points each, max 1 per user
         if xuid in earned_online_warrior:
             xbox_points += 200
-        # Clean Sweep: 200 points each, max 1 per user
-        if xuid in earned_clean_sweep:
-            xbox_points += 200
-        # Extermination: 100 points each, max 1 per user
-        if xuid in earned_extermination:
+        # Hot Streak: 100 points each, max 1 per user
+        if xuid in earned_hot_streak:
+            xbox_points += 100
+        # Oddly Effective: 100 points each, max 1 per user
+        if xuid in earned_oddly_effective:
+            xbox_points += 100
+        # Too Stronk: 100 points each, max 1 per user
+        if xuid in earned_too_stronk:
             xbox_points += 100
 
         discord_id = xuid_to_discord_id.get(xuid)

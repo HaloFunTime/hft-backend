@@ -24,6 +24,10 @@ class TrailblazerUtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
+    def test_get_xbox_earn_sets(self):
+        # TODO: Write a meaningful unit test for this
+        pass
+
     @patch("apps.trailblazer.utils.get_csrs")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_get_sherpa_qualified(
@@ -108,7 +112,7 @@ class TrailblazerUtilsTestCase(TestCase):
         mock_get_xbox_earn_sets,
     ):
         # Empty lists provided to method returns nothing
-        mock_get_xbox_earn_sets.return_value = (set(), set(), set())
+        mock_get_xbox_earn_sets.return_value = (set(), set(), set(), set())
         result = get_scout_qualified([], [])
         self.assertEqual(result, [])
 
@@ -116,8 +120,9 @@ class TrailblazerUtilsTestCase(TestCase):
         discord_accounts = []
         links = []
         online_warrior_set = set()
-        clean_sweep_set = set()
-        extermination_set = set()
+        hot_streak_set = set()
+        oddly_effective_set = set()
+        too_stronk_set = set()
         for i in range(30):
             discord_account = DiscordAccount.objects.create(
                 creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
@@ -180,19 +185,23 @@ class TrailblazerUtilsTestCase(TestCase):
                     invitee_discord=discord_account,
                     referral_date=SEASON_3_START_DAY,
                 )
-            # Every second account earns online warrior
+            # Every second account earns Online Warrior
             if i % 2 == 0:
                 online_warrior_set.add(i)
-            # Every third account earns clean sweep
+            # Every third account earns Hot Streak
             if i % 3 == 0:
-                clean_sweep_set.add(i)
-            # Every sixth account earns extermination
+                hot_streak_set.add(i)
+            # Every fifth account earns Oddly Effective
             if i % 6 == 0:
-                extermination_set.add(i)
+                oddly_effective_set.add(i)
+            # Every sixth account earns Too Stronk
+            if i % 6 == 0:
+                too_stronk_set.add(i)
         mock_get_xbox_earn_sets.return_value = (
             online_warrior_set,
-            clean_sweep_set,
-            extermination_set,
+            hot_streak_set,
+            oddly_effective_set,
+            too_stronk_set,
         )
 
         # The test data above results in every sixth account clearing the 500 point threshold
