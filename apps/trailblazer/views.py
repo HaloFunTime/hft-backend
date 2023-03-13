@@ -6,6 +6,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.discord.utils import update_or_create_discord_account
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.serializers import (
     TrailblazerScoutProgressRequestSerializer,
@@ -92,6 +93,7 @@ class TrailblazerScoutProgressView(APIView):
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
+            discord_tag = validation_serializer.data.get("discordUserTag")
             points_church_of_the_crab = 0
             points_sharing_is_caring = 0
             points_bookworm = 0
@@ -100,8 +102,14 @@ class TrailblazerScoutProgressView(APIView):
             points_oddly_effective = 0
             points_too_stronk = 0
             try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_tag, request.user
+                )
+
                 # Tally the Discord Points
-                discord_earns = get_discord_earn_dict([discord_id]).get(discord_id)
+                discord_earns = get_discord_earn_dict([discord_account.discord_id]).get(
+                    discord_account.discord_id
+                )
                 points_church_of_the_crab = discord_earns.get("church_of_the_crab") * 50
                 points_sharing_is_caring = discord_earns.get("sharing_is_caring") * 50
                 points_bookworm = discord_earns.get("bookworm") * 50
@@ -110,7 +118,7 @@ class TrailblazerScoutProgressView(APIView):
                 link = None
                 try:
                     link = DiscordXboxLiveLink.objects.filter(
-                        discord_account_id=discord_id, verified=True
+                        discord_account_id=discord_account.discord_id, verified=True
                     ).get()
                     (
                         earned_online_warrior,

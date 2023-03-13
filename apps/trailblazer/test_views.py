@@ -328,11 +328,16 @@ class TrailblazerTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/trailblazer/scout-progress",
-            {"discordUserId": "abc"},
+            {"discordUserId": "abc", "discordUserTag": "foo"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -341,6 +346,14 @@ class TrailblazerTestCase(APITestCase):
         self.assertEqual(
             details.get("discordUserId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag")[0],
+            ErrorDetail(
+                string="Only characters constituting a valid Discord Tag are allowed.",
+                code="invalid",
+            ),
         )
 
         # Create test data
@@ -364,6 +377,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
             },
             format="json",
         )
@@ -386,6 +400,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
             },
             format="json",
         )
@@ -421,6 +436,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
             },
             format="json",
         )
@@ -458,6 +474,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": discord_account.discord_id,
+                "discordUserTag": discord_account.discord_tag,
             },
             format="json",
         )

@@ -1,11 +1,14 @@
 from rest_framework import serializers
 
-from apps.discord.serializers import validate_discord_id
+from apps.discord.serializers import validate_discord_id, validate_discord_tag
 
 
 class TrailblazerScoutProgressRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
+    )
+    discordUserTag = serializers.CharField(
+        max_length=37, validators=[validate_discord_tag]
     )
 
 
