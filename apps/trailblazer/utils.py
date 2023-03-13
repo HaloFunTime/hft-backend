@@ -216,7 +216,7 @@ def get_scout_qualified(
             points_by_discord_id[discord_id] + xbox_points
         )
 
-    logger.info("Trailblazer Scout point totals by Discord ID:")
+    logger.info("Trailblazer Scout point totals (by Discord ID):")
     logger.info(json.dumps(points_by_discord_id))
 
     scout_qualified_discord_ids = [
