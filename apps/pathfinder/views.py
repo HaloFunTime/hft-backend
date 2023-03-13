@@ -8,12 +8,14 @@ from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.models import PathfinderHikeSubmission
+from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.pathfinder.serializers import (
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
+    WAYWOPostRequestSerializer,
+    WAYWOPostResponseSerializer,
 )
 from apps.pathfinder.utils import get_dynamo_qualified, get_illuminated_qualified
 from config.serializers import StandardErrorSerializer
@@ -140,4 +142,44 @@ class PathfinderSeasonalRoleCheckView(APIView):
                     "dynamo": dynamo_discord_ids,
                 }
             )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PathfinderWAYWOPostView(APIView):
+    @extend_schema(
+        request=WAYWOPostRequestSerializer,
+        responses={
+            200: WAYWOPostResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Record that someone has made a WAYWO post.
+        """
+        validation_serializer = WAYWOPostRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            poster_discord_id = validation_serializer.data.get("posterDiscordId")
+            poster_discord_tag = validation_serializer.data.get("posterDiscordTag")
+            post_id = validation_serializer.data.get("postId")
+            post_title = validation_serializer.data.get("postTitle") or ""
+            try:
+                poster_discord = update_or_create_discord_account(
+                    poster_discord_id, poster_discord_tag, request.user
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException("Error attempting to record a PathfinderWAYWOPost.")
+            try:
+                PathfinderWAYWOPost.objects.create(
+                    creator=request.user,
+                    poster_discord=poster_discord,
+                    post_id=post_id,
+                    post_title=post_title[:100],
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException("Error attempting to create a PathfinderWAYWOPost.")
+            serializer = WAYWOPostResponseSerializer({"success": True})
             return Response(serializer.data, status=status.HTTP_200_OK)

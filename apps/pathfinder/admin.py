@@ -4,7 +4,11 @@ from django.contrib import admin
 from django.db.models import Q
 
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
-from apps.pathfinder.models import PathfinderHikeSubmission
+from apps.pathfinder.models import (
+    PathfinderHikeAttendance,
+    PathfinderHikeSubmission,
+    PathfinderWAYWOPost,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +51,23 @@ class IsFullyPlaytestedFilter(admin.SimpleListFilter):
         return queryset
 
 
+@admin.register(PathfinderHikeAttendance)
+class PathfinderHikeAttendanceAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["attendee_discord"]
+    list_display = (
+        "__str__",
+        linkify("attendee_discord"),
+        "attendance_date",
+        "creator",
+    )
+    list_filter = ("attendee_discord", "attendance_date", "creator")
+    fields = (
+        "attendee_discord",
+        "attendance_date",
+        "creator",
+    )
+
+
 @admin.register(PathfinderHikeSubmission)
 class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
     autocomplete_fields = ["map_submitter_discord"]
@@ -74,5 +95,27 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "mode_1_played",
         "mode_2_played",
         "submitter_present_for_playtest",
+        "creator",
+    )
+
+
+@admin.register(PathfinderWAYWOPost)
+class PathfinderWAYWOPostAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["poster_discord"]
+    list_display = (
+        "__str__",
+        linkify("poster_discord"),
+        "post_title",
+        "post_id",
+        "creator",
+    )
+    list_filter = (
+        "poster_discord",
+        "creator",
+    )
+    fields = (
+        "poster_discord",
+        "post_id",
+        "post_title",
         "creator",
     )

@@ -8,7 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.models import PathfinderHikeSubmission
+from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -436,3 +436,72 @@ class PathfinderTestCase(APITestCase):
         )
         mock_get_illuminated_qualified.reset_mock()
         mock_get_dynamo_qualified.reset_mock()
+
+    def test_pathfinder_waywo_post(self):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/waywo-post", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for field in [
+            "posterDiscordId",
+            "posterDiscordTag",
+            "postId",
+            "postTitle",
+        ]:
+            self.assertIn(field, details)
+            self.assertEqual(
+                details.get(field),
+                [ErrorDetail(string="This field is required.", code="required")],
+            )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/waywo-post",
+            {
+                "posterDiscordId": "abc",
+                "posterDiscordTag": "abc",
+                "postId": "abc",
+                "postTitle": "abc",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for id_field in ["posterDiscordId", "postId"]:
+            self.assertIn(id_field, details)
+            self.assertEqual(
+                details.get(id_field)[0],
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                ),
+            )
+        self.assertIn("posterDiscordTag", details)
+        self.assertEqual(
+            details.get("posterDiscordTag")[0],
+            ErrorDetail(
+                string="Only characters constituting a valid Discord Tag are allowed.",
+                code="invalid",
+            ),
+        )
+
+        # Success (excluding channel name)
+        response = self.client.post(
+            "/pathfinder/waywo-post",
+            {
+                "posterDiscordId": "123",
+                "posterDiscordTag": "Test#0123",
+                "postId": "456",
+                "postTitle": "My Test Map",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_tag, "Test#0123")
+        waywo_post = PathfinderWAYWOPost.objects.first()
+        self.assertEqual(waywo_post.poster_discord.discord_id, "123")
+        self.assertEqual(waywo_post.poster_discord.discord_tag, "Test#0123")
+        self.assertEqual(waywo_post.post_id, "456")
+        self.assertEqual(waywo_post.post_title, "My Test Map")
+        waywo_post.delete()

@@ -5,6 +5,27 @@ from apps.discord.models import DiscordAccount
 from apps.overrides.models import Base
 
 
+class PathfinderHikeAttendance(Base):
+    class Meta:
+        db_table = "PathfinderHikeAttendance"
+        ordering = [
+            "-attendance_date",
+        ]
+        verbose_name = "Hike Attendance"
+        verbose_name_plural = "Hike Attendances"
+
+    attendee_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Attendee Discord",
+        related_name="pathfinder_hike_attendees",
+    )
+    attendance_date = models.DateField(verbose_name="Attendance Date")
+
+    def __str__(self):
+        return f"{str(self.attendee_discord)} attended on {self.attendance_date}"
+
+
 class PathfinderHikeSubmission(Base):
     class Meta:
         db_table = "PathfinderHikeSubmission"
@@ -22,7 +43,10 @@ class PathfinderHikeSubmission(Base):
         max_length=20, blank=False, verbose_name="WAYWO Post ID"
     )
     map_submitter_discord = models.ForeignKey(
-        DiscordAccount, on_delete=models.RESTRICT, verbose_name="Map Submitter Discord"
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Map Submitter Discord",
+        related_name="pathfinder_hike_submitters",
     )
     scheduled_playtest_date = models.DateField(verbose_name="Scheduled Playtest Date")
     map = models.CharField(max_length=32, verbose_name="Map")
@@ -48,3 +72,27 @@ class PathfinderHikeSubmission(Base):
 
     def __str__(self):
         return f"{str(self.scheduled_playtest_date)}: {self.map}"
+
+
+class PathfinderWAYWOPost(Base):
+    class Meta:
+        db_table = "PathfinderWAYWOPost"
+        ordering = [
+            "-created_at",
+        ]
+        verbose_name = "WAYWO Post"
+        verbose_name_plural = "WAYWO Posts"
+
+    post_title = models.CharField(
+        max_length=100, blank=False, verbose_name="Post Title"
+    )
+    post_id = models.CharField(max_length=20, blank=False, verbose_name="Post ID")
+    poster_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Poster Discord",
+        related_name="pathfinder_waywo_posters",
+    )
+
+    def __str__(self):
+        return self.post_title

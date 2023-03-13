@@ -34,3 +34,16 @@ class PathfinderSeasonalRoleCheckResponseSerializer(serializers.Serializer):
     dynamo = serializers.ListField(
         child=serializers.CharField(max_length=20, validators=[validate_discord_id])
     )
+
+
+class WAYWOPostRequestSerializer(serializers.Serializer):
+    posterDiscordId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    posterDiscordTag = serializers.CharField(validators=[validate_discord_tag])
+    postId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    postTitle = serializers.CharField()
+
+
+class WAYWOPostResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()

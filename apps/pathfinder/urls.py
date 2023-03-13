@@ -9,4 +9,9 @@ urlpatterns = [
         views.PathfinderSeasonalRoleCheckView.as_view(),
         name="seasonal-role-check",
     ),
+    path(
+        "waywo-post",
+        views.PathfinderWAYWOPostView.as_view(),
+        name="waywo-post",
+    ),
 ]
