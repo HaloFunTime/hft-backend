@@ -6,6 +6,8 @@ from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.utils import (
+    SEASON_3_END_DAY,
+    SEASON_3_START_DAY,
     get_csr_after_match,
     get_csrs,
     get_season_3_ranked_arena_matches,
@@ -16,9 +18,6 @@ logger = logging.getLogger(__name__)
 
 MODE_RANKED_ODDBALL_ID = "751bcc9d-aace-45a1-8d71-358f0bc89f7e"
 MODE_RANKED_STRONGHOLDS_ID = "22b8a0eb-0d02-4eb3-8f56-5f63fc254f83"
-
-SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
-SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
 
 
 def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:

@@ -505,3 +505,190 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(waywo_post.post_id, "456")
         self.assertEqual(waywo_post.post_title, "My Test Map")
         waywo_post.delete()
+
+    @patch("apps.pathfinder.views.get_xbox_earn_dict")
+    @patch("apps.pathfinder.views.get_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_pathfinder_dynamo_progress_view(
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_discord_earn_dict,
+        mock_get_xbox_earn_dict,
+    ):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/dynamo-progress", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted value throws errors
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {"discordUserId": "abc", "discordUserTag": "foo"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag")[0],
+            ErrorDetail(
+                string="Only characters constituting a valid Discord Tag are allowed.",
+                code="invalid",
+            ),
+        )
+
+        # Create test data
+        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="1234", discord_tag="TestTag#1234"
+        )
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="testGT1234"
+        )
+        link = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            verified=True,
+        )
+
+        # Exception in get_discord_earn_dict throws error
+        mock_get_discord_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Dynamo progress check.",
+                code="error",
+            ),
+        )
+        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_discord_earn_dict.side_effect = None
+        mock_get_discord_earn_dict.reset_mock()
+
+        # Exception in get_xbox_earn_dict throws error
+        mock_get_xbox_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Dynamo progress check.",
+                code="error",
+            ),
+        )
+        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_xbox_earn_dict.side_effect = None
+        mock_get_discord_earn_dict.reset_mock()
+        mock_get_xbox_earn_dict.reset_mock()
+
+        # Success - point totals come through for all values
+        mock_get_discord_earn_dict.return_value = {
+            link.discord_account_id: {
+                "gone_hiking": 150,
+                "map_maker": 50,
+                "show_and_tell": 50,
+            }
+        }
+        mock_get_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "bookmarked": 100,
+                "playtime": 100,
+                "tagtacular": 50,
+                "time_flies": 37,
+            }
+        }
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), True)
+        self.assertEqual(response.data.get("totalPoints"), 537)
+        self.assertEqual(response.data.get("pointsGoneHiking"), 150)
+        self.assertEqual(response.data.get("pointsMapMaker"), 50)
+        self.assertEqual(response.data.get("pointsShowAndTell"), 50)
+        self.assertEqual(response.data.get("pointsBookmarked"), 100)
+        self.assertEqual(response.data.get("pointsPlaytime"), 100)
+        self.assertEqual(response.data.get("pointsTagtacular"), 50)
+        self.assertEqual(response.data.get("pointsTimeFlies"), 37)
+        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_discord_earn_dict.reset_mock()
+        mock_get_xbox_earn_dict.reset_mock()
+
+        # Success - no linked gamertag
+        link.delete()
+        mock_get_discord_earn_dict.return_value = {
+            discord_account.discord_id: {
+                "gone_hiking": 150,
+                "map_maker": 50,
+                "show_and_tell": 50,
+            }
+        }
+        mock_get_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "bookmarked": 100,
+                "playtime": 100,
+                "tagtacular": 50,
+                "time_flies": 37,
+            }
+        }
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": discord_account.discord_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), False)
+        self.assertEqual(response.data.get("totalPoints"), 250)
+        self.assertEqual(response.data.get("pointsGoneHiking"), 150)
+        self.assertEqual(response.data.get("pointsMapMaker"), 50)
+        self.assertEqual(response.data.get("pointsShowAndTell"), 50)
+        self.assertEqual(response.data.get("pointsBookmarked"), 0)
+        self.assertEqual(response.data.get("pointsPlaytime"), 0)
+        self.assertEqual(response.data.get("pointsTagtacular"), 0)
+        self.assertEqual(response.data.get("pointsTimeFlies"), 0)
+        mock_get_discord_earn_dict.assert_called_once_with([discord_account.discord_id])
+        mock_get_xbox_earn_dict.assert_not_called()
+        mock_get_discord_earn_dict.reset_mock()
+        mock_get_xbox_earn_dict.reset_mock()

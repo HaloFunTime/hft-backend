@@ -10,6 +10,8 @@ from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
 
+SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
+SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
 SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
 SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-27T17:00:00Z")
 SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"

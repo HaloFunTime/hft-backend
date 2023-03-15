@@ -20,6 +20,27 @@ class HikeSubmissionPostResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
 
 
+class PathfinderDynamoProgressRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUserTag = serializers.CharField(
+        max_length=37, validators=[validate_discord_tag]
+    )
+
+
+class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
+    linkedGamertag = serializers.BooleanField()
+    totalPoints = serializers.IntegerField()
+    pointsGoneHiking = serializers.IntegerField()
+    pointsMapMaker = serializers.IntegerField()
+    pointsShowAndTell = serializers.IntegerField()
+    pointsBookmarked = serializers.IntegerField()
+    pointsPlaytime = serializers.IntegerField()
+    pointsTagtacular = serializers.IntegerField()
+    pointsTimeFlies = serializers.IntegerField()
+
+
 class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,

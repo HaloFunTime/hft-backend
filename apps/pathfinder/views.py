@@ -12,12 +12,19 @@ from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.pathfinder.serializers import (
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
+    PathfinderDynamoProgressRequestSerializer,
+    PathfinderDynamoProgressResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
     WAYWOPostRequestSerializer,
     WAYWOPostResponseSerializer,
 )
-from apps.pathfinder.utils import get_dynamo_qualified, get_illuminated_qualified
+from apps.pathfinder.utils import (
+    get_discord_earn_dict,
+    get_dynamo_qualified,
+    get_illuminated_qualified,
+    get_xbox_earn_dict,
+)
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
@@ -127,7 +134,7 @@ class PathfinderSeasonalRoleCheckView(APIView):
                     .order_by("created_at")
                 )
 
-                # Retrieve qualifying Sherpa/Scout IDs from the utility methods
+                # Retrieve qualifying Sherpa/Dynamo IDs from the utility methods
                 illuminated_discord_ids = get_illuminated_qualified(links)
                 dynamo_discord_ids = get_dynamo_qualified(links)
             except Exception as ex:
@@ -182,4 +189,91 @@ class PathfinderWAYWOPostView(APIView):
                 logger.error(ex)
                 raise APIException("Error attempting to create a PathfinderWAYWOPost.")
             serializer = WAYWOPostResponseSerializer({"success": True})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PathfinderDynamoProgressView(APIView):
+    @extend_schema(
+        request=PathfinderDynamoProgressRequestSerializer,
+        responses={
+            200: PathfinderDynamoProgressResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Evaluate an individual Discord ID's progress toward the Pathfinder Dynamo role.
+        """
+        validation_serializer = PathfinderDynamoProgressRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_tag = validation_serializer.data.get("discordUserTag")
+            points_gone_hiking = 0
+            points_map_maker = 0
+            points_show_and_tell = 0
+            points_bookmarked = 0
+            points_playtime = 0
+            points_tagtacular = 0
+            points_time_flies = 0
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_tag, request.user
+                )
+
+                # Tally the Discord Points
+                discord_earns = get_discord_earn_dict([discord_account.discord_id]).get(
+                    discord_account.discord_id
+                )
+                points_gone_hiking = discord_earns.get("gone_hiking")
+                points_map_maker = discord_earns.get("map_maker")
+                points_show_and_tell = discord_earns.get("show_and_tell")
+
+                # Tally the Xbox Points
+                link = None
+                try:
+                    link = DiscordXboxLiveLink.objects.filter(
+                        discord_account_id=discord_account.discord_id, verified=True
+                    ).get()
+                    xbox_earns = get_xbox_earn_dict([link.xbox_live_account_id]).get(
+                        link.xbox_live_account_id
+                    )
+                    points_bookmarked = xbox_earns.get("bookmarked")
+                    points_playtime = xbox_earns.get("playtime")
+                    points_tagtacular = xbox_earns.get("tagtacular")
+                    points_time_flies = xbox_earns.get("time_flies")
+                except DiscordXboxLiveLink.DoesNotExist:
+                    pass
+
+                # Calculate the total points
+                total_points = (
+                    points_gone_hiking
+                    + points_map_maker
+                    + points_show_and_tell
+                    + points_bookmarked
+                    + points_playtime
+                    + points_tagtacular
+                    + points_time_flies
+                )
+            except Exception as ex:
+                logger.error("Error attempting the Pathfinder Dynamo progress check.")
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting the Pathfinder Dynamo progress check."
+                )
+            serializer = PathfinderDynamoProgressResponseSerializer(
+                {
+                    "linkedGamertag": link is not None,
+                    "totalPoints": total_points,
+                    "pointsGoneHiking": points_gone_hiking,
+                    "pointsMapMaker": points_map_maker,
+                    "pointsShowAndTell": points_show_and_tell,
+                    "pointsBookmarked": points_bookmarked,
+                    "pointsPlaytime": points_playtime,
+                    "pointsTagtacular": points_tagtacular,
+                    "pointsTimeFlies": points_time_flies,
+                }
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)

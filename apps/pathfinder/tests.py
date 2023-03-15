@@ -5,7 +5,11 @@ from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.utils import get_illuminated_qualified
+from apps.pathfinder.utils import (
+    get_discord_earn_dict,
+    get_illuminated_qualified,
+    get_xbox_earn_dict,
+)
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -14,6 +18,16 @@ class PathfinderUtilsTestCase(TestCase):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
         )
+
+    def test_get_discord_earn_dict(self):
+        earn_dict = get_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+        # TODO: Write a more meaningful unit test for this
+
+    def test_get_xbox_earn_dict(self):
+        earn_dict = get_xbox_earn_dict([])
+        self.assertEqual(earn_dict, {})
+        # TODO: Write a more meaningful unit test for this
 
     @patch("apps.pathfinder.utils.get_343_recommended_file_contributors")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")

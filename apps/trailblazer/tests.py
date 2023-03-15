@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.utils import SEASON_3_START_TIME
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.models import (
     TrailblazerTuesdayAttendance,
@@ -11,7 +12,7 @@ from apps.trailblazer.models import (
     TrailblazerVODReview,
 )
 from apps.trailblazer.utils import (
-    SEASON_3_START_DAY,
+    get_discord_earn_dict,
     get_scout_qualified,
     get_sherpa_qualified,
 )
@@ -23,6 +24,11 @@ class TrailblazerUtilsTestCase(TestCase):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
         )
+
+    def test_get_discord_earn_dict(self):
+        earn_dict = get_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+        # TODO: Write a more meaningful unit test for this
 
     def test_get_xbox_earn_sets(self):
         # TODO: Write a meaningful unit test for this
@@ -147,35 +153,35 @@ class TrailblazerUtilsTestCase(TestCase):
                 TrailblazerTuesdayAttendance.objects.create(
                     creator=self.user,
                     attendee_discord=discord_account,
-                    attendance_date=SEASON_3_START_DAY,
+                    attendance_date=SEASON_3_START_TIME,
                 )
             # Every third account gets an attendance
             if i % 3 == 0:
                 TrailblazerTuesdayAttendance.objects.create(
                     creator=self.user,
                     attendee_discord=discord_account,
-                    attendance_date=SEASON_3_START_DAY,
+                    attendance_date=SEASON_3_START_TIME,
                 )
             # Every fourth account gets an attendance
             if i % 4 == 0:
                 TrailblazerTuesdayAttendance.objects.create(
                     creator=self.user,
                     attendee_discord=discord_account,
-                    attendance_date=SEASON_3_START_DAY,
+                    attendance_date=SEASON_3_START_TIME,
                 )
             # Every fifth account gets a VOD review
             if i % 5 == 0:
                 TrailblazerVODReview.objects.create(
                     creator=self.user,
                     submitter_discord=discord_account,
-                    submission_date=SEASON_3_START_DAY,
+                    submission_date=SEASON_3_START_TIME,
                 )
             # Every sixth account gets a VOD review
             if i % 6 == 0:
                 TrailblazerVODReview.objects.create(
                     creator=self.user,
                     submitter_discord=discord_account,
-                    submission_date=SEASON_3_START_DAY,
+                    submission_date=SEASON_3_START_TIME,
                 )
             # Every seventh account gets a referral
             if i % 7 == 0:
@@ -183,7 +189,7 @@ class TrailblazerUtilsTestCase(TestCase):
                     creator=self.user,
                     referrer_discord=discord_account,
                     invitee_discord=discord_account,
-                    referral_date=SEASON_3_START_DAY,
+                    referral_date=SEASON_3_START_TIME,
                 )
             # Every second account earns Online Warrior
             if i % 2 == 0:

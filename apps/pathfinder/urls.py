@@ -3,6 +3,11 @@ from django.urls import path
 from apps.pathfinder import views
 
 urlpatterns = [
+    path(
+        "dynamo-progress",
+        views.PathfinderDynamoProgressView.as_view(),
+        name="dynamo-progress",
+    ),
     path("hike-submission", views.HikeSubmissionView.as_view(), name="hike-submission"),
     path(
         "seasonal-role-check",

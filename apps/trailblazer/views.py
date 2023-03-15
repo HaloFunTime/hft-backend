@@ -84,9 +84,7 @@ class TrailblazerScoutProgressView(APIView):
     )
     def post(self, request, format=None):
         """
-        Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Trailblazer progression role
-        each Discord ID qualifies for, if any.
+        Evaluate an individual Discord ID's progress toward the Trailblazer Scout role.
         """
         validation_serializer = TrailblazerScoutProgressRequestSerializer(
             data=request.data
