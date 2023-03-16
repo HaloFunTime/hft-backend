@@ -66,12 +66,12 @@ def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         unlocked_bookmarked = False
         unlocked_playtime = False
         halofuntime_tags = 0
-        forge_hours = 0
+        forge_custom_game_hours = 0
         earn_dict[xuid] = {
             "bookmarked": 100 if unlocked_bookmarked else 0,
             "playtime": 100 if unlocked_playtime else 0,
             "tagtacular": min(halofuntime_tags, 4) * 25,
-            "time_flies": min(forge_hours, 200),
+            "forged_in_fire": min(forge_custom_game_hours, 200),
         }
 
     return earn_dict
@@ -136,8 +136,8 @@ def get_dynamo_qualified(
         xbox_points += earns.get("playtime")
         # Tagtacular
         xbox_points += earns.get("tagtacular")
-        # Time Flies
-        xbox_points += earns.get("time_flies")
+        # Forged in Fire
+        xbox_points += earns.get("forged_in_fire")
 
         discord_id = xuid_to_discord_id.get(xuid)
         points_by_discord_id[discord_id] = (

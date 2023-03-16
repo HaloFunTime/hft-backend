@@ -38,7 +38,7 @@ class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     pointsBookmarked = serializers.IntegerField()
     pointsPlaytime = serializers.IntegerField()
     pointsTagtacular = serializers.IntegerField()
-    pointsTimeFlies = serializers.IntegerField()
+    pointsForgedInFire = serializers.IntegerField()
 
 
 class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):

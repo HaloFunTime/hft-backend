@@ -627,7 +627,7 @@ class PathfinderTestCase(APITestCase):
                 "bookmarked": 100,
                 "playtime": 100,
                 "tagtacular": 50,
-                "time_flies": 37,
+                "forged_in_fire": 37,
             }
         }
         response = self.client.post(
@@ -647,7 +647,7 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsBookmarked"), 100)
         self.assertEqual(response.data.get("pointsPlaytime"), 100)
         self.assertEqual(response.data.get("pointsTagtacular"), 50)
-        self.assertEqual(response.data.get("pointsTimeFlies"), 37)
+        self.assertEqual(response.data.get("pointsForgedInFire"), 37)
         mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
         mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
         mock_get_discord_earn_dict.reset_mock()
@@ -667,7 +667,7 @@ class PathfinderTestCase(APITestCase):
                 "bookmarked": 100,
                 "playtime": 100,
                 "tagtacular": 50,
-                "time_flies": 37,
+                "forged_in_fire": 37,
             }
         }
         response = self.client.post(
@@ -687,7 +687,7 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsBookmarked"), 0)
         self.assertEqual(response.data.get("pointsPlaytime"), 0)
         self.assertEqual(response.data.get("pointsTagtacular"), 0)
-        self.assertEqual(response.data.get("pointsTimeFlies"), 0)
+        self.assertEqual(response.data.get("pointsForgedInFire"), 0)
         mock_get_discord_earn_dict.assert_called_once_with([discord_account.discord_id])
         mock_get_xbox_earn_dict.assert_not_called()
         mock_get_discord_earn_dict.reset_mock()

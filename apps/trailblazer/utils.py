@@ -57,23 +57,24 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     earn_dict = {}
     for account in annotated_discord_accounts:
         earn_dict[account.discord_id] = {
-            "church_of_the_crab": min(account.attendances, 5),  # Max 5 per account
-            "sharing_is_caring": min(account.referrals, 3),  # Max 3 per account
-            "bookworm": min(account.submissions, 2),  # Max 2 per account
+            "church_of_the_crab": min(account.attendances, 5) * 50,  # Max 5 per account
+            "sharing_is_caring": min(account.referrals, 3) * 50,  # Max 3 per account
+            "bookworm": min(account.submissions, 2) * 50,  # Max 2 per account
         }
     return earn_dict
 
 
-def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set, set]:
+def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     # Get current CSRs for each XUID (needed for calculations)
     csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
 
-    # Initialize sets
-    online_warrior_earn_set = set()
-    hot_streak_earn_set = set()
-    oddly_effective_earn_set = set()
-    too_stronk_earn_set = set()
+    earn_dict = {}
     for xuid in xuids:
+        unlocked_online_warrior = False
+        unlocked_hot_streak = False
+        oddball_wins = 0
+        strongholds_wins = 0
+
         # Get matches for this XUID
         matches = get_season_3_ranked_arena_matches(xuid)
         matches_sorted = sorted(
@@ -98,7 +99,7 @@ def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set, set]:
                 )
                 placement_match_index += 1
             if csr_by_xuid[xuid]["current_reset_max_csr"] >= placement_csr + 200:
-                online_warrior_earn_set.add(xuid)
+                unlocked_online_warrior = True
 
         # Hot Streak: Finish first on the postgame scoreboard in 3 consecutive games
         for i in range(len(matches_sorted) - 3):
@@ -110,13 +111,11 @@ def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set, set]:
                 and match_b.get("Rank") == 1
                 and match_c.get("Rank") == 1
             ):
-                hot_streak_earn_set.add(xuid)
+                unlocked_hot_streak = True
                 break
 
         # Oddly Effective: Win 25 or more Oddball games
         # Too Stronk: Win 25 or more Strongholds games
-        oddball_wins = 0
-        strongholds_wins = 0
         for match in matches:
             if (
                 match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
@@ -130,17 +129,15 @@ def get_xbox_earn_sets(xuids: list[int]) -> tuple[set, set, set, set]:
             ):
                 if match.get("Outcome") == 2:
                     strongholds_wins += 1
-        if oddball_wins >= 25:
-            oddly_effective_earn_set.add(xuid)
-        if strongholds_wins >= 25:
-            too_stronk_earn_set.add(xuid)
 
-    return (
-        online_warrior_earn_set,
-        hot_streak_earn_set,
-        oddly_effective_earn_set,
-        too_stronk_earn_set,
-    )
+        earn_dict[xuid] = {
+            "online_warrior": 200 if unlocked_online_warrior else 0,
+            "hot_streak": 100 if unlocked_hot_streak else 0,
+            "oddly_effective": min(oddball_wins, 25) * 4,
+            "too_stronk": min(strongholds_wins, 25) * 4,
+        }
+
+    return earn_dict
 
 
 def get_sherpa_qualified(links: list[DiscordXboxLiveLink]) -> list[str]:
@@ -171,12 +168,12 @@ def get_scout_qualified(
         discord_points = 0
         earns = discord_earn_dict.get(discord_id)
 
-        # Church of the Crab: 50 points each
-        discord_points += earns.get("church_of_the_crab") * 50
-        # Sharing is Caring: 50 points each
-        discord_points += earns.get("sharing_is_caring") * 50
-        # Bookworm: 50 points each
-        discord_points += earns.get("bookworm") * 50
+        # Church of the Crab
+        discord_points += earns.get("church_of_the_crab")
+        # Sharing is Caring
+        discord_points += earns.get("sharing_is_caring")
+        # Bookworm
+        discord_points += earns.get("bookworm")
 
         points_by_discord_id[discord_id] = (
             points_by_discord_id[discord_id] + discord_points
@@ -188,27 +185,19 @@ def get_scout_qualified(
         link.xbox_live_account_id: link.discord_account_id for link in links
     }
 
-    (
-        earned_online_warrior,
-        earned_hot_streak,
-        earned_oddly_effective,
-        earned_too_stronk,
-    ) = get_xbox_earn_sets(xuids)
-
-    for xuid in xuids:
+    xbox_earn_dict = get_xbox_earn_dict(xuids)
+    for xuid in xbox_earn_dict:
         xbox_points = 0
-        # Online Warrior: 200 points each, max 1 per user
-        if xuid in earned_online_warrior:
-            xbox_points += 200
-        # Hot Streak: 100 points each, max 1 per user
-        if xuid in earned_hot_streak:
-            xbox_points += 100
-        # Oddly Effective: 100 points each, max 1 per user
-        if xuid in earned_oddly_effective:
-            xbox_points += 100
-        # Too Stronk: 100 points each, max 1 per user
-        if xuid in earned_too_stronk:
-            xbox_points += 100
+        earns = xbox_earn_dict.get(xuid)
+
+        # Online Warrior
+        xbox_points += earns.get("online_warrior")
+        # Hot Streak
+        xbox_points += earns.get("hot_streak")
+        # Oddly Effective
+        xbox_points += earns.get("oddly_effective")
+        # Too Stronk
+        xbox_points += earns.get("too_stronk")
 
         discord_id = xuid_to_discord_id.get(xuid)
         points_by_discord_id[discord_id] = (

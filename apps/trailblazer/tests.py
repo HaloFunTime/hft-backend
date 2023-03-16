@@ -110,25 +110,22 @@ class TrailblazerUtilsTestCase(TestCase):
         )
         mock_get_csrs.reset_mock()
 
-    @patch("apps.trailblazer.utils.get_xbox_earn_sets")
+    @patch("apps.trailblazer.utils.get_xbox_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_get_scout_qualified(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_xbox_earn_sets,
+        mock_get_xbox_earn_dict,
     ):
         # Empty lists provided to method returns nothing
-        mock_get_xbox_earn_sets.return_value = (set(), set(), set(), set())
+        mock_get_xbox_earn_dict.return_value = {}
         result = get_scout_qualified([], [])
         self.assertEqual(result, [])
 
         # Create some test data
         discord_accounts = []
         links = []
-        online_warrior_set = set()
-        hot_streak_set = set()
-        oddly_effective_set = set()
-        too_stronk_set = set()
+        xbox_earn_dict = {}
         for i in range(30):
             discord_account = DiscordAccount.objects.create(
                 creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
@@ -148,6 +145,12 @@ class TrailblazerUtilsTestCase(TestCase):
                         verified=True,
                     )
                 )
+                xbox_earn_dict[i] = {
+                    "online_warrior": 0,
+                    "hot_streak": 0,
+                    "oddly_effective": 0,
+                    "too_stronk": 0,
+                }
             # Every second account gets an attendance
             if i % 2 == 1:
                 TrailblazerTuesdayAttendance.objects.create(
@@ -192,23 +195,18 @@ class TrailblazerUtilsTestCase(TestCase):
                     referral_date=SEASON_3_START_TIME,
                 )
             # Every second account earns Online Warrior
-            if i % 2 == 0:
-                online_warrior_set.add(i)
+            if i % 2 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["online_warrior"] = 200
             # Every third account earns Hot Streak
-            if i % 3 == 0:
-                hot_streak_set.add(i)
+            if i % 3 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["hot_streak"] = 100
             # Every fifth account earns Oddly Effective
-            if i % 6 == 0:
-                oddly_effective_set.add(i)
+            if i % 6 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["oddly_effective"] = 100
             # Every sixth account earns Too Stronk
-            if i % 6 == 0:
-                too_stronk_set.add(i)
-        mock_get_xbox_earn_sets.return_value = (
-            online_warrior_set,
-            hot_streak_set,
-            oddly_effective_set,
-            too_stronk_set,
-        )
+            if i % 6 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["too_stronk"] = 100
+        mock_get_xbox_earn_dict.return_value = xbox_earn_dict
 
         # The test data above results in every sixth account clearing the 500 point threshold
         result = get_scout_qualified([da.discord_id for da in discord_accounts], links)

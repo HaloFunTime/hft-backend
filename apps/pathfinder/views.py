@@ -134,7 +134,7 @@ class PathfinderSeasonalRoleCheckView(APIView):
                     .order_by("created_at")
                 )
 
-                # Retrieve qualifying Sherpa/Dynamo IDs from the utility methods
+                # Retrieve qualifying Illuminated/Dynamo IDs from the utility methods
                 illuminated_discord_ids = get_illuminated_qualified(links)
                 dynamo_discord_ids = get_dynamo_qualified(links)
             except Exception as ex:
@@ -217,7 +217,7 @@ class PathfinderDynamoProgressView(APIView):
             points_bookmarked = 0
             points_playtime = 0
             points_tagtacular = 0
-            points_time_flies = 0
+            points_forged_in_fire = 0
             try:
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_tag, request.user
@@ -243,7 +243,7 @@ class PathfinderDynamoProgressView(APIView):
                     points_bookmarked = xbox_earns.get("bookmarked")
                     points_playtime = xbox_earns.get("playtime")
                     points_tagtacular = xbox_earns.get("tagtacular")
-                    points_time_flies = xbox_earns.get("time_flies")
+                    points_forged_in_fire = xbox_earns.get("forged_in_fire")
                 except DiscordXboxLiveLink.DoesNotExist:
                     pass
 
@@ -255,7 +255,7 @@ class PathfinderDynamoProgressView(APIView):
                     + points_bookmarked
                     + points_playtime
                     + points_tagtacular
-                    + points_time_flies
+                    + points_forged_in_fire
                 )
             except Exception as ex:
                 logger.error("Error attempting the Pathfinder Dynamo progress check.")
@@ -273,7 +273,7 @@ class PathfinderDynamoProgressView(APIView):
                     "pointsBookmarked": points_bookmarked,
                     "pointsPlaytime": points_playtime,
                     "pointsTagtacular": points_tagtacular,
-                    "pointsTimeFlies": points_time_flies,
+                    "pointsForgedInFire": points_forged_in_fire,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)

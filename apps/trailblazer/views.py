@@ -18,7 +18,7 @@ from apps.trailblazer.utils import (
     get_discord_earn_dict,
     get_scout_qualified,
     get_sherpa_qualified,
-    get_xbox_earn_sets,
+    get_xbox_earn_dict,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -108,9 +108,9 @@ class TrailblazerScoutProgressView(APIView):
                 discord_earns = get_discord_earn_dict([discord_account.discord_id]).get(
                     discord_account.discord_id
                 )
-                points_church_of_the_crab = discord_earns.get("church_of_the_crab") * 50
-                points_sharing_is_caring = discord_earns.get("sharing_is_caring") * 50
-                points_bookworm = discord_earns.get("bookworm") * 50
+                points_church_of_the_crab = discord_earns.get("church_of_the_crab")
+                points_sharing_is_caring = discord_earns.get("sharing_is_caring")
+                points_bookworm = discord_earns.get("bookworm")
 
                 # Tally the Xbox Points
                 link = None
@@ -118,26 +118,13 @@ class TrailblazerScoutProgressView(APIView):
                     link = DiscordXboxLiveLink.objects.filter(
                         discord_account_id=discord_account.discord_id, verified=True
                     ).get()
-                    (
-                        earned_online_warrior,
-                        earned_hot_streak,
-                        earned_oddly_effective,
-                        earned_too_stronk,
-                    ) = get_xbox_earn_sets([link.xbox_live_account_id])
-                    points_online_warrior = (
-                        200 if link.xbox_live_account_id in earned_online_warrior else 0
+                    xbox_earns = get_xbox_earn_dict([link.xbox_live_account_id]).get(
+                        link.xbox_live_account_id
                     )
-                    points_hot_streak = (
-                        100 if link.xbox_live_account_id in earned_hot_streak else 0
-                    )
-                    points_oddly_effective = (
-                        100
-                        if link.xbox_live_account_id in earned_oddly_effective
-                        else 0
-                    )
-                    points_too_stronk = (
-                        100 if link.xbox_live_account_id in earned_too_stronk else 0
-                    )
+                    points_online_warrior = xbox_earns.get("online_warrior")
+                    points_hot_streak = xbox_earns.get("hot_streak")
+                    points_oddly_effective = xbox_earns.get("oddly_effective")
+                    points_too_stronk = xbox_earns.get("too_stronk")
                 except DiscordXboxLiveLink.DoesNotExist:
                     pass
 
