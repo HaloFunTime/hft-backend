@@ -27,6 +27,27 @@ def validate_discord_tag(value):
     return value
 
 
+class CSRSnapshotRequestSerializer(serializers.Serializer):
+    discordUserIds = serializers.ListField(
+        allow_empty=True,
+        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    )
+    playlistId = serializers.CharField(required=True, validators=[validate_uuid])
+
+
+class CSRSnapshot(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    currentCSR = serializers.IntegerField()
+    currentResetMaxCSR = serializers.IntegerField()
+    allTimeMaxCSR = serializers.IntegerField()
+
+
+class CSRSnapshotResponseSerializer(serializers.Serializer):
+    players = serializers.ListField(child=CSRSnapshot())
+
+
 class DiscordAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = DiscordAccount
