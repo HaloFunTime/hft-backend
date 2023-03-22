@@ -21,9 +21,9 @@ from apps.pathfinder.serializers import (
 )
 from apps.pathfinder.utils import (
     get_discord_earn_dict,
-    get_dynamo_qualified,
-    get_illuminated_qualified,
     get_xbox_earn_dict,
+    is_dynamo_qualified,
+    is_illuminated_qualified,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -115,28 +115,41 @@ class PathfinderSeasonalRoleCheckView(APIView):
     )
     def post(self, request, format=None):
         """
-        Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Pathfinder progression role
-        each Discord ID qualifies for, if any.
+        Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying stats from the Halo
+        Infinite API and the HFT DB, and returning a payload indicating the seasonal Pathfinder progression roles the
+        Discord User ID qualifies for, if any.
         """
         validation_serializer = PathfinderSeasonalRoleCheckRequestSerializer(
             data=request.data
         )
         if validation_serializer.is_valid(raise_exception=True):
-            discord_ids = validation_serializer.data.get("discordUserIds")
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_tag = validation_serializer.data.get("discordUserTag")
             try:
-                # Get all verified DiscordXboxLiveLink records matching the input discordUserIDs
-                links = list(
-                    DiscordXboxLiveLink.objects.filter(
-                        discord_account_id__in=discord_ids
-                    )
-                    .filter(verified=True)
-                    .order_by("created_at")
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_tag, request.user
                 )
+                link = None
+                try:
+                    link = DiscordXboxLiveLink.objects.filter(
+                        discord_account_id=discord_account.discord_id, verified=True
+                    ).get()
+                except DiscordXboxLiveLink.DoesNotExist:
+                    pass
 
-                # Retrieve qualifying Illuminated/Dynamo IDs from the utility methods
-                illuminated_discord_ids = get_illuminated_qualified(links)
-                dynamo_discord_ids = get_dynamo_qualified(links)
+                illuminated_qualified = False
+                dynamo_qualified = False
+                if link is not None:
+                    illuminated_qualified = is_illuminated_qualified(
+                        link.xbox_live_account_id
+                    )
+                    dynamo_qualified = is_dynamo_qualified(
+                        discord_account.discord_id, link.xbox_live_account_id
+                    )
+                else:
+                    dynamo_qualified = is_dynamo_qualified(
+                        discord_account.discord_id, None
+                    )
             except Exception as ex:
                 logger.error("Error attempting the Pathfinder seasonal role check.")
                 logger.error(ex)
@@ -145,8 +158,9 @@ class PathfinderSeasonalRoleCheckView(APIView):
                 )
             serializer = PathfinderSeasonalRoleCheckResponseSerializer(
                 {
-                    "illuminated": illuminated_discord_ids,
-                    "dynamo": dynamo_discord_ids,
+                    "discordUserId": discord_account.discord_id,
+                    "illuminated": illuminated_qualified,
+                    "dynamo": dynamo_qualified,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)

@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 
 from django.db.models import Count, Q
@@ -12,7 +11,6 @@ from apps.halo_infinite.utils import (
     get_csrs,
     get_season_3_ranked_arena_matches,
 )
-from apps.link.models import DiscordXboxLiveLink
 
 logger = logging.getLogger(__name__)
 
@@ -140,74 +138,45 @@ def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     return earn_dict
 
 
-def get_sherpa_qualified(links: list[DiscordXboxLiveLink]) -> list[str]:
-    xuid_to_discord_id = {
-        link.xbox_live_account_id: link.discord_account_id for link in links
-    }
-    xuids = [link.xbox_live_account_id for link in links]
-
-    # Someone qualifies as a Sherpa if they have a current reset max CSR of 1650 or greater in Ranked Arena
-    csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
-    sherpa_xuids = []
-    for xuid in csr_by_xuid:
-        if csr_by_xuid.get(xuid, {}).get("current_reset_max_csr", 0) >= 1650:
-            sherpa_xuids.append(xuid)
-
-    sherpa_qualified_discord_ids = [xuid_to_discord_id[xuid] for xuid in sherpa_xuids]
-    return sherpa_qualified_discord_ids
+def is_sherpa_qualified(xuid: int) -> bool:
+    # Someone qualifies as a Sherpa if their linked gamertag has a current reset max CSR of 1650 or higher
+    csr = (
+        get_csrs([xuid], "edfef3ac-9cbe-4fa2-b949-8f29deafd483")
+        .get("csrs")
+        .get(xuid, {})
+        .get("current_reset_max_csr", 0)
+    )
+    return csr >= 1650
 
 
-def get_scout_qualified(
-    discord_ids: list[str], links: list[DiscordXboxLiveLink]
-) -> list[str]:
-    points_by_discord_id = {discord_id: 0 for discord_id in discord_ids}
+def is_scout_qualified(discord_id: str, xuid: int | None) -> bool:
+    points = 0
 
     # DISCORD CHALLENGES
-    discord_earn_dict = get_discord_earn_dict(discord_ids)
-    for discord_id in discord_earn_dict:
-        discord_points = 0
+    if discord_id is not None:
+        discord_earn_dict = get_discord_earn_dict([discord_id])
         earns = discord_earn_dict.get(discord_id)
 
         # Church of the Crab
-        discord_points += earns.get("church_of_the_crab")
+        points += earns.get("church_of_the_crab")
         # Sharing is Caring
-        discord_points += earns.get("sharing_is_caring")
+        points += earns.get("sharing_is_caring")
         # Bookworm
-        discord_points += earns.get("bookworm")
-
-        points_by_discord_id[discord_id] = (
-            points_by_discord_id[discord_id] + discord_points
-        )
+        points += earns.get("bookworm")
 
     # XBOX LIVE CHALLENGES
-    xuids = [link.xbox_live_account_id for link in links]
-    xuid_to_discord_id = {
-        link.xbox_live_account_id: link.discord_account_id for link in links
-    }
-
-    xbox_earn_dict = get_xbox_earn_dict(xuids)
-    for xuid in xbox_earn_dict:
-        xbox_points = 0
+    if xuid is not None:
+        xbox_earn_dict = get_xbox_earn_dict([xuid])
         earns = xbox_earn_dict.get(xuid)
 
         # Online Warrior
-        xbox_points += earns.get("online_warrior")
+        points += earns.get("online_warrior")
         # Hot Streak
-        xbox_points += earns.get("hot_streak")
+        points += earns.get("hot_streak")
         # Oddly Effective
-        xbox_points += earns.get("oddly_effective")
+        points += earns.get("oddly_effective")
         # Too Stronk
-        xbox_points += earns.get("too_stronk")
+        points += earns.get("too_stronk")
 
-        discord_id = xuid_to_discord_id.get(xuid)
-        points_by_discord_id[discord_id] = (
-            points_by_discord_id[discord_id] + xbox_points
-        )
-
-    logger.info("Trailblazer Scout point totals (by Discord ID):")
-    logger.info(json.dumps(points_by_discord_id))
-
-    scout_qualified_discord_ids = [
-        k for k, v in points_by_discord_id.items() if v >= 500
-    ]
-    return scout_qualified_discord_ids
+    logger.info(f"Scout Points for {discord_id}: {points}")
+    return points >= 500

@@ -17,12 +17,15 @@ SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-27T17:00:00Z")
 SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 
 
-def get_343_recommended_file_contributors() -> list[int, int]:
+def get_343_recommended_map_contributors() -> list[int, int]:
     """
     Returns a dict mapping XUIDs to the count of files they have currently featured in 343's Recommended File list.
     """
     contributors = {}
     recommended_data = recommended()
+    import json
+
+    logger.info(json.dumps(recommended_data))
     for map in recommended_data.get("MapLinks"):
         for contributor in map.get("Contributors"):
             xuid = int(contributor.lstrip("xuid(").rstrip(")"))

@@ -42,19 +42,20 @@ class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
 
 
 class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
-    discordUserIds = serializers.ListField(
-        allow_empty=True,
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUserTag = serializers.CharField(
+        max_length=37, validators=[validate_discord_tag]
     )
 
 
 class PathfinderSeasonalRoleCheckResponseSerializer(serializers.Serializer):
-    illuminated = serializers.ListField(
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id])
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
     )
-    dynamo = serializers.ListField(
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id])
-    )
+    illuminated = serializers.BooleanField()
+    dynamo = serializers.BooleanField()
 
 
 class WAYWOPostRequestSerializer(serializers.Serializer):

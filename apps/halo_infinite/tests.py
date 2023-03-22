@@ -31,7 +31,7 @@ from apps.halo_infinite.utils import (
     SEASON_3_END_TIME,
     SEASON_3_RANKED_ARENA_PLAYLIST_ID,
     SEASON_3_START_TIME,
-    get_343_recommended_file_contributors,
+    get_343_recommended_map_contributors,
     get_csr_after_match,
     get_csrs,
     get_playlist_latest_version_info,
@@ -566,7 +566,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
         )
 
     @patch("apps.halo_infinite.utils.recommended")
-    def test_get_343_recommended_file_contributors(self, mock_recommended):
+    def test_get_343_recommended_map_contributors(self, mock_recommended):
         mock_recommended.return_value = {
             "MapLinks": [
                 {
@@ -610,7 +610,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
                 },
             ],
         }
-        data = get_343_recommended_file_contributors()
+        data = get_343_recommended_map_contributors()
         self.assertEqual(data.get(2814660312652330), 1)
         self.assertEqual(data.get(2533274795021402), 1)
         self.assertEqual(data.get(2535425050848538), 1)

@@ -7,8 +7,9 @@ from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.utils import (
     get_discord_earn_dict,
-    get_illuminated_qualified,
     get_xbox_earn_dict,
+    is_dynamo_qualified,
+    is_illuminated_qualified,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -29,19 +30,19 @@ class PathfinderUtilsTestCase(TestCase):
         self.assertEqual(earn_dict, {})
         # TODO: Write a more meaningful unit test for this
 
-    @patch("apps.pathfinder.utils.get_343_recommended_file_contributors")
+    @patch("apps.pathfinder.utils.get_343_recommended_map_contributors")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_get_illuminated_qualified(
+    def test_is_illuminated_qualified(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_343_recommended_file_contributors,
+        mock_get_343_recommended_map_contributors,
     ):
-        # Empty list provided to method returns nothing
-        mock_get_343_recommended_file_contributors.return_value = {}
-        result = get_illuminated_qualified([])
-        self.assertEqual(result, [])
-        mock_get_343_recommended_file_contributors.assert_called_once_with()
-        mock_get_343_recommended_file_contributors.reset_mock()
+        # Null value provided to method returns False
+        mock_get_343_recommended_map_contributors.return_value = {}
+        result = is_illuminated_qualified(None)
+        self.assertEqual(result, False)
+        mock_get_343_recommended_map_contributors.assert_called_once_with()
+        mock_get_343_recommended_map_contributors.reset_mock()
 
         # Create some test data
         links = []
@@ -62,17 +63,27 @@ class PathfinderUtilsTestCase(TestCase):
                 )
             )
 
-        # Success - some matching XUIDs in payload
-        mock_get_343_recommended_file_contributors.return_value = {
-            0: 1,
-            4: 1,
-            9: 2,
-        }
-        result = get_illuminated_qualified(links)
-        self.assertEqual(result, ["0", "4", "9"])
-        mock_get_343_recommended_file_contributors.assert_called_once_with()
-        mock_get_343_recommended_file_contributors.reset_mock()
+        # Returns appropriate value based on whether XUID is found as a key in the mock payload
+        for i in range(10):
+            mock_get_343_recommended_map_contributors.return_value = {
+                0: 1,
+                4: 1,
+                9: 2,
+            }
+            result = is_illuminated_qualified(i)
+            self.assertEqual(result, i in {0, 4, 9})
+            mock_get_343_recommended_map_contributors.assert_called_once_with()
+            mock_get_343_recommended_map_contributors.reset_mock()
 
-    def test_get_dynamo_qualified(self):
+    @patch("apps.pathfinder.utils.get_xbox_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_is_dynamo_qualified(
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_xbox_earn_dict,
+    ):
+        # Null value provided to method returns False
+        mock_get_xbox_earn_dict.return_value = {}
+        result = is_dynamo_qualified(None, None)
+        self.assertEqual(result, False)
         # TODO: Test Dynamo logic after implementation
-        pass

@@ -1,4 +1,3 @@
-import json
 import logging
 
 from django.db.models import Count, Q
@@ -9,9 +8,8 @@ from apps.halo_infinite.utils import (
     SEASON_3_END_TIME,
     SEASON_3_START_DAY,
     SEASON_3_START_TIME,
-    get_343_recommended_file_contributors,
+    get_343_recommended_map_contributors,
 )
-from apps.link.models import DiscordXboxLiveLink
 
 logger = logging.getLogger(__name__)
 
@@ -77,77 +75,40 @@ def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     return earn_dict
 
 
-def get_illuminated_qualified(links: list[DiscordXboxLiveLink]) -> list[str]:
-    illuminated_qualified_discord_ids = []
-    xuid_to_discord_id = {
-        link.xbox_live_account_id: link.discord_account_id for link in links
-    }
-
-    # Someone qualifies as Illuminated if their linked gamertag contributed to at least one file on 343's Recommended
-    contributor_dict = get_343_recommended_file_contributors()
-    illuminated_xuids = []
-    for xuid in contributor_dict:
-        # If the XUID from 343 recommended matches an XUID from one of our link records, they have qualified
-        if xuid in xuid_to_discord_id:
-            illuminated_xuids.append(xuid)
-
-    illuminated_qualified_discord_ids = [
-        xuid_to_discord_id[xuid] for xuid in illuminated_xuids
-    ]
-    return illuminated_qualified_discord_ids
+def is_illuminated_qualified(xuid: int) -> bool:
+    # Someone qualifies as Illuminated if their linked gamertag contributed to at least one map on 343's Recommended
+    contributor_dict = get_343_recommended_map_contributors()
+    return xuid in contributor_dict
 
 
-def get_dynamo_qualified(
-    discord_ids: list[str], links: list[DiscordXboxLiveLink]
-) -> list[str]:
-    points_by_discord_id = {discord_id: 0 for discord_id in discord_ids}
+def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
+    points = 0
 
     # DISCORD CHALLENGES
-    discord_earn_dict = get_discord_earn_dict(discord_ids)
-    for discord_id in discord_earn_dict:
-        discord_points = 0
+    if discord_id is not None:
+        discord_earn_dict = get_discord_earn_dict([discord_id])
         earns = discord_earn_dict.get(discord_id)
 
         # Gone Hiking
-        discord_points += earns.get("gone_hiking")
+        points += earns.get("gone_hiking")
         # Map Maker
-        discord_points += earns.get("map_maker")
+        points += earns.get("map_maker")
         # Show and Tell
-        discord_points += earns.get("show_and_tell")
-
-        points_by_discord_id[discord_id] = (
-            points_by_discord_id[discord_id] + discord_points
-        )
+        points += earns.get("show_and_tell")
 
     # XBOX LIVE CHALLENGES
-    xuids = [link.xbox_live_account_id for link in links]
-    xuid_to_discord_id = {
-        link.xbox_live_account_id: link.discord_account_id for link in links
-    }
-
-    xbox_earn_dict = get_xbox_earn_dict(xuids)
-    for xuid in xbox_earn_dict:
-        xbox_points = 0
+    if xuid is not None:
+        xbox_earn_dict = get_xbox_earn_dict([xuid])
         earns = xbox_earn_dict.get(xuid)
 
         # Bookmarked
-        xbox_points += earns.get("bookmarked")
+        points += earns.get("bookmarked")
         # Playtime
-        xbox_points += earns.get("playtime")
+        points += earns.get("playtime")
         # Tagtacular
-        xbox_points += earns.get("tagtacular")
+        points += earns.get("tagtacular")
         # Forged in Fire
-        xbox_points += earns.get("forged_in_fire")
+        points += earns.get("forged_in_fire")
 
-        discord_id = xuid_to_discord_id.get(xuid)
-        points_by_discord_id[discord_id] = (
-            points_by_discord_id[discord_id] + xbox_points
-        )
-
-    logger.info("Pathfinder Dynamo point totals (by Discord ID):")
-    logger.info(json.dumps(points_by_discord_id))
-
-    dynamo_qualified_discord_ids = [
-        k for k, v in points_by_discord_id.items() if v >= 500
-    ]
-    return dynamo_qualified_discord_ids
+    logger.info(f"Dynamo Points for {discord_id}: {points}")
+    return points >= 500

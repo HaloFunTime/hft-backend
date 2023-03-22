@@ -174,14 +174,14 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-    @patch("apps.pathfinder.views.get_dynamo_qualified")
-    @patch("apps.pathfinder.views.get_illuminated_qualified")
+    @patch("apps.pathfinder.views.is_dynamo_qualified")
+    @patch("apps.pathfinder.views.is_illuminated_qualified")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_pathfinder_seasonal_role_check_view(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_illuminated_qualified,
-        mock_get_dynamo_qualified,
+        mock_is_illuminated_qualified,
+        mock_is_dynamo_qualified,
     ):
         # Missing field values throw errors
         response = self.client.post(
@@ -189,59 +189,61 @@ class PathfinderTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
-        self.assertIn("discordUserIds", details)
+        self.assertIn("discordUserId", details)
         self.assertEqual(
-            details.get("discordUserIds"),
+            details.get("discordUserId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/pathfinder/seasonal-role-check",
-            {"discordUserIds": ["abc"]},
+            {"discordUserId": "abc", "discordUserTag": "foo"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
-        self.assertIn("discordUserIds", details)
+        self.assertIn("discordUserId", details)
         self.assertEqual(
-            details.get("discordUserIds")[0],
-            [
-                ErrorDetail(
-                    string="Only numeric characters are allowed.", code="invalid"
-                )
-            ],
+            details.get("discordUserId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUserTag", details)
+        self.assertEqual(
+            details.get("discordUserTag")[0],
+            ErrorDetail(
+                string="Only characters constituting a valid Discord Tag are allowed.",
+                code="invalid",
+            ),
         )
 
         # Create some test data
-        links = []
-        for i in range(10):
-            mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
-            discord_account = DiscordAccount.objects.create(
-                creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
-            )
-            xbox_live_account = XboxLiveAccount.objects.create(
-                creator=self.user, gamertag=f"testGT{i}"
-            )
-            links.append(
-                DiscordXboxLiveLink.objects.create(
-                    creator=self.user,
-                    discord_account=discord_account,
-                    xbox_live_account=xbox_live_account,
-                    verified=True,
-                )
-            )
+        mock_get_xuid_and_exact_gamertag.return_value = (0, "test0")
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="0", discord_tag="TestTag0#1234"
+        )
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="testGT0"
+        )
+        link = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            verified=True,
+        )
 
-        # Exception in get_illuminated_qualified throws error
-        mock_get_illuminated_qualified.side_effect = Exception()
+        # Exception in is_illuminated_qualified throws error
+        mock_is_illuminated_qualified.side_effect = Exception()
         response = self.client.post(
             "/pathfinder/seasonal-role-check",
             {
-                "discordUserIds": [
-                    links[0].discord_account_id,
-                    links[1].discord_account_id,
-                    links[2].discord_account_id,
-                ]
+                "discordUserId": link.discord_account.discord_id,
+                "discordUserTag": link.discord_account.discord_tag,
             },
             format="json",
         )
@@ -254,26 +256,17 @@ class PathfinderTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_illuminated_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-            ],
-        )
-        mock_get_illuminated_qualified.side_effect = None
-        mock_get_illuminated_qualified.reset_mock()
+        mock_is_illuminated_qualified.assert_called_once_with(link.xbox_live_account_id)
+        mock_is_illuminated_qualified.side_effect = None
+        mock_is_illuminated_qualified.reset_mock()
 
-        # Exception in get_dynamo_qualified throws error
-        mock_get_dynamo_qualified.side_effect = Exception()
+        # Exception in is_dynamo_qualified throws error
+        mock_is_dynamo_qualified.side_effect = Exception()
         response = self.client.post(
             "/pathfinder/seasonal-role-check",
             {
-                "discordUserIds": [
-                    links[0].discord_account_id,
-                    links[1].discord_account_id,
-                    links[2].discord_account_id,
-                ]
+                "discordUserId": link.discord_account.discord_id,
+                "discordUserTag": link.discord_account.discord_tag,
             },
             format="json",
         )
@@ -286,156 +279,67 @@ class PathfinderTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_dynamo_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-            ],
+        mock_is_dynamo_qualified.assert_called_once_with(
+            link.discord_account_id, link.xbox_live_account_id
         )
-        mock_get_dynamo_qualified.side_effect = None
-        mock_get_illuminated_qualified.reset_mock()
-        mock_get_dynamo_qualified.reset_mock()
+        mock_is_dynamo_qualified.side_effect = None
+        mock_is_illuminated_qualified.reset_mock()
+        mock_is_dynamo_qualified.reset_mock()
 
-        # Success - some illuminateds and some dynamos
-        mock_get_illuminated_qualified.return_value = [
-            links[0].discord_account_id,
-            links[2].discord_account_id,
-            links[4].discord_account_id,
-            links[6].discord_account_id,
-            links[8].discord_account_id,
-        ]
-        mock_get_dynamo_qualified.return_value = [
-            links[1].discord_account_id,
-            links[3].discord_account_id,
-            links[5].discord_account_id,
-            links[7].discord_account_id,
-            links[9].discord_account_id,
-        ]
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check",
-            {
-                "discordUserIds": [
-                    links[0].discord_account_id,
-                    links[1].discord_account_id,
-                    links[2].discord_account_id,
-                    links[3].discord_account_id,
-                    links[4].discord_account_id,
-                    links[5].discord_account_id,
-                    links[6].discord_account_id,
-                    links[7].discord_account_id,
-                    links[8].discord_account_id,
-                    links[9].discord_account_id,
-                ],
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data.get("illuminated"),
-            [
-                links[0].discord_account_id,
-                links[2].discord_account_id,
-                links[4].discord_account_id,
-                links[6].discord_account_id,
-                links[8].discord_account_id,
-            ],
-        )
-        self.assertEqual(
-            response.data.get("dynamo"),
-            [
-                links[1].discord_account_id,
-                links[3].discord_account_id,
-                links[5].discord_account_id,
-                links[7].discord_account_id,
-                links[9].discord_account_id,
-            ],
-        )
-        mock_get_illuminated_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-                links[3],
-                links[4],
-                links[5],
-                links[6],
-                links[7],
-                links[8],
-                links[9],
-            ]
-        )
-        mock_get_dynamo_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-                links[3],
-                links[4],
-                links[5],
-                links[6],
-                links[7],
-                links[8],
-                links[9],
-            ]
-        )
-        mock_get_illuminated_qualified.reset_mock()
-        mock_get_dynamo_qualified.reset_mock()
+        # All permutations of qualification work
+        for tuple in [(True, True), (True, False), (False, True), (False, False)]:
+            mock_is_illuminated_qualified.return_value = tuple[0]
+            mock_is_dynamo_qualified.return_value = tuple[1]
+            response = self.client.post(
+                "/pathfinder/seasonal-role-check",
+                {
+                    "discordUserId": link.discord_account.discord_id,
+                    "discordUserTag": link.discord_account.discord_tag,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.data.get("discordUserId"), link.discord_account_id
+            )
+            self.assertEqual(response.data.get("illuminated"), tuple[0])
+            self.assertEqual(response.data.get("dynamo"), tuple[1])
+            mock_is_illuminated_qualified.assert_called_once_with(
+                link.xbox_live_account_id
+            )
+            mock_is_dynamo_qualified.assert_called_once_with(
+                link.discord_account_id, link.xbox_live_account_id
+            )
+            mock_is_illuminated_qualified.reset_mock()
+            mock_is_dynamo_qualified.reset_mock()
 
-        # Success - no illuminateds or dynamos
-        mock_get_illuminated_qualified.return_value = []
-        mock_get_dynamo_qualified.return_value = []
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check",
-            {
-                "discordUserIds": [
-                    links[0].discord_account_id,
-                    links[1].discord_account_id,
-                    links[2].discord_account_id,
-                    links[3].discord_account_id,
-                    links[4].discord_account_id,
-                    links[5].discord_account_id,
-                    links[6].discord_account_id,
-                    links[7].discord_account_id,
-                    links[8].discord_account_id,
-                    links[9].discord_account_id,
-                ],
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("illuminated"), [])
-        self.assertEqual(response.data.get("dynamo"), [])
-        mock_get_illuminated_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-                links[3],
-                links[4],
-                links[5],
-                links[6],
-                links[7],
-                links[8],
-                links[9],
-            ]
-        )
-        mock_get_dynamo_qualified.assert_called_once_with(
-            [
-                links[0],
-                links[1],
-                links[2],
-                links[3],
-                links[4],
-                links[5],
-                links[6],
-                links[7],
-                links[8],
-                links[9],
-            ]
-        )
-        mock_get_illuminated_qualified.reset_mock()
-        mock_get_dynamo_qualified.reset_mock()
+        # Deleting the DiscordXboxLiveLink record changes calls to utility methods; Illuminated is always False
+        link.delete()
+        for tuple in [(True, True), (True, False), (False, True), (False, False)]:
+            mock_is_illuminated_qualified.return_value = tuple[0]
+            mock_is_dynamo_qualified.return_value = tuple[1]
+            response = self.client.post(
+                "/pathfinder/seasonal-role-check",
+                {
+                    "discordUserId": link.discord_account.discord_id,
+                    "discordUserTag": link.discord_account.discord_tag,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.data.get("discordUserId"), link.discord_account_id
+            )
+            self.assertEqual(
+                response.data.get("illuminated"), False
+            )  # Should be permanently false
+            self.assertEqual(response.data.get("dynamo"), tuple[1])
+            mock_is_illuminated_qualified.assert_not_called()
+            mock_is_dynamo_qualified.assert_called_once_with(
+                link.discord_account_id, None
+            )
+            mock_is_illuminated_qualified.reset_mock()
+            mock_is_dynamo_qualified.reset_mock()
 
     def test_pathfinder_waywo_post(self):
         # Missing field values throw errors

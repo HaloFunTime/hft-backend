@@ -16,9 +16,9 @@ from apps.trailblazer.serializers import (
 )
 from apps.trailblazer.utils import (
     get_discord_earn_dict,
-    get_scout_qualified,
-    get_sherpa_qualified,
     get_xbox_earn_dict,
+    is_scout_qualified,
+    is_sherpa_qualified,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -36,28 +36,39 @@ class TrailblazerSeasonalRoleCheckView(APIView):
     )
     def post(self, request, format=None):
         """
-        Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API and the HFT DB, and returning a payload indicating the seasonal Trailblazer progression role
-        each Discord ID qualifies for, if any.
+        Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying stats from the Halo
+        Infinite API and the HFT DB, and returning a payload indicating the seasonal Trailblazer progression roles the
+        Discord User ID qualifies for, if any.
         """
         validation_serializer = TrailblazerSeasonalRoleCheckRequestSerializer(
             data=request.data
         )
         if validation_serializer.is_valid(raise_exception=True):
-            discord_ids = validation_serializer.data.get("discordUserIds")
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_tag = validation_serializer.data.get("discordUserTag")
             try:
-                # Get all verified DiscordXboxLiveLink records matching the input discordUserIDs
-                links = list(
-                    DiscordXboxLiveLink.objects.filter(
-                        discord_account_id__in=discord_ids
-                    )
-                    .filter(verified=True)
-                    .order_by("created_at")
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_tag, request.user
                 )
+                link = None
+                try:
+                    link = DiscordXboxLiveLink.objects.filter(
+                        discord_account_id=discord_account.discord_id, verified=True
+                    ).get()
+                except DiscordXboxLiveLink.DoesNotExist:
+                    pass
 
-                # Retrieve qualifying Sherpa/Scout IDs from the utility methods
-                sherpa_discord_ids = get_sherpa_qualified(links)
-                scout_discord_ids = get_scout_qualified(discord_ids, links)
+                sherpa_qualified = False
+                scout_qualified = False
+                if link is not None:
+                    sherpa_qualified = is_sherpa_qualified(link.xbox_live_account_id)
+                    scout_qualified = is_scout_qualified(
+                        discord_account.discord_id, link.xbox_live_account_id
+                    )
+                else:
+                    scout_qualified = is_scout_qualified(
+                        discord_account.discord_id, None
+                    )
             except Exception as ex:
                 logger.error("Error attempting the Trailblazer seasonal role check.")
                 logger.error(ex)
@@ -66,8 +77,9 @@ class TrailblazerSeasonalRoleCheckView(APIView):
                 )
             serializer = TrailblazerSeasonalRoleCheckResponseSerializer(
                 {
-                    "sherpa": sherpa_discord_ids,
-                    "scout": scout_discord_ids,
+                    "discordUserId": discord_account.discord_id,
+                    "sherpa": sherpa_qualified,
+                    "scout": scout_qualified,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)

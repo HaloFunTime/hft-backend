@@ -13,8 +13,8 @@ from apps.trailblazer.models import (
 )
 from apps.trailblazer.utils import (
     get_discord_earn_dict,
-    get_scout_qualified,
-    get_sherpa_qualified,
+    is_scout_qualified,
+    is_sherpa_qualified,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -36,15 +36,13 @@ class TrailblazerUtilsTestCase(TestCase):
 
     @patch("apps.trailblazer.utils.get_csrs")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_get_sherpa_qualified(
-        self, mock_get_xuid_and_exact_gamertag, mock_get_csrs
-    ):
-        # Empty list provided to method returns nothing
+    def test_is_sherpa_qualified(self, mock_get_xuid_and_exact_gamertag, mock_get_csrs):
+        # Null value provided to method returns False
         mock_get_csrs.return_value = {"csrs": {}}
-        result = get_sherpa_qualified([])
-        self.assertEqual(result, [])
+        result = is_sherpa_qualified(None)
+        self.assertEqual(result, False)
         mock_get_csrs.assert_called_once_with(
-            [], "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
+            [None], "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
         )
         mock_get_csrs.reset_mock()
 
@@ -67,64 +65,39 @@ class TrailblazerUtilsTestCase(TestCase):
                 )
             )
 
-        # Success - some current reset max CSRs over 1650 in payload
-        mock_get_csrs.return_value = {
-            "csrs": {
-                0: {
-                    "current_reset_max_csr": 1433,
-                },
-                1: {
-                    "current_reset_max_csr": 1840,
-                },
-                2: {
-                    "current_reset_max_csr": 1573,
-                },
-                3: {
-                    "current_reset_max_csr": 1222,
-                },
-                4: {
-                    "current_reset_max_csr": 780,
-                },
-                5: {
-                    "current_reset_max_csr": -1,
-                },
-                6: {
-                    "current_reset_max_csr": 1900,
-                },
-                7: {
-                    "current_reset_max_csr": 1650,
-                },
-                8: {
-                    "current_reset_max_csr": 1649,
-                },
-                9: {
-                    "current_reset_max_csr": 1651,
-                },
+        # Returns appropriate value based on whether current reset max CSRs are >= 1650
+        example_csrs = [1433, 1840, 1573, 1222, 780, -1, 1900, 1650, 1649, 1651]
+        for i in range(10):
+            mock_get_csrs.return_value = {
+                "csrs": {
+                    i: {
+                        "current_reset_max_csr": example_csrs[i],
+                    },
+                }
             }
-        }
-        result = get_sherpa_qualified(links)
-        self.assertEqual(result, ["1", "6", "7", "9"])
-        mock_get_csrs.assert_called_once_with(
-            [link.xbox_live_account_id for link in links],
-            "edfef3ac-9cbe-4fa2-b949-8f29deafd483",
-        )
-        mock_get_csrs.reset_mock()
+            result = is_sherpa_qualified(i)
+            self.assertEqual(result, example_csrs[i] >= 1650)
+            mock_get_csrs.assert_called_once_with(
+                [i],
+                "edfef3ac-9cbe-4fa2-b949-8f29deafd483",
+            )
+            mock_get_csrs.reset_mock()
 
     @patch("apps.trailblazer.utils.get_xbox_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_get_scout_qualified(
+    def test_is_scout_qualified(
         self,
         mock_get_xuid_and_exact_gamertag,
         mock_get_xbox_earn_dict,
     ):
-        # Empty lists provided to method returns nothing
+        # Null value provided to method returns False
         mock_get_xbox_earn_dict.return_value = {}
-        result = get_scout_qualified([], [])
-        self.assertEqual(result, [])
+        result = is_scout_qualified(None, None)
+        self.assertEqual(result, False)
 
         # Create some test data
         discord_accounts = []
-        links = []
+        link_for_discord_account = {}
         xbox_earn_dict = {}
         for i in range(30):
             discord_account = DiscordAccount.objects.create(
@@ -137,13 +110,11 @@ class TrailblazerUtilsTestCase(TestCase):
                 xbox_live_account = XboxLiveAccount.objects.create(
                     creator=self.user, gamertag=f"testGT{i}"
                 )
-                links.append(
-                    DiscordXboxLiveLink.objects.create(
-                        creator=self.user,
-                        discord_account=discord_account,
-                        xbox_live_account=xbox_live_account,
-                        verified=True,
-                    )
+                link_for_discord_account[str(i)] = DiscordXboxLiveLink.objects.create(
+                    creator=self.user,
+                    discord_account=discord_account,
+                    xbox_live_account=xbox_live_account,
+                    verified=True,
                 )
                 xbox_earn_dict[i] = {
                     "online_warrior": 0,
@@ -209,5 +180,10 @@ class TrailblazerUtilsTestCase(TestCase):
         mock_get_xbox_earn_dict.return_value = xbox_earn_dict
 
         # The test data above results in every sixth account clearing the 500 point threshold
-        result = get_scout_qualified([da.discord_id for da in discord_accounts], links)
-        self.assertEqual(result, ["0", "6", "12", "18", "24"])
+        scout_qualified_discord_ids = {"0", "6", "12", "18", "24"}
+        for i in range(30):
+            discord_id = str(i)
+            link = link_for_discord_account.get(discord_id)
+            xuid = None if link is None else link.xbox_live_account_id
+            result = is_scout_qualified(discord_id, xuid)
+            self.assertEqual(result, discord_id in scout_qualified_discord_ids)

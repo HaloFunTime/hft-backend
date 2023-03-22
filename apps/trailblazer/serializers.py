@@ -25,16 +25,17 @@ class TrailblazerScoutProgressResponseSerializer(serializers.Serializer):
 
 
 class TrailblazerSeasonalRoleCheckRequestSerializer(serializers.Serializer):
-    discordUserIds = serializers.ListField(
-        allow_empty=True,
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUserTag = serializers.CharField(
+        max_length=37, validators=[validate_discord_tag]
     )
 
 
 class TrailblazerSeasonalRoleCheckResponseSerializer(serializers.Serializer):
-    sherpa = serializers.ListField(
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id])
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
     )
-    scout = serializers.ListField(
-        child=serializers.CharField(max_length=20, validators=[validate_discord_id])
-    )
+    sherpa = serializers.BooleanField()
+    scout = serializers.BooleanField()
