@@ -18,10 +18,11 @@ MODE_RANKED_ODDBALL_ID = "751bcc9d-aace-45a1-8d71-358f0bc89f7e"
 MODE_RANKED_STRONGHOLDS_ID = "22b8a0eb-0d02-4eb3-8f56-5f63fc254f83"
 
 
-def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     annotated_discord_accounts = DiscordAccount.objects.annotate(
         attendances=Count(
             "trailblazer_tuesday_attendees",
+            distinct=True,
             filter=Q(
                 trailblazer_tuesday_attendees__attendee_discord_id__in=discord_ids,
                 trailblazer_tuesday_attendees__attendance_date__range=[
@@ -32,6 +33,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
         ),
         referrals=Count(
             "trailblazer_tuesday_referrers",
+            distinct=True,
             filter=Q(
                 trailblazer_tuesday_referrers__referrer_discord_id__in=discord_ids,
                 trailblazer_tuesday_referrers__referral_date__range=[
@@ -42,6 +44,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
         ),
         submissions=Count(
             "trailblazer_vod_submitters",
+            distinct=True,
             filter=Q(
                 trailblazer_vod_submitters__submitter_discord_id__in=discord_ids,
                 trailblazer_vod_submitters__submission_date__range=[
@@ -62,7 +65,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     return earn_dict
 
 
-def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     # Get current CSRs for each XUID (needed for calculations)
     csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
 
@@ -154,7 +157,7 @@ def is_scout_qualified(discord_id: str, xuid: int | None) -> bool:
 
     # DISCORD CHALLENGES
     if discord_id is not None:
-        discord_earn_dict = get_discord_earn_dict([discord_id])
+        discord_earn_dict = get_s3_discord_earn_dict([discord_id])
         earns = discord_earn_dict.get(discord_id)
 
         # Church of the Crab
@@ -166,7 +169,7 @@ def is_scout_qualified(discord_id: str, xuid: int | None) -> bool:
 
     # XBOX LIVE CHALLENGES
     if xuid is not None:
-        xbox_earn_dict = get_xbox_earn_dict([xuid])
+        xbox_earn_dict = get_s3_xbox_earn_dict([xuid])
         earns = xbox_earn_dict.get(xuid)
 
         # Online Warrior

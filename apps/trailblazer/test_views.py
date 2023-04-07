@@ -183,14 +183,14 @@ class TrailblazerTestCase(APITestCase):
             mock_is_sherpa_qualified.reset_mock()
             mock_is_scout_qualified.reset_mock()
 
-    @patch("apps.trailblazer.views.get_xbox_earn_dict")
-    @patch("apps.trailblazer.views.get_discord_earn_dict")
+    @patch("apps.trailblazer.views.get_s3_xbox_earn_dict")
+    @patch("apps.trailblazer.views.get_s3_discord_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_trailblazer_scout_progress_view(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_discord_earn_dict,
-        mock_get_xbox_earn_dict,
+        mock_get_s3_discord_earn_dict,
+        mock_get_s3_xbox_earn_dict,
     ):
         # Missing field values throw errors
         response = self.client.post("/trailblazer/scout-progress", {}, format="json")
@@ -244,8 +244,8 @@ class TrailblazerTestCase(APITestCase):
             verified=True,
         )
 
-        # Exception in get_discord_earn_dict throws error
-        mock_get_discord_earn_dict.side_effect = Exception()
+        # Exception in get_s3_discord_earn_dict throws error
+        mock_get_s3_discord_earn_dict.side_effect = Exception()
         response = self.client.post(
             "/trailblazer/scout-progress",
             {
@@ -263,12 +263,12 @@ class TrailblazerTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_discord_earn_dict.side_effect = None
-        mock_get_discord_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s3_discord_earn_dict.side_effect = None
+        mock_get_s3_discord_earn_dict.reset_mock()
 
-        # Exception in get_xbox_earn_dict throws error
-        mock_get_xbox_earn_dict.side_effect = Exception()
+        # Exception in get_s3_xbox_earn_dict throws error
+        mock_get_s3_xbox_earn_dict.side_effect = Exception()
         response = self.client.post(
             "/trailblazer/scout-progress",
             {
@@ -286,20 +286,20 @@ class TrailblazerTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_xbox_earn_dict.side_effect = None
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s3_xbox_earn_dict.side_effect = None
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
 
         # Success - point totals come through for all values
-        mock_get_discord_earn_dict.return_value = {
+        mock_get_s3_discord_earn_dict.return_value = {
             link.discord_account_id: {
                 "church_of_the_crab": 150,
                 "sharing_is_caring": 50,
                 "bookworm": 50,
             }
         }
-        mock_get_xbox_earn_dict.return_value = {
+        mock_get_s3_xbox_earn_dict.return_value = {
             link.xbox_live_account_id: {
                 "online_warrior": 200,
                 "hot_streak": 100,
@@ -325,21 +325,21 @@ class TrailblazerTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsHotStreak"), 100)
         self.assertEqual(response.data.get("pointsOddlyEffective"), 100)
         self.assertEqual(response.data.get("pointsTooStronk"), 100)
-        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
 
         # Success - no linked gamertag
         link.delete()
-        mock_get_discord_earn_dict.return_value = {
+        mock_get_s3_discord_earn_dict.return_value = {
             discord_account.discord_id: {
                 "church_of_the_crab": 150,
                 "sharing_is_caring": 50,
                 "bookworm": 50,
             }
         }
-        mock_get_xbox_earn_dict.return_value = {
+        mock_get_s3_xbox_earn_dict.return_value = {
             xbox_live_account.xuid: {
                 "online_warrior": 200,
                 "hot_streak": 100,
@@ -365,7 +365,9 @@ class TrailblazerTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsHotStreak"), 0)
         self.assertEqual(response.data.get("pointsOddlyEffective"), 0)
         self.assertEqual(response.data.get("pointsTooStronk"), 0)
-        mock_get_discord_earn_dict.assert_called_once_with([discord_account.discord_id])
-        mock_get_xbox_earn_dict.assert_not_called()
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with(
+            [discord_account.discord_id]
+        )
+        mock_get_s3_xbox_earn_dict.assert_not_called()
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()

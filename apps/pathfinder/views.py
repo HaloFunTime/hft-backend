@@ -20,8 +20,8 @@ from apps.pathfinder.serializers import (
     WAYWOPostResponseSerializer,
 )
 from apps.pathfinder.utils import (
-    get_discord_earn_dict,
-    get_xbox_earn_dict,
+    get_s3_discord_earn_dict,
+    get_s3_xbox_earn_dict,
     is_dynamo_qualified,
     is_illuminated_qualified,
 )
@@ -238,9 +238,9 @@ class PathfinderDynamoProgressView(APIView):
                 )
 
                 # Tally the Discord Points
-                discord_earns = get_discord_earn_dict([discord_account.discord_id]).get(
-                    discord_account.discord_id
-                )
+                discord_earns = get_s3_discord_earn_dict(
+                    [discord_account.discord_id]
+                ).get(discord_account.discord_id)
                 points_gone_hiking = discord_earns.get("gone_hiking")
                 points_map_maker = discord_earns.get("map_maker")
                 points_show_and_tell = discord_earns.get("show_and_tell")
@@ -251,7 +251,7 @@ class PathfinderDynamoProgressView(APIView):
                     link = DiscordXboxLiveLink.objects.filter(
                         discord_account_id=discord_account.discord_id, verified=True
                     ).get()
-                    xbox_earns = get_xbox_earn_dict([link.xbox_live_account_id]).get(
+                    xbox_earns = get_s3_xbox_earn_dict([link.xbox_live_account_id]).get(
                         link.xbox_live_account_id
                     )
                     points_bookmarked = xbox_earns.get("bookmarked")

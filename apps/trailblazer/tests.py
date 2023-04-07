@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -12,7 +13,7 @@ from apps.trailblazer.models import (
     TrailblazerVODReview,
 )
 from apps.trailblazer.utils import (
-    get_discord_earn_dict,
+    get_s3_discord_earn_dict,
     is_scout_qualified,
     is_sherpa_qualified,
 )
@@ -25,12 +26,146 @@ class TrailblazerUtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    def test_get_discord_earn_dict(self):
-        earn_dict = get_discord_earn_dict([])
-        self.assertEqual(earn_dict, {})
-        # TODO: Write a more meaningful unit test for this
+    def test_get_s3_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                )
+            )
 
-    def test_get_xbox_earn_sets(self):
+        # No IDs = No earn dicts
+        earn_dict = get_s3_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # Max Points - exactly
+        cotcs = []
+        for i in range(5):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 4, 6),
+                )
+            )
+        sics = []
+        for i in range(3):
+            sics.append(
+                TrailblazerTuesdayReferral.objects.create(
+                    creator=self.user,
+                    referrer_discord=discord_accounts[0],
+                    invitee_discord=discord_accounts[1],
+                    referral_date=datetime.date(2023, 4, 6),
+                )
+            )
+        bs = []
+        for i in range(2):
+            bs.append(
+                TrailblazerVODReview.objects.create(
+                    creator=self.user,
+                    submitter_discord=discord_accounts[0],
+                    submission_date=datetime.date(2023, 4, 6),
+                )
+            )
+        earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 250
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["sharing_is_caring"], 150
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bookworm"], 100)
+
+        # Max points - overages
+        for i in range(2):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 4, 6),
+                )
+            )
+            sics.append(
+                TrailblazerTuesdayReferral.objects.create(
+                    creator=self.user,
+                    referrer_discord=discord_accounts[0],
+                    invitee_discord=discord_accounts[1],
+                    referral_date=datetime.date(2023, 4, 6),
+                )
+            )
+            bs.append(
+                TrailblazerVODReview.objects.create(
+                    creator=self.user,
+                    submitter_discord=discord_accounts[0],
+                    submission_date=datetime.date(2023, 4, 6),
+                )
+            )
+        earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 250
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["sharing_is_caring"], 150
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bookworm"], 100)
+
+        # Deletion of all records eliminates points
+        for cotc in cotcs:
+            cotc.delete()
+        for sic in sics:
+            sic.delete()
+        for b in bs:
+            b.delete()
+        earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 0
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["sharing_is_caring"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bookworm"], 0)
+
+        # Addition of records outside the date range still results in no points
+        cotcs = []
+        for i in range(5):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 7, 6),
+                )
+            )
+        sics = []
+        for i in range(3):
+            sics.append(
+                TrailblazerTuesdayReferral.objects.create(
+                    creator=self.user,
+                    referrer_discord=discord_accounts[0],
+                    invitee_discord=discord_accounts[1],
+                    referral_date=datetime.date(2023, 7, 6),
+                )
+            )
+        bs = []
+        for i in range(2):
+            bs.append(
+                TrailblazerVODReview.objects.create(
+                    creator=self.user,
+                    submitter_discord=discord_accounts[0],
+                    submission_date=datetime.date(2023, 7, 6),
+                )
+            )
+        earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 0
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["sharing_is_caring"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bookworm"], 0)
+
+    def test_get_s3_xbox_earn_dict(self):
         # TODO: Write a meaningful unit test for this
         pass
 
@@ -83,15 +218,15 @@ class TrailblazerUtilsTestCase(TestCase):
             )
             mock_get_csrs.reset_mock()
 
-    @patch("apps.trailblazer.utils.get_xbox_earn_dict")
+    @patch("apps.trailblazer.utils.get_s3_xbox_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_is_scout_qualified(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_xbox_earn_dict,
+        mock_get_s3_xbox_earn_dict,
     ):
         # Null value provided to method returns False
-        mock_get_xbox_earn_dict.return_value = {}
+        mock_get_s3_xbox_earn_dict.return_value = {}
         result = is_scout_qualified(None, None)
         self.assertEqual(result, False)
 
@@ -177,7 +312,7 @@ class TrailblazerUtilsTestCase(TestCase):
             # Every sixth account earns Too Stronk
             if i % 6 == 0 and i in xbox_earn_dict:
                 xbox_earn_dict[i]["too_stronk"] = 100
-        mock_get_xbox_earn_dict.return_value = xbox_earn_dict
+        mock_get_s3_xbox_earn_dict.return_value = xbox_earn_dict
 
         # The test data above results in every sixth account clearing the 500 point threshold
         scout_qualified_discord_ids = {"0", "6", "12", "18", "24"}

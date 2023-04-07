@@ -410,14 +410,14 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(waywo_post.post_title, "My Test Map")
         waywo_post.delete()
 
-    @patch("apps.pathfinder.views.get_xbox_earn_dict")
-    @patch("apps.pathfinder.views.get_discord_earn_dict")
+    @patch("apps.pathfinder.views.get_s3_xbox_earn_dict")
+    @patch("apps.pathfinder.views.get_s3_discord_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_pathfinder_dynamo_progress_view(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_discord_earn_dict,
-        mock_get_xbox_earn_dict,
+        mock_get_s3_discord_earn_dict,
+        mock_get_s3_xbox_earn_dict,
     ):
         # Missing field values throw errors
         response = self.client.post("/pathfinder/dynamo-progress", {}, format="json")
@@ -471,8 +471,8 @@ class PathfinderTestCase(APITestCase):
             verified=True,
         )
 
-        # Exception in get_discord_earn_dict throws error
-        mock_get_discord_earn_dict.side_effect = Exception()
+        # Exception in get_s3_discord_earn_dict throws error
+        mock_get_s3_discord_earn_dict.side_effect = Exception()
         response = self.client.post(
             "/pathfinder/dynamo-progress",
             {
@@ -490,12 +490,12 @@ class PathfinderTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_discord_earn_dict.side_effect = None
-        mock_get_discord_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s3_discord_earn_dict.side_effect = None
+        mock_get_s3_discord_earn_dict.reset_mock()
 
-        # Exception in get_xbox_earn_dict throws error
-        mock_get_xbox_earn_dict.side_effect = Exception()
+        # Exception in get_s3_xbox_earn_dict throws error
+        mock_get_s3_xbox_earn_dict.side_effect = Exception()
         response = self.client.post(
             "/pathfinder/dynamo-progress",
             {
@@ -513,20 +513,20 @@ class PathfinderTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_xbox_earn_dict.side_effect = None
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s3_xbox_earn_dict.side_effect = None
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
 
         # Success - point totals come through for all values
-        mock_get_discord_earn_dict.return_value = {
+        mock_get_s3_discord_earn_dict.return_value = {
             link.discord_account_id: {
                 "gone_hiking": 150,
                 "map_maker": 50,
                 "show_and_tell": 50,
             }
         }
-        mock_get_xbox_earn_dict.return_value = {
+        mock_get_s3_xbox_earn_dict.return_value = {
             link.xbox_live_account_id: {
                 "bookmarked": 100,
                 "playtime": 100,
@@ -552,21 +552,21 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsPlaytime"), 100)
         self.assertEqual(response.data.get("pointsTagtacular"), 50)
         self.assertEqual(response.data.get("pointsForgedInFire"), 37)
-        mock_get_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
 
         # Success - no linked gamertag
         link.delete()
-        mock_get_discord_earn_dict.return_value = {
+        mock_get_s3_discord_earn_dict.return_value = {
             discord_account.discord_id: {
                 "gone_hiking": 150,
                 "map_maker": 50,
                 "show_and_tell": 50,
             }
         }
-        mock_get_xbox_earn_dict.return_value = {
+        mock_get_s3_xbox_earn_dict.return_value = {
             link.xbox_live_account_id: {
                 "bookmarked": 100,
                 "playtime": 100,
@@ -592,7 +592,9 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(response.data.get("pointsPlaytime"), 0)
         self.assertEqual(response.data.get("pointsTagtacular"), 0)
         self.assertEqual(response.data.get("pointsForgedInFire"), 0)
-        mock_get_discord_earn_dict.assert_called_once_with([discord_account.discord_id])
-        mock_get_xbox_earn_dict.assert_not_called()
-        mock_get_discord_earn_dict.reset_mock()
-        mock_get_xbox_earn_dict.reset_mock()
+        mock_get_s3_discord_earn_dict.assert_called_once_with(
+            [discord_account.discord_id]
+        )
+        mock_get_s3_xbox_earn_dict.assert_not_called()
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()

@@ -14,10 +14,11 @@ from apps.halo_infinite.utils import (
 logger = logging.getLogger(__name__)
 
 
-def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     annotated_discord_accounts = DiscordAccount.objects.annotate(
         hike_attendances=Count(
             "pathfinder_hike_attendees",
+            distinct=True,
             filter=Q(
                 pathfinder_hike_attendees__attendee_discord_id__in=discord_ids,
                 pathfinder_hike_attendees__attendance_date__range=[
@@ -28,6 +29,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
         ),
         hike_submissions=Count(
             "pathfinder_hike_submitters",
+            distinct=True,
             filter=Q(
                 pathfinder_hike_submitters__map_submitter_discord_id__in=discord_ids,
                 pathfinder_hike_submitters__scheduled_playtest_date__range=[
@@ -38,6 +40,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
         ),
         waywo_posts=Count(
             "pathfinder_waywo_posters",
+            distinct=True,
             filter=Q(
                 pathfinder_waywo_posters__poster_discord_id__in=discord_ids,
                 pathfinder_waywo_posters__created_at__range=[
@@ -58,7 +61,7 @@ def get_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     return earn_dict
 
 
-def get_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     earn_dict = {}
     for xuid in xuids:
         unlocked_bookmarked = False
@@ -86,7 +89,7 @@ def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
 
     # DISCORD CHALLENGES
     if discord_id is not None:
-        discord_earn_dict = get_discord_earn_dict([discord_id])
+        discord_earn_dict = get_s3_discord_earn_dict([discord_id])
         earns = discord_earn_dict.get(discord_id)
 
         # Gone Hiking
@@ -98,7 +101,7 @@ def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
 
     # XBOX LIVE CHALLENGES
     if xuid is not None:
-        xbox_earn_dict = get_xbox_earn_dict([xuid])
+        xbox_earn_dict = get_s3_xbox_earn_dict([xuid])
         earns = xbox_earn_dict.get(xuid)
 
         # Bookmarked

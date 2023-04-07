@@ -15,8 +15,8 @@ from apps.trailblazer.serializers import (
     TrailblazerSeasonalRoleCheckResponseSerializer,
 )
 from apps.trailblazer.utils import (
-    get_discord_earn_dict,
-    get_xbox_earn_dict,
+    get_s3_discord_earn_dict,
+    get_s3_xbox_earn_dict,
     is_scout_qualified,
     is_sherpa_qualified,
 )
@@ -117,9 +117,9 @@ class TrailblazerScoutProgressView(APIView):
                 )
 
                 # Tally the Discord Points
-                discord_earns = get_discord_earn_dict([discord_account.discord_id]).get(
-                    discord_account.discord_id
-                )
+                discord_earns = get_s3_discord_earn_dict(
+                    [discord_account.discord_id]
+                ).get(discord_account.discord_id)
                 points_church_of_the_crab = discord_earns.get("church_of_the_crab")
                 points_sharing_is_caring = discord_earns.get("sharing_is_caring")
                 points_bookworm = discord_earns.get("bookworm")
@@ -130,7 +130,7 @@ class TrailblazerScoutProgressView(APIView):
                     link = DiscordXboxLiveLink.objects.filter(
                         discord_account_id=discord_account.discord_id, verified=True
                     ).get()
-                    xbox_earns = get_xbox_earn_dict([link.xbox_live_account_id]).get(
+                    xbox_earns = get_s3_xbox_earn_dict([link.xbox_live_account_id]).get(
                         link.xbox_live_account_id
                     )
                     points_online_warrior = xbox_earns.get("online_warrior")
