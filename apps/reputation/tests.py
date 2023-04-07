@@ -710,7 +710,7 @@ class UtilsTestCase(TestCase):
             ),
             # Reset in next month
             (
-                "2023-03-29T02:34:27-07:00",
+                "2023-03-29T02:34:27-06:00",
                 datetime.timedelta(days=6, seconds=30333, microseconds=0),
             ),
             # Reset in next year

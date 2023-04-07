@@ -26,15 +26,16 @@ def get_week_start_time(timestamp: datetime.datetime) -> datetime.datetime:
     else:
         offset = (timestamp.weekday() - TUESDAY) % 7
         prior_tuesday = timestamp - datetime.timedelta(days=offset)
-    return datetime.datetime(
-        prior_tuesday.year,
-        prior_tuesday.month,
-        prior_tuesday.day,
-        11,
-        0,
-        0,
-        0,
-        pytz.timezone("America/Denver"),
+    return pytz.timezone("America/Denver").localize(
+        datetime.datetime(
+            prior_tuesday.year,
+            prior_tuesday.month,
+            prior_tuesday.day,
+            11,
+            0,
+            0,
+            0,
+        )
     )
 
 
