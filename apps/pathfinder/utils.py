@@ -1,14 +1,17 @@
+import datetime
 import logging
 
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.utils import (
+    SEASON_3_DEV_MAP_IDS,
     SEASON_3_END_DAY,
     SEASON_3_END_TIME,
     SEASON_3_START_DAY,
     SEASON_3_START_TIME,
     get_343_recommended_map_contributors,
+    get_season_3_custom_matches,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +71,45 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         unlocked_playtime = False
         halofuntime_tags = 0
         forge_custom_game_hours = 0
+
+        # # Get files authored by this XUID
+        # files = (xuid)
+        # matches_sorted = sorted(
+        #     matches,
+        #     key=lambda m: datetime.datetime.fromisoformat(
+        #         m.get("MatchInfo", {}).get("StartTime")
+        #     ),
+        # )
+
+        # Get custom matches for this XUID
+        custom_matches = get_season_3_custom_matches(xuid)
+        custom_matches_sorted = sorted(
+            custom_matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("StartTime")
+            ),
+        )
+
+        # Forged in Fire: Play 100+ hours of custom games on Forge maps
+        custom_seconds_played = 0
+        for match in custom_matches_sorted:
+            # Only matches where the player was present count
+            if (
+                match.get("PresentAtEndOfMatch", False)
+                and match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
+                not in SEASON_3_DEV_MAP_IDS
+            ):
+                match_start = datetime.datetime.strptime(
+                    match.get("MatchInfo", {}).get("StartTime", None).split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                match_end = datetime.datetime.strptime(
+                    match.get("MatchInfo", {}).get("EndTime", None).split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                custom_seconds_played += (match_end - match_start).total_seconds()
+        forge_custom_game_hours = int(custom_seconds_played / 3600)
+
         earn_dict[xuid] = {
             "bookmarked": 100 if unlocked_bookmarked else 0,
             "playtime": 100 if unlocked_playtime else 0,
