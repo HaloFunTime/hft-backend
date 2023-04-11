@@ -10,7 +10,7 @@ from apps.halo_infinite.utils import (
     SEASON_3_END_TIME,
     SEASON_3_START_DAY,
     SEASON_3_START_TIME,
-    get_343_recommended_map_contributors,
+    get_343_recommended_contributors,
     get_season_3_custom_matches,
 )
 
@@ -121,9 +121,21 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
 
 
 def is_illuminated_qualified(xuid: int) -> bool:
-    # Someone qualifies as Illuminated if their linked gamertag contributed to at least one map on 343's Recommended
-    contributor_dict = get_343_recommended_map_contributors()
-    return xuid in contributor_dict
+    # Someone qualifies as Illuminated if their linked gamertag contributed to:
+    # - At least ONE map on 343's Recommended
+    # - At least TWO modes on 343's Recommended
+    # - At least TWO prefabs on 343's Recommended
+    contributor_dict = get_343_recommended_contributors()
+    map_qualified = False
+    mode_qualified = False
+    prefab_qualified = False
+    if xuid in contributor_dict["map"]:
+        map_qualified = True
+    if xuid in contributor_dict["mode"] and contributor_dict["mode"][xuid] >= 2:
+        mode_qualified = True
+    if xuid in contributor_dict["prefab"] and contributor_dict["prefab"][xuid] >= 2:
+        prefab_qualified = True
+    return map_qualified or mode_qualified or prefab_qualified
 
 
 def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:

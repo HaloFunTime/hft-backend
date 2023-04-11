@@ -57,11 +57,15 @@ SEASON_3_DEV_MAP_IDS = {
 }
 
 
-def get_343_recommended_map_contributors() -> list[int, int]:
+def get_343_recommended_contributors() -> list[int, int]:
     """
     Returns a dict mapping XUIDs to the count of files they have currently featured in 343's Recommended File list.
     """
-    contributors = {}
+    contributors = {
+        "map": {},
+        "mode": {},
+        "prefab": {},
+    }
     recommended_data = recommended()
     import json
 
@@ -69,10 +73,24 @@ def get_343_recommended_map_contributors() -> list[int, int]:
     for map in recommended_data.get("MapLinks"):
         for contributor in map.get("Contributors"):
             xuid = int(contributor.lstrip("xuid(").rstrip(")"))
-            if xuid in contributors:
-                contributors[xuid] = contributors[xuid] + 1
+            if xuid in contributors["map"]:
+                contributors["map"][xuid] = contributors["map"][xuid] + 1
             else:
-                contributors[xuid] = 1
+                contributors["map"][xuid] = 1
+    for mode in recommended_data.get("UgcGameVariantLinks"):
+        for contributor in mode.get("Contributors"):
+            xuid = int(contributor.lstrip("xuid(").rstrip(")"))
+            if xuid in contributors["mode"]:
+                contributors["mode"][xuid] = contributors["mode"][xuid] + 1
+            else:
+                contributors["mode"][xuid] = 1
+    for prefab in recommended_data.get("PrefabLinks"):
+        for contributor in prefab.get("Contributors"):
+            xuid = int(contributor.lstrip("xuid(").rstrip(")"))
+            if xuid in contributors["prefab"]:
+                contributors["prefab"][xuid] = contributors["prefab"][xuid] + 1
+            else:
+                contributors["prefab"][xuid] = 1
     return contributors
 
 
