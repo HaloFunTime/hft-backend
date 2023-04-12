@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -13,6 +13,7 @@ from apps.halo_infinite.api.match import (
 )
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
 from apps.halo_infinite.api.recommended import recommended
+from apps.halo_infinite.api.search import search_by_author
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.models import (
     HaloInfiniteClearanceToken,
@@ -864,6 +865,94 @@ class HaloInfiniteAPITestCase(TestCase):
             404
         )
         self.assertDictEqual({}, recommended())
+
+    @patch("apps.halo_infinite.api.search.requests.Session")
+    def test_search_by_author(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.side_effect = [
+            {
+                "Tags": [],
+                "EstimatedTotal": 9,
+                "Start": 0,
+                "Count": 5,
+                "ResultCount": 5,
+                "Results": [
+                    {"AssetId": "test0"},
+                    {"AssetId": "test1"},
+                    {"AssetId": "test2"},
+                    {"AssetId": "test3"},
+                    {"AssetId": "test4"},
+                ],
+                "Links": {},
+            },
+            {
+                "Tags": [],
+                "EstimatedTotal": 9,
+                "Start": 5,
+                "Count": 5,
+                "ResultCount": 4,
+                "Results": [
+                    {"AssetId": "test5"},
+                    {"AssetId": "test6"},
+                    {"AssetId": "test7"},
+                    {"AssetId": "test8"},
+                ],
+                "Links": {},
+            },
+        ]
+        search_by_author_data = search_by_author(2535405290989773, 5)
+        self.assertEqual(
+            mock_Session.return_value.__enter__.return_value.get.mock_calls[0],
+            call(
+                "https://discovery-infiniteugc.svc.halowaypoint.com/hi/search"
+                "?author=xuid(2535405290989773)&count=5&start=0",
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                    "x-343-authorization-spartan": self.spartan_token.token,
+                },
+            ),
+        )
+        self.assertEqual(
+            mock_Session.return_value.__enter__.return_value.get.mock_calls[1],
+            call().json(),
+        )
+        self.assertEqual(
+            mock_Session.return_value.__enter__.return_value.get.mock_calls[2],
+            call(
+                "https://discovery-infiniteugc.svc.halowaypoint.com/hi/search"
+                "?author=xuid(2535405290989773)&count=5&start=5",
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                    "x-343-authorization-spartan": self.spartan_token.token,
+                },
+            ),
+        )
+        self.assertEqual(
+            mock_Session.return_value.__enter__.return_value.get.mock_calls[3],
+            call().json(),
+        )
+        self.assertEqual(len(search_by_author_data), 9)
+        self.assertEqual(search_by_author_data[0], {"AssetId": "test0"})
+        self.assertEqual(search_by_author_data[1], {"AssetId": "test1"})
+        self.assertEqual(search_by_author_data[2], {"AssetId": "test2"})
+        self.assertEqual(search_by_author_data[3], {"AssetId": "test3"})
+        self.assertEqual(search_by_author_data[4], {"AssetId": "test4"})
+        self.assertEqual(search_by_author_data[5], {"AssetId": "test5"})
+        self.assertEqual(search_by_author_data[6], {"AssetId": "test6"})
+        self.assertEqual(search_by_author_data[7], {"AssetId": "test7"})
+        self.assertEqual(search_by_author_data[8], {"AssetId": "test8"})
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertEqual([], search_by_author(2535405290989773, 5))
 
     @patch("apps.halo_infinite.api.service_record.requests.Session")
     def test_service_record(self, mock_Session):
