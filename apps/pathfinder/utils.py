@@ -90,6 +90,12 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             ),
         )
 
+        # Bookmarked: Publish a map that receives 100 or more bookmarks
+
+        # Playtime: Publish a map that receives 500 or more plays
+
+        # Tagtacular: Tag published files with 'HaloFunTime'
+
         # Forged in Fire: Play 100+ hours of custom games on Forge maps
         custom_seconds_played = 0
         for match in custom_matches_sorted:
@@ -100,11 +106,17 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                 not in SEASON_3_DEV_MAP_IDS
             ):
                 match_start = datetime.datetime.strptime(
-                    match.get("MatchInfo", {}).get("StartTime", None).split(".")[0],
+                    match.get("MatchInfo", {})
+                    .get("StartTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
                     "%Y-%m-%dT%H:%M:%S",
                 ).replace(tzinfo=datetime.timezone.utc)
                 match_end = datetime.datetime.strptime(
-                    match.get("MatchInfo", {}).get("EndTime", None).split(".")[0],
+                    match.get("MatchInfo", {})
+                    .get("EndTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
                     "%Y-%m-%dT%H:%M:%S",
                 ).replace(tzinfo=datetime.timezone.utc)
                 custom_seconds_played += (match_end - match_start).total_seconds()
