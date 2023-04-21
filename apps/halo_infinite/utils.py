@@ -5,6 +5,7 @@ from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.match import match_count, match_skill, matches_between
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
 from apps.halo_infinite.api.recommended import recommended
+from apps.halo_infinite.api.search import search_by_author
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
     MAP_ID_AQUARIUS,
@@ -30,6 +31,9 @@ from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
 
+SEARCH_ASSET_KIND_MAP = 2
+SEARCH_ASSET_KIND_MODE = 6
+SEARCH_ASSET_KIND_PREFAB = 4
 SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
 SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
 SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
@@ -99,6 +103,30 @@ def get_active_ranked_playlists() -> list[HaloInfinitePlaylist]:
         "name"
     )
     return playlists
+
+
+def get_authored_maps(xuid: int) -> list[dict]:
+    return [
+        file
+        for file in search_by_author(xuid)
+        if file.get("AssetKind") == SEARCH_ASSET_KIND_MAP
+    ]
+
+
+def get_authored_modes(xuid: int) -> list[dict]:
+    return [
+        file
+        for file in search_by_author(xuid)
+        if file.get("AssetKind") == SEARCH_ASSET_KIND_MODE
+    ]
+
+
+def get_authored_prefabs(xuid: int) -> list[dict]:
+    return [
+        file
+        for file in search_by_author(xuid)
+        if file.get("AssetKind") == SEARCH_ASSET_KIND_PREFAB
+    ]
 
 
 def get_csr_after_match(xuid: int, match_id: str) -> int:

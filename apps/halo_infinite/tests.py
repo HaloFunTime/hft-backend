@@ -28,10 +28,16 @@ from apps.halo_infinite.tokens import (
     get_xsts_token,
 )
 from apps.halo_infinite.utils import (
+    SEARCH_ASSET_KIND_MAP,
+    SEARCH_ASSET_KIND_MODE,
+    SEARCH_ASSET_KIND_PREFAB,
     SEASON_3_END_TIME,
     SEASON_3_RANKED_ARENA_PLAYLIST_ID,
     SEASON_3_START_TIME,
     get_343_recommended_contributors,
+    get_authored_maps,
+    get_authored_modes,
+    get_authored_prefabs,
     get_csr_after_match,
     get_csrs,
     get_playlist_latest_version_info,
@@ -751,6 +757,78 @@ class HaloInfiniteUtilsTestCase(TestCase):
         self.assertEqual(data.get("prefab").get(2535417458493667), 1)
         self.assertEqual(data.get("prefab").get(2533274807200960), 1)
         mock_recommended.assert_called_once_with()
+
+    @patch("apps.halo_infinite.utils.search_by_author")
+    def test_get_authored_maps(self, mock_search_by_author):
+        mock_search_by_author.return_value = []
+        data = get_authored_maps(0)
+        self.assertEqual(data, [])
+
+        mock_search_by_author.return_value = [
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_PREFAB},
+        ]
+        data = get_authored_maps(0)
+        self.assertEqual(len(data), 3)
+        self.assertEqual(
+            data,
+            [
+                {"AssetKind": SEARCH_ASSET_KIND_MAP},
+                {"AssetKind": SEARCH_ASSET_KIND_MAP},
+                {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            ],
+        )
+
+    @patch("apps.halo_infinite.utils.search_by_author")
+    def test_get_authored_modes(self, mock_search_by_author):
+        mock_search_by_author.return_value = []
+        data = get_authored_modes(0)
+        self.assertEqual(data, [])
+
+        mock_search_by_author.return_value = [
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_PREFAB},
+        ]
+        data = get_authored_modes(0)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(
+            data,
+            [
+                {"AssetKind": SEARCH_ASSET_KIND_MODE},
+                {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            ],
+        )
+
+    @patch("apps.halo_infinite.utils.search_by_author")
+    def test_get_authored_prefabs(self, mock_search_by_author):
+        mock_search_by_author.return_value = []
+        data = get_authored_prefabs(0)
+        self.assertEqual(data, [])
+
+        mock_search_by_author.return_value = [
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MAP},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_MODE},
+            {"AssetKind": SEARCH_ASSET_KIND_PREFAB},
+        ]
+        data = get_authored_prefabs(0)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(
+            data,
+            [
+                {"AssetKind": SEARCH_ASSET_KIND_PREFAB},
+            ],
+        )
 
     @patch("apps.halo_infinite.utils.csr")
     def test_get_csrs(self, mock_csr):

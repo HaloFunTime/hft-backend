@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 @spartan_token
-def search_by_author(xuid: int, count: int = 25, **kwargs) -> dict:
+def search_by_author(xuid: int, batch_size: int = 25, **kwargs) -> dict:
     spartan_token = kwargs.get("HaloInfiniteSpartanToken")
     headers = {
         "Accept": "application/json",
@@ -21,10 +21,10 @@ def search_by_author(xuid: int, count: int = 25, **kwargs) -> dict:
         more_results = True
         start = 0
         while more_results:
-            # Grab results `count` at a time
+            # Grab results `batch_size` at a time
             response = s.get(
                 "https://discovery-infiniteugc.svc.halowaypoint.com/hi/search"
-                f"?author=xuid({xuid})&count={count}&start={start}",
+                f"?author=xuid({xuid})&count={batch_size}&start={start}",
                 headers=headers,
             )
             more_results = False
