@@ -11,6 +11,7 @@ from apps.halo_infinite.utils import (
     SEASON_3_START_DAY,
     SEASON_3_START_TIME,
     get_343_recommended_contributors,
+    get_authored_maps,
     get_season_3_custom_matches,
 )
 
@@ -72,14 +73,8 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         halofuntime_tags = 0
         forge_custom_game_hours = 0
 
-        # # Get files authored by this XUID
-        # files = (xuid)
-        # matches_sorted = sorted(
-        #     matches,
-        #     key=lambda m: datetime.datetime.fromisoformat(
-        #         m.get("MatchInfo", {}).get("StartTime")
-        #     ),
-        # )
+        # Get maps authored by this XUID
+        maps = get_authored_maps(xuid)
 
         # Get custom matches for this XUID
         custom_matches = get_season_3_custom_matches(xuid)
@@ -90,11 +85,23 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             ),
         )
 
-        # Bookmarked: Publish a map that receives 100 or more bookmarks
+        # Bookmarked: Author a map that receives 100 or more bookmarks
+        for map in maps:
+            if map.get("Bookmarks", 0) >= 100:
+                unlocked_bookmarked = True
+                break
 
-        # Playtime: Publish a map that receives 500 or more plays
+        # Playtime: Author a map that receives 500 or more plays
+        for map in maps:
+            if map.get("PlaysAllTime", 0) >= 500:
+                unlocked_playtime = True
+                break
 
-        # Tagtacular: Tag published files with 'HaloFunTime'
+        # Tagtacular: Tag authored maps with 'HaloFunTime'
+        for map in maps:
+            tags = map.get("Tags", [])
+            if "halofuntime" in tags:
+                halofuntime_tags += 1
 
         # Forged in Fire: Play 100+ hours of custom games on Forge maps
         custom_seconds_played = 0
