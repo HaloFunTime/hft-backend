@@ -1,3 +1,5 @@
+import datetime
+from collections import OrderedDict
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -10,6 +12,8 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.xbox_live.models import XboxLiveAccount
 
+APITestCase.maxDiff = None
+
 
 class PathfinderTestCase(APITestCase):
     def setUp(self):
@@ -18,6 +22,131 @@ class PathfinderTestCase(APITestCase):
         )
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_hike_queue_view_get(self):
+        # Success - nothing in queue
+        response = self.client.get("/pathfinder/hike-queue", format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("scheduled"), [])
+        self.assertEqual(response.data.get("unscheduled"), [])
+
+        # Create test data
+        range_bound = 7
+        discord_accounts = []
+        for i in range(range_bound):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                )
+            )
+        hike_submissions = []
+        for i in range(range_bound):
+            hike_submissions.append(
+                PathfinderHikeSubmission.objects.create(
+                    creator=self.user,
+                    waywo_post_title=f"post{i}",
+                    waywo_post_id=f"{i}",
+                    map_submitter_discord=discord_accounts[i],
+                    scheduled_playtest_date=(
+                        datetime.date(2023, 7, i) if i % 2 == 1 else None
+                    ),
+                    category=f"category{i}",
+                    map=f"map{i}",
+                    mode_1=f"mode_1_{i}",
+                    mode_2=f"mode_2_{i}",
+                )
+            )
+
+        # Success - queue returned
+        response = self.client.get("/pathfinder/hike-queue", format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get("scheduled"),
+            [
+                OrderedDict(
+                    {
+                        "waywoPostId": "1",
+                        "mapSubmitterDiscordId": "1",
+                        "scheduledPlaytestDate": "2023-07-01",
+                        "category": "category1",
+                        "map": "map1",
+                        "mode1": "mode_1_1",
+                        "mode2": "mode_2_1",
+                    }
+                ),
+                OrderedDict(
+                    {
+                        "waywoPostId": "3",
+                        "mapSubmitterDiscordId": "3",
+                        "scheduledPlaytestDate": "2023-07-03",
+                        "category": "category3",
+                        "map": "map3",
+                        "mode1": "mode_1_3",
+                        "mode2": "mode_2_3",
+                    }
+                ),
+                OrderedDict(
+                    {
+                        "waywoPostId": "5",
+                        "mapSubmitterDiscordId": "5",
+                        "scheduledPlaytestDate": "2023-07-05",
+                        "category": "category5",
+                        "map": "map5",
+                        "mode1": "mode_1_5",
+                        "mode2": "mode_2_5",
+                    }
+                ),
+            ],
+        )
+        self.assertEqual(
+            response.data.get("unscheduled"),
+            [
+                OrderedDict(
+                    {
+                        "waywoPostId": "0",
+                        "mapSubmitterDiscordId": "0",
+                        "scheduledPlaytestDate": None,
+                        "category": "category0",
+                        "map": "map0",
+                        "mode1": "mode_1_0",
+                        "mode2": "mode_2_0",
+                    }
+                ),
+                OrderedDict(
+                    {
+                        "waywoPostId": "2",
+                        "mapSubmitterDiscordId": "2",
+                        "scheduledPlaytestDate": None,
+                        "category": "category2",
+                        "map": "map2",
+                        "mode1": "mode_1_2",
+                        "mode2": "mode_2_2",
+                    }
+                ),
+                OrderedDict(
+                    {
+                        "waywoPostId": "4",
+                        "mapSubmitterDiscordId": "4",
+                        "scheduledPlaytestDate": None,
+                        "category": "category4",
+                        "map": "map4",
+                        "mode1": "mode_1_4",
+                        "mode2": "mode_2_4",
+                    }
+                ),
+                OrderedDict(
+                    {
+                        "waywoPostId": "6",
+                        "mapSubmitterDiscordId": "6",
+                        "scheduledPlaytestDate": None,
+                        "category": "category6",
+                        "map": "map6",
+                        "mode1": "mode_1_6",
+                        "mode2": "mode_2_6",
+                    }
+                ),
+            ],
+        )
 
     def test_hike_submission_view_post(self):
         # Missing field values throw errors

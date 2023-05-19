@@ -11,6 +11,7 @@ from apps.discord.utils import update_or_create_discord_account
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.pathfinder.serializers import (
+    HikeQueueResponseSerializer,
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
@@ -29,6 +30,70 @@ from apps.pathfinder.utils import (
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
+
+
+class HikeQueueView(APIView):
+    @extend_schema(
+        parameters=[],
+        responses={
+            200: HikeQueueResponseSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves all unplaytested PathfinderHikeSubmission records, ordered by schedule date.
+        Unscheduled submissions are ordered by created date.
+        """
+        try:
+            scheduled_incomplete_submissions = PathfinderHikeSubmission.objects.filter(
+                Q(mode_1_played=False) & Q(mode_2_played=False),
+                scheduled_playtest_date__isnull=False,
+            ).order_by("scheduled_playtest_date", "created_at")
+            scheduled = []
+            for submission in scheduled_incomplete_submissions:
+                scheduled.append(
+                    {
+                        "waywoPostId": submission.waywo_post_id,
+                        "mapSubmitterDiscordId": submission.map_submitter_discord.discord_id,
+                        "scheduledPlaytestDate": submission.scheduled_playtest_date,
+                        "category": submission.category,
+                        "map": submission.map,
+                        "mode1": submission.mode_1,
+                        "mode2": submission.mode_2,
+                    }
+                )
+            unscheduled_incomplete_submissions = (
+                PathfinderHikeSubmission.objects.filter(
+                    Q(mode_1_played=False) & Q(mode_2_played=False),
+                    scheduled_playtest_date__isnull=True,
+                ).order_by("created_at")
+            )
+            unscheduled = []
+            for submission in unscheduled_incomplete_submissions:
+                unscheduled.append(
+                    {
+                        "waywoPostId": submission.waywo_post_id,
+                        "mapSubmitterDiscordId": submission.map_submitter_discord.discord_id,
+                        "scheduledPlaytestDate": submission.scheduled_playtest_date,
+                        "category": submission.category,
+                        "map": submission.map,
+                        "mode1": submission.mode_1,
+                        "mode2": submission.mode_2,
+                    }
+                )
+            serializer = HikeQueueResponseSerializer(
+                {
+                    "scheduled": scheduled,
+                    "unscheduled": unscheduled,
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as ex:
+            logger.error(ex)
+            raise APIException(
+                "Error attempting to get the queue of PathfinderHikeSubmissions."
+            )
 
 
 class HikeSubmissionView(APIView):

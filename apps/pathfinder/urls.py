@@ -8,6 +8,7 @@ urlpatterns = [
         views.PathfinderDynamoProgressView.as_view(),
         name="dynamo-progress",
     ),
+    path("hike-queue", views.HikeQueueView.as_view(), name="hike-queue"),
     path("hike-submission", views.HikeSubmissionView.as_view(), name="hike-submission"),
     path(
         "seasonal-role-check",

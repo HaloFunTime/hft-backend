@@ -3,6 +3,23 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id, validate_discord_tag
 
 
+class HikeSubmissionSerializer(serializers.Serializer):
+    waywoPostId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    mapSubmitterDiscordId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    scheduledPlaytestDate = serializers.DateField(allow_null=True)
+    category = serializers.CharField()
+    map = serializers.CharField()
+    mode1 = serializers.CharField()
+    mode2 = serializers.CharField()
+
+
+class HikeQueueResponseSerializer(serializers.Serializer):
+    scheduled = HikeSubmissionSerializer(many=True, read_only=True)
+    unscheduled = HikeSubmissionSerializer(many=True, read_only=True)
+
+
 class HikeSubmissionPostRequestSerializer(serializers.Serializer):
     waywoPostTitle = serializers.CharField(max_length=100)
     waywoPostId = serializers.CharField(max_length=20, validators=[validate_discord_id])
