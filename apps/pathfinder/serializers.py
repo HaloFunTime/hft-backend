@@ -9,7 +9,7 @@ class HikeSubmissionSerializer(serializers.Serializer):
         max_length=20, validators=[validate_discord_id]
     )
     scheduledPlaytestDate = serializers.DateField(allow_null=True)
-    category = serializers.CharField()
+    maxPlayerCount = serializers.CharField()
     map = serializers.CharField()
     mode1 = serializers.CharField()
     mode2 = serializers.CharField()
@@ -27,7 +27,7 @@ class HikeSubmissionPostRequestSerializer(serializers.Serializer):
         max_length=20, validators=[validate_discord_id]
     )
     mapSubmitterDiscordTag = serializers.CharField(validators=[validate_discord_tag])
-    category = serializers.CharField()
+    maxPlayerCount = serializers.CharField()
     map = serializers.CharField()
     mode1 = serializers.CharField()
     mode2 = serializers.CharField()

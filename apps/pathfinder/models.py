@@ -42,7 +42,9 @@ class PathfinderHikeSubmission(Base):
     waywo_post_id = models.CharField(
         max_length=20, blank=False, verbose_name="WAYWO Post ID"
     )
-    category = models.CharField(max_length=32, verbose_name="Category", null=True)
+    max_player_count = models.CharField(
+        max_length=32, verbose_name="Max Player Count", null=True
+    )
     map_submitter_discord = models.ForeignKey(
         DiscordAccount,
         on_delete=models.RESTRICT,

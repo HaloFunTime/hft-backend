@@ -57,7 +57,7 @@ class HikeQueueView(APIView):
                         "waywoPostId": submission.waywo_post_id,
                         "mapSubmitterDiscordId": submission.map_submitter_discord.discord_id,
                         "scheduledPlaytestDate": submission.scheduled_playtest_date,
-                        "category": submission.category,
+                        "maxPlayerCount": submission.max_player_count,
                         "map": submission.map,
                         "mode1": submission.mode_1,
                         "mode2": submission.mode_2,
@@ -76,7 +76,7 @@ class HikeQueueView(APIView):
                         "waywoPostId": submission.waywo_post_id,
                         "mapSubmitterDiscordId": submission.map_submitter_discord.discord_id,
                         "scheduledPlaytestDate": submission.scheduled_playtest_date,
-                        "category": submission.category,
+                        "maxPlayerCount": submission.max_player_count,
                         "map": submission.map,
                         "mode1": submission.mode_1,
                         "mode2": submission.mode_2,
@@ -119,7 +119,7 @@ class HikeSubmissionView(APIView):
             map_submitter_discord_tag = validation_serializer.data.get(
                 "mapSubmitterDiscordTag"
             )
-            category = validation_serializer.data.get("category")
+            max_player_count = validation_serializer.data.get("maxPlayerCount")
             map = validation_serializer.data.get("map")
             mode_1 = validation_serializer.data.get("mode1")
             mode_2 = validation_serializer.data.get("mode2")
@@ -154,7 +154,7 @@ class HikeSubmissionView(APIView):
                     waywo_post_title=waywo_post_title,
                     waywo_post_id=waywo_post_id,
                     map_submitter_discord=map_submitter_discord,
-                    category=category,
+                    max_player_count=max_player_count,
                     map=map,
                     mode_1=mode_1,
                     mode_2=mode_2,
