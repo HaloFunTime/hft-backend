@@ -1,4 +1,3 @@
-import datetime
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -30,7 +29,7 @@ class PathfinderTestCase(APITestCase):
             "waywoPostId",
             "mapSubmitterDiscordId",
             "mapSubmitterDiscordTag",
-            "scheduledPlaytestDate",
+            "category",
             "map",
             "mode1",
             "mode2",
@@ -50,7 +49,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostId": "abc",
                 "mapSubmitterDiscordId": "abc",
                 "mapSubmitterDiscordTag": "abc",
-                "scheduledPlaytestDate": "abc",
+                "category": "abc",
                 "map": "abc",
                 "mode1": "abc",
                 "mode2": "abc",
@@ -92,7 +91,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostId": "7890",
                 "mapSubmitterDiscordId": "1234",
                 "mapSubmitterDiscordTag": "Test#1234",
-                "scheduledPlaytestDate": "2023-03-15",
+                "category": "Arena",
                 "map": "TestMap",
                 "mode1": "TestMode1",
                 "mode2": "TestMode2",
@@ -110,15 +109,12 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(
             pf_hike_submission.map_submitter_discord.discord_tag, "Test#1234"
         )
-        self.assertEqual(
-            pf_hike_submission.scheduled_playtest_date,
-            datetime.date(year=2023, month=3, day=15),
-        )
+        self.assertEqual(pf_hike_submission.category, "Arena")
         self.assertEqual(pf_hike_submission.map, "TestMap")
         self.assertEqual(pf_hike_submission.mode_1, "TestMode1")
         self.assertEqual(pf_hike_submission.mode_2, "TestMode2")
 
-        # Multiple submissions of same WAYWO post are forbidden if scheduled for the same day
+        # Multiple submissions of same WAYWO post are forbidden if previous submission hasn't been playtested yet
         response = self.client.post(
             "/pathfinder/hike-submission",
             {
@@ -126,7 +122,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostId": "7890",
                 "mapSubmitterDiscordId": "3456",
                 "mapSubmitterDiscordTag": "Test#3456",
-                "scheduledPlaytestDate": "2023-03-15",
+                "category": "Arena",
                 "map": "TestMap",
                 "mode1": "TestModeA",
                 "mode2": "TestModeB",
@@ -146,7 +142,7 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-        # Multiple submissions from the same submitter are forbidden if scheduled for the same day
+        # Multiple submissions from the same submitter are forbidden if previous submission hasn't been playtested yet
         response = self.client.post(
             "/pathfinder/hike-submission",
             {
@@ -154,7 +150,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostId": "0987",
                 "mapSubmitterDiscordId": "1234",
                 "mapSubmitterDiscordTag": "Test#1234",
-                "scheduledPlaytestDate": "2023-03-15",
+                "category": "Arena",
                 "map": "TestMap",
                 "mode1": "TestModeA",
                 "mode2": "TestModeB",

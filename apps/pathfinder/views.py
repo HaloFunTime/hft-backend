@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException, PermissionDenied
@@ -53,9 +54,7 @@ class HikeSubmissionView(APIView):
             map_submitter_discord_tag = validation_serializer.data.get(
                 "mapSubmitterDiscordTag"
             )
-            scheduled_playtest_date = validation_serializer.data.get(
-                "scheduledPlaytestDate"
-            )
+            category = validation_serializer.data.get("category")
             map = validation_serializer.data.get("map")
             mode_1 = validation_serializer.data.get("mode1")
             mode_2 = validation_serializer.data.get("mode2")
@@ -68,19 +67,19 @@ class HikeSubmissionView(APIView):
                 raise APIException(
                     "Error attempting to submit a PathfinderHikeSubmission."
                 )
-            hikes_for_post_id = PathfinderHikeSubmission.objects.filter(
-                scheduled_playtest_date=scheduled_playtest_date,
+            incomplete_hikes_for_post_id = PathfinderHikeSubmission.objects.filter(
+                Q(mode_1_played=False) & Q(mode_2_played=False),
                 waywo_post_id=waywo_post_id,
             )
-            if len(hikes_for_post_id) > 0:
+            if len(incomplete_hikes_for_post_id) > 0:
                 raise PermissionDenied(
                     "A Pathfinder Hike submission already exists for this post."
                 )
-            hikes_for_submitter = PathfinderHikeSubmission.objects.filter(
-                scheduled_playtest_date=scheduled_playtest_date,
+            incomplete_hikes_for_submitter = PathfinderHikeSubmission.objects.filter(
+                Q(mode_1_played=False) & Q(mode_2_played=False),
                 map_submitter_discord_id=map_submitter_discord.discord_id,
             )
-            if len(hikes_for_submitter) > 0:
+            if len(incomplete_hikes_for_submitter) > 0:
                 raise PermissionDenied(
                     "A Pathfinder Hike submission has already been created by this Discord user."
                 )
@@ -90,7 +89,7 @@ class HikeSubmissionView(APIView):
                     waywo_post_title=waywo_post_title,
                     waywo_post_id=waywo_post_id,
                     map_submitter_discord=map_submitter_discord,
-                    scheduled_playtest_date=scheduled_playtest_date,
+                    category=category,
                     map=map,
                     mode_1=mode_1,
                     mode_2=mode_2,
@@ -98,7 +97,7 @@ class HikeSubmissionView(APIView):
             except Exception as ex:
                 logger.error(ex)
                 raise APIException(
-                    "Error attempting to submit a PathfinderHikeSubmission."
+                    "Error attempting to create a PathfinderHikeSubmission."
                 )
             serializer = HikeSubmissionPostResponseSerializer({"success": True})
             return Response(serializer.data, status=status.HTTP_200_OK)

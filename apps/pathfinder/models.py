@@ -42,13 +42,16 @@ class PathfinderHikeSubmission(Base):
     waywo_post_id = models.CharField(
         max_length=20, blank=False, verbose_name="WAYWO Post ID"
     )
+    category = models.CharField(max_length=32, verbose_name="Category", null=True)
     map_submitter_discord = models.ForeignKey(
         DiscordAccount,
         on_delete=models.RESTRICT,
         verbose_name="Map Submitter Discord",
         related_name="pathfinder_hike_submitters",
     )
-    scheduled_playtest_date = models.DateField(verbose_name="Scheduled Playtest Date")
+    scheduled_playtest_date = models.DateField(
+        verbose_name="Scheduled Playtest Date", null=True, blank=True
+    )
     map = models.CharField(max_length=32, verbose_name="Map")
     mode_1 = models.CharField(max_length=32, verbose_name="Mode 1")
     mode_2 = models.CharField(max_length=32, verbose_name="Mode 2")
@@ -71,7 +74,12 @@ class PathfinderHikeSubmission(Base):
         return self.mode_1_played and self.mode_2_played
 
     def __str__(self):
-        return f"{str(self.scheduled_playtest_date)}: {self.map}"
+        schedule_string = (
+            str(self.scheduled_playtest_date)
+            if self.scheduled_playtest_date is not None
+            else "Unscheduled"
+        )
+        return f"{schedule_string}: {self.map}"
 
 
 class PathfinderWAYWOPost(Base):

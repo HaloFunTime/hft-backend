@@ -74,6 +74,7 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
     list_display = (
         "__str__",
         linkify("map_submitter_discord"),
+        "category",
         "mode_1",
         "mode_2",
         "playtested",
@@ -89,6 +90,7 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "waywo_post_id",
         "map_submitter_discord",
         "scheduled_playtest_date",
+        "category",
         "map",
         "mode_1",
         "mode_2",

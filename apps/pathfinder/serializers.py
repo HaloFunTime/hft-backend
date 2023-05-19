@@ -10,7 +10,7 @@ class HikeSubmissionPostRequestSerializer(serializers.Serializer):
         max_length=20, validators=[validate_discord_id]
     )
     mapSubmitterDiscordTag = serializers.CharField(validators=[validate_discord_tag])
-    scheduledPlaytestDate = serializers.DateField()
+    category = serializers.CharField()
     map = serializers.CharField()
     mode1 = serializers.CharField()
     mode2 = serializers.CharField()
