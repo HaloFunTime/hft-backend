@@ -4,6 +4,30 @@ from apps.discord.models import DiscordAccount
 from apps.overrides.models import Base
 
 
+class TrailblazerExcellentVODReview(Base):
+    class Meta:
+        db_table = "TrailblazerExcellentVODReview"
+        ordering = [
+            "-review_date",
+        ]
+        verbose_name = "Excellent VOD Review"
+        verbose_name_plural = "Excellent VOD Reviews"
+
+    reviewer_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Reviewer Discord",
+        related_name="trailblazer_excellent_vod_reviewers",
+    )
+    review_date = models.DateField(verbose_name="Review Date")
+    review_message_link = models.CharField(
+        max_length=512, blank=True, verbose_name="Review Message Link"
+    )
+
+    def __str__(self):
+        return f"{str(self.submitter_discord)} reviewed on {self.submission_date}"
+
+
 class TrailblazerTuesdayAttendance(Base):
     class Meta:
         db_table = "TrailblazerTuesdayAttendance"

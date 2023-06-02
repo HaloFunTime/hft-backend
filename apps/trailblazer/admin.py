@@ -4,12 +4,32 @@ from django.contrib import admin
 
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.trailblazer.models import (
+    TrailblazerExcellentVODReview,
     TrailblazerTuesdayAttendance,
     TrailblazerTuesdayReferral,
     TrailblazerVODSubmission,
 )
 
 logger = logging.getLogger(__name__)
+
+
+@admin.register(TrailblazerExcellentVODReview)
+class TrailblazerExcellentVODReviewAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["reviewer_discord"]
+    list_display = (
+        "__str__",
+        linkify("reviewer_discord"),
+        "review_date",
+        "review_message_link",
+        "creator",
+    )
+    list_filter = ("reviewer_discord", "review_date", "creator")
+    fields = (
+        "reviewer_discord",
+        "review_date",
+        "review_message_link",
+        "creator",
+    )
 
 
 @admin.register(TrailblazerTuesdayAttendance)
