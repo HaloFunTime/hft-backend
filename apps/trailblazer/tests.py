@@ -10,7 +10,7 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.models import (
     TrailblazerTuesdayAttendance,
     TrailblazerTuesdayReferral,
-    TrailblazerVODReview,
+    TrailblazerVODSubmission,
 )
 from apps.trailblazer.utils import (
     get_s3_discord_earn_dict,
@@ -63,7 +63,7 @@ class TrailblazerUtilsTestCase(TestCase):
         bs = []
         for i in range(2):
             bs.append(
-                TrailblazerVODReview.objects.create(
+                TrailblazerVODSubmission.objects.create(
                     creator=self.user,
                     submitter_discord=discord_accounts[0],
                     submission_date=datetime.date(2023, 4, 6),
@@ -96,7 +96,7 @@ class TrailblazerUtilsTestCase(TestCase):
                 )
             )
             bs.append(
-                TrailblazerVODReview.objects.create(
+                TrailblazerVODSubmission.objects.create(
                     creator=self.user,
                     submitter_discord=discord_accounts[0],
                     submission_date=datetime.date(2023, 4, 6),
@@ -150,7 +150,7 @@ class TrailblazerUtilsTestCase(TestCase):
         bs = []
         for i in range(2):
             bs.append(
-                TrailblazerVODReview.objects.create(
+                TrailblazerVODSubmission.objects.create(
                     creator=self.user,
                     submitter_discord=discord_accounts[0],
                     submission_date=datetime.date(2023, 7, 6),
@@ -280,14 +280,14 @@ class TrailblazerUtilsTestCase(TestCase):
                 )
             # Every fifth account gets a VOD review
             if i % 5 == 0:
-                TrailblazerVODReview.objects.create(
+                TrailblazerVODSubmission.objects.create(
                     creator=self.user,
                     submitter_discord=discord_account,
                     submission_date=SEASON_3_START_TIME,
                 )
             # Every sixth account gets a VOD review
             if i % 6 == 0:
-                TrailblazerVODReview.objects.create(
+                TrailblazerVODSubmission.objects.create(
                     creator=self.user,
                     submitter_discord=discord_account,
                     submission_date=SEASON_3_START_TIME,

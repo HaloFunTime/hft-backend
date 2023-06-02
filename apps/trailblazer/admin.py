@@ -6,7 +6,7 @@ from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.trailblazer.models import (
     TrailblazerTuesdayAttendance,
     TrailblazerTuesdayReferral,
-    TrailblazerVODReview,
+    TrailblazerVODSubmission,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ class TrailblazerTuesdayReferralAdmin(AutofillCreatorModelAdmin):
     )
 
 
-@admin.register(TrailblazerVODReview)
-class TrailblazerVODReviewAdmin(AutofillCreatorModelAdmin):
+@admin.register(TrailblazerVODSubmission)
+class TrailblazerVODSubmissionAdmin(AutofillCreatorModelAdmin):
     autocomplete_fields = ["submitter_discord"]
     list_display = (
         "__str__",

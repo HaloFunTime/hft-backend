@@ -52,14 +52,14 @@ class TrailblazerTuesdayReferral(Base):
         return f"{str(self.referrer_discord)} invited {str(self.invitee_discord)}"
 
 
-class TrailblazerVODReview(Base):
+class TrailblazerVODSubmission(Base):
     class Meta:
-        db_table = "TrailblazerVODReview"
+        db_table = "TrailblazerVODSubmission"
         ordering = [
             "-submission_date",
         ]
-        verbose_name = "VOD Review"
-        verbose_name_plural = "VOD Reviews"
+        verbose_name = "VOD Submission"
+        verbose_name_plural = "VOD Submissions"
 
     submitter_discord = models.ForeignKey(
         DiscordAccount,
