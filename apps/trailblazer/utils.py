@@ -9,7 +9,7 @@ from apps.halo_infinite.utils import (
     SEASON_3_START_DAY,
     get_csr_after_match,
     get_csrs,
-    get_season_3_ranked_arena_matches,
+    get_season_ranked_arena_matches_for_xuid,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         strongholds_wins = 0
 
         # Get matches for this XUID
-        matches = get_season_3_ranked_arena_matches(xuid)
+        matches = get_season_ranked_arena_matches_for_xuid("3", xuid)
         matches_sorted = sorted(
             matches,
             key=lambda m: datetime.datetime.fromisoformat(

@@ -27,6 +27,7 @@ from apps.halo_infinite.constants import (
     MAP_ID_RECHARGE,
     MAP_ID_STREETS,
 )
+from apps.halo_infinite.exceptions import MissingSeasonDataException
 from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
@@ -35,9 +36,9 @@ SEARCH_ASSET_KIND_MAP = 2
 SEARCH_ASSET_KIND_MODE = 6
 SEARCH_ASSET_KIND_PREFAB = 4
 SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
-SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=26)
+SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=20)
 SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
-SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-27T17:00:00Z")
+SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00.000Z")
 SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEASON_3_DEV_MAP_IDS = {
     MAP_ID_AQUARIUS,
@@ -59,6 +60,81 @@ SEASON_3_DEV_MAP_IDS = {
     MAP_ID_RECHARGE,
     MAP_ID_STREETS,
 }
+SEASON_4_START_DAY = datetime.date(year=2023, month=6, day=20)
+SEASON_4_END_DAY = datetime.date(year=2023, month=9, day=26)
+SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T18:00:00Z")
+SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-09-26T17:00:00Z")
+SEASON_4_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
+SEASON_4_DEV_MAP_IDS = {}
+
+SEASON_DAYS_AND_TIMES = {
+    "3": {
+        "start_day": SEASON_3_START_DAY,
+        "end_day": SEASON_3_END_DAY,
+        "start_time": SEASON_3_START_TIME,
+        "end_time": SEASON_3_END_TIME,
+        "ranked_arena_playlist_id": SEASON_3_RANKED_ARENA_PLAYLIST_ID,
+    },
+    "4": {
+        "start_day": SEASON_4_START_DAY,
+        "end_day": SEASON_4_END_DAY,
+        "start_time": SEASON_4_START_TIME,
+        "end_time": SEASON_4_END_TIME,
+        "ranked_arena_playlist_id": SEASON_4_RANKED_ARENA_PLAYLIST_ID,
+    },
+}
+
+
+def get_start_and_end_days_for_season(
+    season_id: str,
+) -> tuple[datetime.date, datetime.date]:
+    """
+    Returns a tuple with the start and end days for a season given a season ID.
+    """
+    start_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("start_day", None)
+    end_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("end_day", None)
+    if start_day is None:
+        raise MissingSeasonDataException(
+            f"Missing 'start_day' for Season with ID '{season_id}'"
+        )
+    if end_day is None:
+        raise MissingSeasonDataException(
+            f"Missing 'end_day' for Season with ID '{season_id}'"
+        )
+    return start_day, end_day
+
+
+def get_start_and_end_times_for_season(
+    season_id: str,
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Returns a tuple with the start and end times for a season given a season ID.
+    """
+    start_time = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("start_time", None)
+    end_time = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("end_time", None)
+    if start_time is None:
+        raise MissingSeasonDataException(
+            f"Missing 'start_time' for Season with ID '{season_id}'"
+        )
+    if end_time is None:
+        raise MissingSeasonDataException(
+            f"Missing 'end_time' for Season with ID '{season_id}'"
+        )
+    return start_time, end_time
+
+
+def get_ranked_arena_playlist_id_for_season(season_id: str) -> str:
+    """
+    Returns the Ranked Arena playlist ID for a season given a season ID.
+    """
+    playlist_id = SEASON_DAYS_AND_TIMES.get(season_id, {}).get(
+        "ranked_arena_playlist_id", None
+    )
+    if playlist_id is None:
+        raise MissingSeasonDataException(
+            f"Missing 'ranked_arena_playlist_id' for Season with ID '{season_id}'"
+        )
+    return playlist_id
 
 
 def get_343_recommended_contributors() -> list[int, int]:
@@ -185,19 +261,19 @@ def get_playlist_latest_version_info(playlist_id: str):
     }
 
 
-def get_season_3_custom_matches(xuid: int) -> list[dict]:
-    return matches_between(xuid, SEASON_3_START_TIME, SEASON_3_END_TIME, "Custom")
+def get_season_custom_matches_for_xuid(season_id: str, xuid: int) -> list[dict]:
+    start_time, end_time = get_start_and_end_times_for_season(season_id)
+    return matches_between(xuid, start_time, end_time, "Custom")
 
 
-def get_season_3_ranked_arena_matches(xuid: int) -> list[dict]:
-    season_3_matches = matches_between(
-        xuid, SEASON_3_START_TIME, SEASON_3_END_TIME, "Matchmaking"
-    )
+def get_season_ranked_arena_matches_for_xuid(season_id: str, xuid: int) -> list[dict]:
+    start_time, end_time = get_start_and_end_times_for_season(season_id)
+    matches = matches_between(xuid, start_time, end_time, "Matchmaking")
     return [
         match
-        for match in season_3_matches
+        for match in matches
         if match.get("MatchInfo", {}).get("Playlist", {}).get("AssetId")
-        == SEASON_3_RANKED_ARENA_PLAYLIST_ID
+        == get_ranked_arena_playlist_id_for_season(season_id)
     ]
 
 

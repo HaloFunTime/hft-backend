@@ -31,9 +31,7 @@ from apps.halo_infinite.utils import (
     SEARCH_ASSET_KIND_MAP,
     SEARCH_ASSET_KIND_MODE,
     SEARCH_ASSET_KIND_PREFAB,
-    SEASON_3_END_TIME,
-    SEASON_3_RANKED_ARENA_PLAYLIST_ID,
-    SEASON_3_START_TIME,
+    SEASON_DAYS_AND_TIMES,
     get_343_recommended_contributors,
     get_authored_maps,
     get_authored_modes,
@@ -41,7 +39,10 @@ from apps.halo_infinite.utils import (
     get_csr_after_match,
     get_csrs,
     get_playlist_latest_version_info,
-    get_season_3_ranked_arena_matches,
+    get_ranked_arena_playlist_id_for_season,
+    get_season_custom_matches_for_xuid,
+    get_season_ranked_arena_matches_for_xuid,
+    get_start_and_end_times_for_season,
     get_summary_stats,
 )
 from apps.xbox_live.models import XboxLiveUserToken
@@ -963,17 +964,41 @@ class HaloInfiniteUtilsTestCase(TestCase):
         )
 
     @patch("apps.halo_infinite.utils.matches_between")
-    def test_get_season_3_ranked_arena_matches(self, mock_matches_between):
-        mock_matches_between.return_value = [
-            {"MatchInfo": {"Playlist": {"AssetId": SEASON_3_RANKED_ARENA_PLAYLIST_ID}}},
-            {"MatchInfo": {"Playlist": {"AssetId": "wrong_playlist"}}},
-            {"MatchInfo": {"Playlist": {"AssetId": SEASON_3_RANKED_ARENA_PLAYLIST_ID}}},
-        ]
-        season_3_ranked_arena_matches = get_season_3_ranked_arena_matches(123)
-        self.assertEqual(len(season_3_ranked_arena_matches), 2)
-        mock_matches_between.assert_called_once_with(
-            123, SEASON_3_START_TIME, SEASON_3_END_TIME, "Matchmaking"
-        )
+    def test_get_get_season_custom_matches_for_xuid(self, mock_matches_between):
+        for season_id in SEASON_DAYS_AND_TIMES.keys():
+            start_time, end_time = get_start_and_end_times_for_season(season_id)
+            mock_matches_between.return_value = [
+                {"MatchId": "foo"},
+                {"MatchId": "bar"},
+                {"MatchId": "baz"},
+            ]
+            season_custom_matches = get_season_custom_matches_for_xuid(season_id, 123)
+            self.assertEqual(len(season_custom_matches), 3)
+            mock_matches_between.assert_called_once_with(
+                123, start_time, end_time, "Custom"
+            )
+            mock_matches_between.reset_mock()
+
+    @patch("apps.halo_infinite.utils.matches_between")
+    def test_get_season_ranked_arena_matches_for_xuid(self, mock_matches_between):
+        for season_id in SEASON_DAYS_AND_TIMES.keys():
+            start_time, end_time = get_start_and_end_times_for_season(season_id)
+            ranked_arena_playlist_id = get_ranked_arena_playlist_id_for_season(
+                season_id
+            )
+            mock_matches_between.return_value = [
+                {"MatchInfo": {"Playlist": {"AssetId": ranked_arena_playlist_id}}},
+                {"MatchInfo": {"Playlist": {"AssetId": "wrong_playlist"}}},
+                {"MatchInfo": {"Playlist": {"AssetId": ranked_arena_playlist_id}}},
+            ]
+            seasonal_ranked_arena_matches = get_season_ranked_arena_matches_for_xuid(
+                season_id, 123
+            )
+            self.assertEqual(len(seasonal_ranked_arena_matches), 2)
+            mock_matches_between.assert_called_once_with(
+                123, start_time, end_time, "Matchmaking"
+            )
+            mock_matches_between.reset_mock()
 
     @patch("apps.halo_infinite.utils.match_count")
     @patch("apps.halo_infinite.utils.service_record")

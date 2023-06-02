@@ -8,3 +8,7 @@ class HaloInfiniteSpartanTokenMissingException(Exception):
 
 class HaloInfiniteClearanceTokenMissingException(Exception):
     pass
+
+
+class MissingSeasonDataException(Exception):
+    pass

@@ -12,7 +12,7 @@ from apps.halo_infinite.utils import (
     SEASON_3_START_TIME,
     get_343_recommended_contributors,
     get_authored_maps,
-    get_season_3_custom_matches,
+    get_season_custom_matches_for_xuid,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         maps = get_authored_maps(xuid)
 
         # Get custom matches for this XUID
-        custom_matches = get_season_3_custom_matches(xuid)
+        custom_matches = get_season_custom_matches_for_xuid("3", xuid)
         custom_matches_sorted = sorted(
             custom_matches,
             key=lambda m: datetime.datetime.fromisoformat(
