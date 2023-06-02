@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 SEARCH_ASSET_KIND_MAP = 2
 SEARCH_ASSET_KIND_MODE = 6
 SEARCH_ASSET_KIND_PREFAB = 4
-SEASON_3_START_DAY = datetime.date(year=2023, month=3, day=7)
-SEASON_3_END_DAY = datetime.date(year=2023, month=6, day=20)
+SEASON_3_FIRST_DAY = datetime.date(year=2023, month=3, day=7)
+SEASON_3_LAST_DAY = datetime.date(year=2023, month=6, day=19)
 SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
 SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00.000Z")
 SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
@@ -60,8 +60,8 @@ SEASON_3_DEV_MAP_IDS = {
     MAP_ID_RECHARGE,
     MAP_ID_STREETS,
 }
-SEASON_4_START_DAY = datetime.date(year=2023, month=6, day=20)
-SEASON_4_END_DAY = datetime.date(year=2023, month=9, day=26)
+SEASON_4_FIRST_DAY = datetime.date(year=2023, month=6, day=20)
+SEASON_4_LAST_DAY = datetime.date(year=2023, month=9, day=25)
 SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T18:00:00Z")
 SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-09-26T17:00:00Z")
 SEASON_4_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
@@ -69,39 +69,53 @@ SEASON_4_DEV_MAP_IDS = {}
 
 SEASON_DAYS_AND_TIMES = {
     "3": {
-        "start_day": SEASON_3_START_DAY,
-        "end_day": SEASON_3_END_DAY,
+        "first_day": SEASON_3_FIRST_DAY,
+        "last_day": SEASON_3_LAST_DAY,
         "start_time": SEASON_3_START_TIME,
         "end_time": SEASON_3_END_TIME,
         "ranked_arena_playlist_id": SEASON_3_RANKED_ARENA_PLAYLIST_ID,
+        "dev_map_ids": SEASON_3_DEV_MAP_IDS,
     },
     "4": {
-        "start_day": SEASON_4_START_DAY,
-        "end_day": SEASON_4_END_DAY,
+        "first_day": SEASON_4_FIRST_DAY,
+        "last_day": SEASON_4_LAST_DAY,
         "start_time": SEASON_4_START_TIME,
         "end_time": SEASON_4_END_TIME,
         "ranked_arena_playlist_id": SEASON_4_RANKED_ARENA_PLAYLIST_ID,
+        "dev_map_ids": SEASON_4_DEV_MAP_IDS,
     },
 }
 
 
-def get_start_and_end_days_for_season(
+def get_dev_map_ids_for_season(season_id: str) -> str:
+    """
+    Returns a dict with keys representing all dev map file IDs for a season given a season ID.
+    """
+    dev_map_ids = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("dev_map_ids", None)
+    if dev_map_ids is None:
+        raise MissingSeasonDataException(
+            f"Missing 'dev_map_ids' for Season with ID '{season_id}'"
+        )
+    return dev_map_ids
+
+
+def get_first_and_last_days_for_season(
     season_id: str,
 ) -> tuple[datetime.date, datetime.date]:
     """
-    Returns a tuple with the start and end days for a season given a season ID.
+    Returns a tuple with the first and last days for a season given a season ID.
     """
-    start_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("start_day", None)
-    end_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("end_day", None)
-    if start_day is None:
+    first_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("first_day", None)
+    last_day = SEASON_DAYS_AND_TIMES.get(season_id, {}).get("last_day", None)
+    if first_day is None:
         raise MissingSeasonDataException(
-            f"Missing 'start_day' for Season with ID '{season_id}'"
+            f"Missing 'first_day' for Season with ID '{season_id}'"
         )
-    if end_day is None:
+    if last_day is None:
         raise MissingSeasonDataException(
-            f"Missing 'end_day' for Season with ID '{season_id}'"
+            f"Missing 'last_day' for Season with ID '{season_id}'"
         )
-    return start_day, end_day
+    return first_day, last_day
 
 
 def get_start_and_end_times_for_season(

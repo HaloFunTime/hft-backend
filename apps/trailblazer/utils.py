@@ -5,10 +5,9 @@ from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.utils import (
-    SEASON_3_END_DAY,
-    SEASON_3_START_DAY,
     get_csr_after_match,
     get_csrs,
+    get_first_and_last_days_for_season,
     get_season_ranked_arena_matches_for_xuid,
 )
 
@@ -19,6 +18,7 @@ MODE_RANKED_STRONGHOLDS_ID = "22b8a0eb-0d02-4eb3-8f56-5f63fc254f83"
 
 
 def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    first_day, last_day = get_first_and_last_days_for_season("3")
     annotated_discord_accounts = DiscordAccount.objects.annotate(
         attendances=Count(
             "trailblazer_tuesday_attendees",
@@ -26,8 +26,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 trailblazer_tuesday_attendees__attendee_discord_id__in=discord_ids,
                 trailblazer_tuesday_attendees__attendance_date__range=[
-                    SEASON_3_START_DAY,
-                    SEASON_3_END_DAY,
+                    first_day,
+                    last_day,
                 ],
             ),
         ),
@@ -37,8 +37,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 trailblazer_tuesday_referrers__referrer_discord_id__in=discord_ids,
                 trailblazer_tuesday_referrers__referral_date__range=[
-                    SEASON_3_START_DAY,
-                    SEASON_3_END_DAY,
+                    first_day,
+                    last_day,
                 ],
             ),
         ),
@@ -48,8 +48,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 trailblazer_vod_submitters__submitter_discord_id__in=discord_ids,
                 trailblazer_vod_submitters__submission_date__range=[
-                    SEASON_3_START_DAY,
-                    SEASON_3_END_DAY,
+                    first_day,
+                    last_day,
                 ],
             ),
         ),
@@ -137,7 +137,6 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             "oddly_effective": min(oddball_wins, 25) * 4,
             "too_stronk": min(strongholds_wins, 25) * 4,
         }
-
     return earn_dict
 
 

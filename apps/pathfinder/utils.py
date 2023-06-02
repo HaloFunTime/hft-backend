@@ -5,20 +5,20 @@ from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.utils import (
-    SEASON_3_DEV_MAP_IDS,
-    SEASON_3_END_DAY,
-    SEASON_3_END_TIME,
-    SEASON_3_START_DAY,
-    SEASON_3_START_TIME,
     get_343_recommended_contributors,
     get_authored_maps,
+    get_dev_map_ids_for_season,
+    get_first_and_last_days_for_season,
     get_season_custom_matches_for_xuid,
+    get_start_and_end_times_for_season,
 )
 
 logger = logging.getLogger(__name__)
 
 
 def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    first_day, last_day = get_first_and_last_days_for_season("3")
+    start_time, end_time = get_start_and_end_times_for_season("3")
     annotated_discord_accounts = DiscordAccount.objects.annotate(
         hike_attendances=Count(
             "pathfinder_hike_attendees",
@@ -26,8 +26,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 pathfinder_hike_attendees__attendee_discord_id__in=discord_ids,
                 pathfinder_hike_attendees__attendance_date__range=[
-                    SEASON_3_START_DAY,
-                    SEASON_3_END_DAY,
+                    first_day,
+                    last_day,
                 ],
             ),
         ),
@@ -37,8 +37,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 pathfinder_hike_submitters__map_submitter_discord_id__in=discord_ids,
                 pathfinder_hike_submitters__scheduled_playtest_date__range=[
-                    SEASON_3_START_DAY,
-                    SEASON_3_END_DAY,
+                    first_day,
+                    last_day,
                 ],
             ),
         ),
@@ -48,8 +48,8 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
             filter=Q(
                 pathfinder_waywo_posters__poster_discord_id__in=discord_ids,
                 pathfinder_waywo_posters__created_at__range=[
-                    SEASON_3_START_TIME,
-                    SEASON_3_END_TIME,
+                    start_time,
+                    end_time,
                 ],
             ),
         ),
@@ -66,6 +66,7 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
 
 
 def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    dev_map_ids = get_dev_map_ids_for_season("3")
     earn_dict = {}
     for xuid in xuids:
         unlocked_bookmarked = False
@@ -110,7 +111,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             if (
                 match.get("PresentAtEndOfMatch", False)
                 and match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
-                not in SEASON_3_DEV_MAP_IDS
+                not in dev_map_ids
             ):
                 match_start = datetime.datetime.strptime(
                     match.get("MatchInfo", {})
@@ -135,7 +136,6 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             "tagtacular": min(halofuntime_tags, 4) * 25,
             "forged_in_fire": min(forge_custom_game_hours, 200),
         }
-
     return earn_dict
 
 
