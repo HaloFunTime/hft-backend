@@ -11,6 +11,7 @@ from apps.halo_infinite.exceptions import (
     HaloInfiniteClearanceTokenMissingException,
     HaloInfiniteSpartanTokenMissingException,
     HaloInfiniteXSTSTokenMissingException,
+    MissingSeasonDataException,
 )
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
@@ -38,6 +39,7 @@ from apps.halo_infinite.utils import (
     get_authored_prefabs,
     get_csr_after_match,
     get_csrs,
+    get_current_season_id,
     get_playlist_latest_version_info,
     get_ranked_arena_playlist_id_for_season,
     get_season_custom_matches_for_xuid,
@@ -570,6 +572,61 @@ class HaloInfiniteUtilsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
+        )
+
+    @patch("apps.halo_infinite.utils.datetime")
+    def test_get_current_season_id(self, mock_datetime):
+        # Season 3
+        mock_datetime.datetime.now.return_value = datetime.datetime(
+            year=2023,
+            month=3,
+            day=7,
+            hour=18,
+            minute=0,
+            second=1,
+            tzinfo=datetime.timezone.utc,
+        )
+        self.assertEqual("3", get_current_season_id())
+        # Season 4
+        mock_datetime.datetime.now.return_value = datetime.datetime(
+            year=2023,
+            month=6,
+            day=20,
+            hour=17,
+            minute=0,
+            second=1,
+            tzinfo=datetime.timezone.utc,
+        )
+        self.assertEqual("4", get_current_season_id())
+        # Invalid season (earlier time)
+        mock_datetime.datetime.now.return_value = datetime.datetime(
+            year=2023,
+            month=3,
+            day=7,
+            hour=17,
+            minute=59,
+            second=59,
+            tzinfo=datetime.timezone.utc,
+        )
+        self.assertRaisesMessage(
+            MissingSeasonDataException,
+            "Missing season ID for time '2023-03-07T17:59:59+00:00'",
+            get_current_season_id,
+        )
+        # Invalid season (later time)
+        mock_datetime.datetime.now.return_value = datetime.datetime(
+            year=2040,
+            month=1,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            tzinfo=datetime.timezone.utc,
+        )
+        self.assertRaisesMessage(
+            MissingSeasonDataException,
+            "Missing season ID for time '2040-01-01T00:00:00+00:00'",
+            get_current_season_id,
         )
 
     @patch("apps.halo_infinite.utils.recommended")

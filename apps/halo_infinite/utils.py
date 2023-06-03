@@ -62,7 +62,7 @@ SEASON_3_DEV_MAP_IDS = {
 }
 SEASON_4_FIRST_DAY = datetime.date(year=2023, month=6, day=20)
 SEASON_4_LAST_DAY = datetime.date(year=2023, month=9, day=25)
-SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T18:00:00Z")
+SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00Z")
 SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-09-26T17:00:00Z")
 SEASON_4_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEASON_4_DEV_MAP_IDS = {}
@@ -85,6 +85,15 @@ SEASON_DAYS_AND_TIMES = {
         "dev_map_ids": SEASON_4_DEV_MAP_IDS,
     },
 }
+
+
+def get_current_season_id() -> str:
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    for season_id in SEASON_DAYS_AND_TIMES.keys():
+        start_time, end_time = get_start_and_end_times_for_season(season_id)
+        if start_time <= now < end_time:
+            return season_id
+    raise MissingSeasonDataException(f"Missing season ID for time '{now.isoformat()}'")
 
 
 def get_dev_map_ids_for_season(season_id: str) -> str:
