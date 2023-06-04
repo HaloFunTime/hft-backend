@@ -15,6 +15,11 @@ class TrailblazerScoutProgressRequestSerializer(serializers.Serializer):
 class TrailblazerScoutProgressResponseSerializer(serializers.Serializer):
     linkedGamertag = serializers.BooleanField()
     totalPoints = serializers.IntegerField()
+
+
+class TrailblazerScoutSeason3ProgressResponseSerializer(
+    TrailblazerScoutProgressResponseSerializer
+):
     pointsChurchOfTheCrab = serializers.IntegerField()
     pointsSharingIsCaring = serializers.IntegerField()
     pointsBookworm = serializers.IntegerField()
@@ -22,6 +27,18 @@ class TrailblazerScoutProgressResponseSerializer(serializers.Serializer):
     pointsHotStreak = serializers.IntegerField()
     pointsOddlyEffective = serializers.IntegerField()
     pointsTooStronk = serializers.IntegerField()
+
+
+class TrailblazerScoutSeason4ProgressResponseSerializer(
+    TrailblazerScoutProgressResponseSerializer
+):
+    pointsChurchOfTheCrab = serializers.IntegerField()
+    pointsBookworm = serializers.IntegerField()
+    pointsFilmCritic = serializers.IntegerField()
+    pointsOnlineWarrior = serializers.IntegerField()
+    pointsTheCycle = serializers.IntegerField()
+    pointsCheckeredFlag = serializers.IntegerField()
+    pointsThemTharHills = serializers.IntegerField()
 
 
 class TrailblazerSeasonalRoleCheckRequestSerializer(serializers.Serializer):

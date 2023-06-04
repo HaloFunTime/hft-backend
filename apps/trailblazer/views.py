@@ -7,16 +7,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
+from apps.halo_infinite.utils import get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.serializers import (
     TrailblazerScoutProgressRequestSerializer,
     TrailblazerScoutProgressResponseSerializer,
+    TrailblazerScoutSeason3ProgressResponseSerializer,
+    TrailblazerScoutSeason4ProgressResponseSerializer,
     TrailblazerSeasonalRoleCheckRequestSerializer,
     TrailblazerSeasonalRoleCheckResponseSerializer,
 )
 from apps.trailblazer.utils import (
     get_s3_discord_earn_dict,
     get_s3_xbox_earn_dict,
+    get_s4_discord_earn_dict,
+    get_s4_xbox_earn_dict,
     is_scout_qualified,
     is_sherpa_qualified,
 )
@@ -98,75 +103,105 @@ class TrailblazerScoutProgressView(APIView):
         """
         Evaluate an individual Discord ID's progress toward the Trailblazer Scout role.
         """
+
+        def raise_exception(ex):
+            logger.error("Error attempting the Trailblazer Scout progress check.")
+            logger.error(ex)
+            raise APIException("Error attempting the Trailblazer Scout progress check.")
+
         validation_serializer = TrailblazerScoutProgressRequestSerializer(
             data=request.data
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_tag = validation_serializer.data.get("discordUserTag")
-            points_church_of_the_crab = 0
-            points_sharing_is_caring = 0
-            points_bookworm = 0
-            points_online_warrior = 0
-            points_hot_streak = 0
-            points_oddly_effective = 0
-            points_too_stronk = 0
             try:
+                season_id = get_current_season_id()
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_tag, request.user
                 )
-
-                # Tally the Discord Points
-                discord_earns = get_s3_discord_earn_dict(
-                    [discord_account.discord_id]
-                ).get(discord_account.discord_id)
-                points_church_of_the_crab = discord_earns.get("church_of_the_crab")
-                points_sharing_is_caring = discord_earns.get("sharing_is_caring")
-                points_bookworm = discord_earns.get("bookworm")
-
-                # Tally the Xbox Points
                 link = None
                 try:
                     link = DiscordXboxLiveLink.objects.filter(
                         discord_account_id=discord_account.discord_id, verified=True
                     ).get()
-                    xbox_earns = get_s3_xbox_earn_dict([link.xbox_live_account_id]).get(
-                        link.xbox_live_account_id
-                    )
-                    points_online_warrior = xbox_earns.get("online_warrior")
-                    points_hot_streak = xbox_earns.get("hot_streak")
-                    points_oddly_effective = xbox_earns.get("oddly_effective")
-                    points_too_stronk = xbox_earns.get("too_stronk")
                 except DiscordXboxLiveLink.DoesNotExist:
                     pass
-
-                # Calculate the total points
-                total_points = (
-                    points_church_of_the_crab
-                    + points_sharing_is_caring
-                    + points_bookworm
-                    + points_online_warrior
-                    + points_hot_streak
-                    + points_oddly_effective
-                    + points_too_stronk
-                )
             except Exception as ex:
-                logger.error("Error attempting the Trailblazer Scout progress check.")
-                logger.error(ex)
-                raise APIException(
-                    "Error attempting the Trailblazer Scout progress check."
-                )
-            serializer = TrailblazerScoutProgressResponseSerializer(
-                {
-                    "linkedGamertag": link is not None,
-                    "totalPoints": total_points,
-                    "pointsChurchOfTheCrab": points_church_of_the_crab,
-                    "pointsSharingIsCaring": points_sharing_is_caring,
-                    "pointsBookworm": points_bookworm,
-                    "pointsOnlineWarrior": points_online_warrior,
-                    "pointsHotStreak": points_hot_streak,
-                    "pointsOddlyEffective": points_oddly_effective,
-                    "pointsTooStronk": points_too_stronk,
-                }
-            )
+                raise_exception(ex)
+
+            serializer_class = None
+            serializable_dict = {}
+            try:
+                if season_id == "3":
+                    serializer_class = TrailblazerScoutSeason3ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s3_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsChurchOfTheCrab"] = discord_earns.get(
+                        "church_of_the_crab", 0
+                    )
+                    serializable_dict["pointsSharingIsCaring"] = discord_earns.get(
+                        "sharing_is_caring", 0
+                    )
+                    serializable_dict["pointsBookworm"] = discord_earns.get(
+                        "bookworm", 0
+                    )
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s3_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsOnlineWarrior"] = xbox_earns.get(
+                        "online_warrior", 0
+                    )
+                    serializable_dict["pointsHotStreak"] = xbox_earns.get(
+                        "hot_streak", 0
+                    )
+                    serializable_dict["pointsOddlyEffective"] = xbox_earns.get(
+                        "oddly_effective", 0
+                    )
+                    serializable_dict["pointsTooStronk"] = xbox_earns.get(
+                        "too_stronk", 0
+                    )
+                elif season_id == "4":
+                    serializer_class = TrailblazerScoutSeason4ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s4_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsChurchOfTheCrab"] = discord_earns.get(
+                        "church_of_the_crab", 0
+                    )
+                    serializable_dict["pointsBookworm"] = discord_earns.get(
+                        "bookworm", 0
+                    )
+                    serializable_dict["pointsFilmCritic"] = discord_earns.get(
+                        "film_critic", 0
+                    )
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s4_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsOnlineWarrior"] = xbox_earns.get(
+                        "online_warrior", 0
+                    )
+                    serializable_dict["pointsTheCycle"] = xbox_earns.get("the_cycle", 0)
+                    serializable_dict["pointsCheckeredFlag"] = xbox_earns.get(
+                        "checkered_flag", 0
+                    )
+                    serializable_dict["pointsThemTharHills"] = xbox_earns.get(
+                        "them_thar_hills", 0
+                    )
+            except Exception as ex:
+                raise_exception(ex)
+            merged_dict = {
+                "linkedGamertag": link is not None,
+                "totalPoints": sum(serializable_dict.values()),
+            } | serializable_dict
+            serializer = serializer_class(merged_dict)
             return Response(serializer.data, status=status.HTTP_200_OK)

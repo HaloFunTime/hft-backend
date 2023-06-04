@@ -183,15 +183,7 @@ class TrailblazerTestCase(APITestCase):
             mock_is_sherpa_qualified.reset_mock()
             mock_is_scout_qualified.reset_mock()
 
-    @patch("apps.trailblazer.views.get_s3_xbox_earn_dict")
-    @patch("apps.trailblazer.views.get_s3_discord_earn_dict")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_trailblazer_scout_progress_view(
-        self,
-        mock_get_xuid_and_exact_gamertag,
-        mock_get_s3_discord_earn_dict,
-        mock_get_s3_xbox_earn_dict,
-    ):
+    def test_trailblazer_scout_progress_view_request_errors(self):
         # Missing field values throw errors
         response = self.client.post("/trailblazer/scout-progress", {}, format="json")
         self.assertEqual(response.status_code, 400)
@@ -228,6 +220,19 @@ class TrailblazerTestCase(APITestCase):
                 code="invalid",
             ),
         )
+
+    @patch("apps.trailblazer.views.get_s3_xbox_earn_dict")
+    @patch("apps.trailblazer.views.get_s3_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.trailblazer.views.get_current_season_id")
+    def test_trailblazer_scout_progress_view_s3(
+        self,
+        mock_get_current_season_id,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s3_discord_earn_dict,
+        mock_get_s3_xbox_earn_dict,
+    ):
+        mock_get_current_season_id.return_value = "3"
 
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
@@ -371,3 +376,159 @@ class TrailblazerTestCase(APITestCase):
         mock_get_s3_xbox_earn_dict.assert_not_called()
         mock_get_s3_discord_earn_dict.reset_mock()
         mock_get_s3_xbox_earn_dict.reset_mock()
+
+    @patch("apps.trailblazer.views.get_s4_xbox_earn_dict")
+    @patch("apps.trailblazer.views.get_s4_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.trailblazer.views.get_current_season_id")
+    def test_trailblazer_scout_progress_view_s4(
+        self,
+        mock_get_current_season_id,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s4_discord_earn_dict,
+        mock_get_s4_xbox_earn_dict,
+    ):
+        mock_get_current_season_id.return_value = "4"
+
+        # Create test data
+        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="1234", discord_tag="TestTag#1234"
+        )
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="testGT1234"
+        )
+        link = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            verified=True,
+        )
+
+        # Exception in get_s4_discord_earn_dict throws error
+        mock_get_s4_discord_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Trailblazer Scout progress check.",
+                code="error",
+            ),
+        )
+        mock_get_s4_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s4_discord_earn_dict.side_effect = None
+        mock_get_s4_discord_earn_dict.reset_mock()
+
+        # Exception in get_s4_xbox_earn_dict throws error
+        mock_get_s4_xbox_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Trailblazer Scout progress check.",
+                code="error",
+            ),
+        )
+        mock_get_s4_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s4_xbox_earn_dict.side_effect = None
+        mock_get_s4_discord_earn_dict.reset_mock()
+        mock_get_s4_xbox_earn_dict.reset_mock()
+
+        # Success - point totals come through for all values
+        mock_get_s4_discord_earn_dict.return_value = {
+            link.discord_account_id: {
+                "church_of_the_crab": 150,
+                "bookworm": 50,
+                "film_critic": 100,
+            }
+        }
+        mock_get_s4_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "online_warrior": 200,
+                "the_cycle": 100,
+                "checkered_flag": 100,
+                "them_thar_hills": 100,
+            }
+        }
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), True)
+        self.assertEqual(response.data.get("totalPoints"), 800)
+        self.assertEqual(response.data.get("pointsChurchOfTheCrab"), 150)
+        self.assertEqual(response.data.get("pointsBookworm"), 50)
+        self.assertEqual(response.data.get("pointsFilmCritic"), 100)
+        self.assertEqual(response.data.get("pointsOnlineWarrior"), 200)
+        self.assertEqual(response.data.get("pointsTheCycle"), 100)
+        self.assertEqual(response.data.get("pointsCheckeredFlag"), 100)
+        self.assertEqual(response.data.get("pointsThemTharHills"), 100)
+        mock_get_s4_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s4_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s4_discord_earn_dict.reset_mock()
+        mock_get_s4_xbox_earn_dict.reset_mock()
+
+        # Success - no linked gamertag
+        link.delete()
+        mock_get_s4_discord_earn_dict.return_value = {
+            discord_account.discord_id: {
+                "church_of_the_crab": 150,
+                "bookworm": 50,
+                "film_critic": 100,
+            }
+        }
+        mock_get_s4_xbox_earn_dict.return_value = {
+            xbox_live_account.xuid: {
+                "online_warrior": 200,
+                "the_cycle": 100,
+                "checkered_flag": 100,
+                "them_thar_hills": 100,
+            }
+        }
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": discord_account.discord_id,
+                "discordUserTag": discord_account.discord_tag,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), False)
+        self.assertEqual(response.data.get("totalPoints"), 300)
+        self.assertEqual(response.data.get("pointsChurchOfTheCrab"), 150)
+        self.assertEqual(response.data.get("pointsBookworm"), 50)
+        self.assertEqual(response.data.get("pointsFilmCritic"), 100)
+        self.assertEqual(response.data.get("pointsOnlineWarrior"), 0)
+        self.assertEqual(response.data.get("pointsTheCycle"), 0)
+        self.assertEqual(response.data.get("pointsCheckeredFlag"), 0)
+        self.assertEqual(response.data.get("pointsThemTharHills"), 0)
+        mock_get_s4_discord_earn_dict.assert_called_once_with(
+            [discord_account.discord_id]
+        )
+        mock_get_s4_xbox_earn_dict.assert_not_called()
+        mock_get_s4_discord_earn_dict.reset_mock()
+        mock_get_s4_xbox_earn_dict.reset_mock()
