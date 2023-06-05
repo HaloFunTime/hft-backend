@@ -7,6 +7,7 @@ from apps.discord.models import DiscordAccount
 from apps.halo_infinite.utils import (
     get_343_recommended_contributors,
     get_authored_maps,
+    get_current_season_id,
     get_dev_map_ids_for_season,
     get_first_and_last_days_for_season,
     get_season_custom_matches_for_xuid,
@@ -139,25 +140,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     return earn_dict
 
 
-def is_illuminated_qualified(xuid: int) -> bool:
-    # Someone qualifies as Illuminated if their linked gamertag contributed to:
-    # - At least ONE map on 343's Recommended
-    # - At least TWO modes on 343's Recommended
-    # - At least TWO prefabs on 343's Recommended
-    contributor_dict = get_343_recommended_contributors()
-    map_qualified = False
-    mode_qualified = False
-    prefab_qualified = False
-    if xuid in contributor_dict["map"]:
-        map_qualified = True
-    if xuid in contributor_dict["mode"] and contributor_dict["mode"][xuid] >= 2:
-        mode_qualified = True
-    if xuid in contributor_dict["prefab"] and contributor_dict["prefab"][xuid] >= 2:
-        prefab_qualified = True
-    return map_qualified or mode_qualified or prefab_qualified
-
-
-def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
+def is_s3_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
     points = 0
 
     # DISCORD CHALLENGES
@@ -188,3 +171,67 @@ def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
 
     logger.info(f"Dynamo Points for {discord_id}: {points}")
     return points >= 500
+
+
+def get_s4_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    first_day, last_day = get_first_and_last_days_for_season("4")
+    start_time, end_time = get_start_and_end_times_for_season("4")
+    return {}
+    # TODO: Establish S4 challenges
+
+
+def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    dev_map_ids = get_dev_map_ids_for_season("4")
+    return {}
+    # TODO: Establish S4 challenges
+    logger.info(dev_map_ids)
+
+
+def is_s4_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
+    points = 0
+
+    # DISCORD CHALLENGES
+    if discord_id is not None:
+        discord_earn_dict = get_s4_discord_earn_dict([discord_id])
+        earns = discord_earn_dict.get(discord_id)
+
+        # TODO: Establish S4 challenges
+        logger.info(earns)
+
+    # XBOX LIVE CHALLENGES
+    if xuid is not None:
+        xbox_earn_dict = get_s4_xbox_earn_dict([xuid])
+        earns = xbox_earn_dict.get(xuid)
+
+        # TODO: Establish S4 challenges
+        logger.info(earns)
+
+    logger.info(f"Dynamo Points for {discord_id}: {points}")
+    return points >= 500
+
+
+def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
+    season_id = get_current_season_id()
+    if season_id == "3":
+        return is_s3_dynamo_qualified(discord_id, xuid)
+    elif season_id == "4":
+        return is_s4_dynamo_qualified(discord_id, xuid)
+    return False
+
+
+def is_illuminated_qualified(xuid: int) -> bool:
+    # Someone qualifies as Illuminated if their linked gamertag contributed to:
+    # - At least ONE map on 343's Recommended
+    # - At least TWO modes on 343's Recommended
+    # - At least TWO prefabs on 343's Recommended
+    contributor_dict = get_343_recommended_contributors()
+    map_qualified = False
+    mode_qualified = False
+    prefab_qualified = False
+    if xuid in contributor_dict["map"]:
+        map_qualified = True
+    if xuid in contributor_dict["mode"] and contributor_dict["mode"][xuid] >= 2:
+        mode_qualified = True
+    if xuid in contributor_dict["prefab"] and contributor_dict["prefab"][xuid] >= 2:
+        prefab_qualified = True
+    return map_qualified or mode_qualified or prefab_qualified

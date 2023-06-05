@@ -13,9 +13,11 @@ from apps.pathfinder.models import (
 )
 from apps.pathfinder.utils import (
     get_s3_discord_earn_dict,
-    get_s3_xbox_earn_dict,
+    get_s4_discord_earn_dict,
     is_dynamo_qualified,
     is_illuminated_qualified,
+    is_s3_dynamo_qualified,
+    is_s4_dynamo_qualified,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -174,10 +176,173 @@ class PathfinderUtilsTestCase(TestCase):
         self.assertEqual(earn_dict[discord_accounts[0].discord_id]["map_maker"], 0)
         self.assertEqual(earn_dict[discord_accounts[0].discord_id]["show_and_tell"], 0)
 
-    def test_get_s3_xbox_earn_dict(self):
-        earn_dict = get_s3_xbox_earn_dict([])
+    @patch("apps.pathfinder.utils.get_s3_xbox_earn_dict")
+    @patch("apps.pathfinder.utils.get_s3_discord_earn_dict")
+    def test_is_s3_dynamo_qualified(
+        self,
+        mock_get_s3_discord_earn_dict,
+        mock_get_s3_xbox_earn_dict,
+    ):
+        # Null value provided to method returns False
+        mock_get_s3_xbox_earn_dict.return_value = {}
+        result = is_s3_dynamo_qualified(None, None)
+        self.assertEqual(result, False)
+
+        # No points means not qualified
+        mock_get_s3_discord_earn_dict.return_value = {
+            "0": {
+                "gone_hiking": 0,
+                "map_maker": 0,
+                "show_and_tell": 0,
+            }
+        }
+        mock_get_s3_xbox_earn_dict.return_value = {
+            0: {
+                "bookmarked": 0,
+                "playtime": 0,
+                "tagtacular": 0,
+                "forged_in_fire": 0,
+            }
+        }
+        result = is_s3_dynamo_qualified("0", 0)
+        self.assertEqual(result, False)
+        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
+
+        # Some points, not qualified
+        mock_get_s3_discord_earn_dict.return_value = {
+            "0": {
+                "gone_hiking": 100,
+                "map_maker": 50,
+                "show_and_tell": 50,
+            }
+        }
+        mock_get_s3_xbox_earn_dict.return_value = {
+            0: {
+                "bookmarked": 0,
+                "playtime": 0,
+                "tagtacular": 25,
+                "forged_in_fire": 78,
+            }
+        }
+        result = is_s3_dynamo_qualified("0", 0)
+        self.assertEqual(result, False)
+        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
+
+        # Max discord points, qualified
+        mock_get_s3_discord_earn_dict.return_value = {
+            "0": {
+                "gone_hiking": 250,
+                "map_maker": 150,
+                "show_and_tell": 100,
+            }
+        }
+        mock_get_s3_xbox_earn_dict.return_value = {
+            0: {
+                "bookmarked": 0,
+                "playtime": 0,
+                "tagtacular": 0,
+                "forged_in_fire": 0,
+            }
+        }
+        result = is_s3_dynamo_qualified("0", 0)
+        self.assertEqual(result, True)
+        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
+
+        # Max xbox points, qualified
+        mock_get_s3_discord_earn_dict.return_value = {
+            "0": {
+                "gone_hiking": 0,
+                "map_maker": 0,
+                "show_and_tell": 0,
+            }
+        }
+        mock_get_s3_xbox_earn_dict.return_value = {
+            0: {
+                "bookmarked": 100,
+                "playtime": 100,
+                "tagtacular": 100,
+                "forged_in_fire": 200,
+            }
+        }
+        result = is_s3_dynamo_qualified("0", 0)
+        self.assertEqual(result, True)
+        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
+        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
+        mock_get_s3_discord_earn_dict.reset_mock()
+        mock_get_s3_xbox_earn_dict.reset_mock()
+
+    def test_get_s4_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_s4_discord_earn_dict([])
         self.assertEqual(earn_dict, {})
-        # TODO: Write a more meaningful unit test for this
+
+        # TODO: Complete this test.
+
+    @patch("apps.pathfinder.utils.get_s4_xbox_earn_dict")
+    @patch("apps.pathfinder.utils.get_s4_discord_earn_dict")
+    def test_is_s4_dynamo_qualified(
+        self,
+        mock_get_s4_discord_earn_dict,
+        mock_get_s4_xbox_earn_dict,
+    ):
+        # Null value provided to method returns False
+        mock_get_s4_xbox_earn_dict.return_value = {}
+        result = is_s4_dynamo_qualified(None, None)
+        self.assertEqual(result, False)
+
+        # TODO: Complete this test.
+
+    @patch("apps.pathfinder.utils.is_s4_dynamo_qualified")
+    @patch("apps.pathfinder.utils.is_s3_dynamo_qualified")
+    @patch("apps.pathfinder.utils.get_current_season_id")
+    def test_is_dynamo_qualified(
+        self,
+        mock_get_current_season_id,
+        mock_is_s3_dynamo_qualified,
+        mock_is_s4_dynamo_qualified,
+    ):
+        def reset_all_mocks():
+            mock_get_current_season_id.reset_mock()
+            mock_is_s3_dynamo_qualified.reset_mock()
+            mock_is_s4_dynamo_qualified.reset_mock()
+
+        # Season 3
+        mock_get_current_season_id.return_value = "3"
+        mock_is_s3_dynamo_qualified.return_value = True
+        result = is_dynamo_qualified("123", 123)
+        self.assertEqual(result, True)
+        mock_get_current_season_id.assert_called_once_with()
+        mock_is_s3_dynamo_qualified.assert_called_once_with("123", 123)
+        mock_is_s4_dynamo_qualified.assert_not_called()
+        reset_all_mocks()
+
+        # Season 4
+        mock_get_current_season_id.return_value = "4"
+        mock_is_s4_dynamo_qualified.return_value = True
+        result = is_dynamo_qualified("123", 123)
+        self.assertEqual(result, True)
+        mock_get_current_season_id.assert_called_once_with()
+        mock_is_s3_dynamo_qualified.assert_not_called()
+        mock_is_s4_dynamo_qualified.assert_called_once_with("123", 123)
+        reset_all_mocks()
 
     @patch("apps.pathfinder.utils.get_343_recommended_contributors")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
@@ -240,107 +405,3 @@ class PathfinderUtilsTestCase(TestCase):
             self.assertEqual(result, i in {0, 2, 4, 5, 7, 9})
             mock_get_343_recommended_contributors.assert_called_once_with()
             mock_get_343_recommended_contributors.reset_mock()
-
-    @patch("apps.pathfinder.utils.get_s3_xbox_earn_dict")
-    @patch("apps.pathfinder.utils.get_s3_discord_earn_dict")
-    def test_is_dynamo_qualified(
-        self,
-        mock_get_s3_discord_earn_dict,
-        mock_get_s3_xbox_earn_dict,
-    ):
-        # Null value provided to method returns False
-        mock_get_s3_xbox_earn_dict.return_value = {}
-        result = is_dynamo_qualified(None, None)
-        self.assertEqual(result, False)
-
-        # No points means not qualified
-        mock_get_s3_discord_earn_dict.return_value = {
-            "0": {
-                "gone_hiking": 0,
-                "map_maker": 0,
-                "show_and_tell": 0,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            0: {
-                "bookmarked": 0,
-                "playtime": 0,
-                "tagtacular": 0,
-                "forged_in_fire": 0,
-            }
-        }
-        result = is_dynamo_qualified("0", 0)
-        self.assertEqual(result, False)
-        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-        # Some points, not qualified
-        mock_get_s3_discord_earn_dict.return_value = {
-            "0": {
-                "gone_hiking": 100,
-                "map_maker": 50,
-                "show_and_tell": 50,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            0: {
-                "bookmarked": 0,
-                "playtime": 0,
-                "tagtacular": 25,
-                "forged_in_fire": 78,
-            }
-        }
-        result = is_dynamo_qualified("0", 0)
-        self.assertEqual(result, False)
-        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-        # Max discord points, qualified
-        mock_get_s3_discord_earn_dict.return_value = {
-            "0": {
-                "gone_hiking": 250,
-                "map_maker": 150,
-                "show_and_tell": 100,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            0: {
-                "bookmarked": 0,
-                "playtime": 0,
-                "tagtacular": 0,
-                "forged_in_fire": 0,
-            }
-        }
-        result = is_dynamo_qualified("0", 0)
-        self.assertEqual(result, True)
-        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-        # Max xbox points, qualified
-        mock_get_s3_discord_earn_dict.return_value = {
-            "0": {
-                "gone_hiking": 0,
-                "map_maker": 0,
-                "show_and_tell": 0,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            0: {
-                "bookmarked": 100,
-                "playtime": 100,
-                "tagtacular": 100,
-                "forged_in_fire": 200,
-            }
-        }
-        result = is_dynamo_qualified("0", 0)
-        self.assertEqual(result, True)
-        mock_get_s3_discord_earn_dict.assert_called_once_with(["0"])
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([0])
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
