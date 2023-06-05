@@ -12,8 +12,6 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.xbox_live.models import XboxLiveAccount
 
-APITestCase.maxDiff = None
-
 
 class PathfinderTestCase(APITestCase):
     def setUp(self):
@@ -535,15 +533,7 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(waywo_post.post_title, "My Test Map")
         waywo_post.delete()
 
-    @patch("apps.pathfinder.views.get_s3_xbox_earn_dict")
-    @patch("apps.pathfinder.views.get_s3_discord_earn_dict")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_pathfinder_dynamo_progress_view(
-        self,
-        mock_get_xuid_and_exact_gamertag,
-        mock_get_s3_discord_earn_dict,
-        mock_get_s3_xbox_earn_dict,
-    ):
+    def test_pathfinder_dynamo_progress_view_request_errors(self):
         # Missing field values throw errors
         response = self.client.post("/pathfinder/dynamo-progress", {}, format="json")
         self.assertEqual(response.status_code, 400)
@@ -580,6 +570,19 @@ class PathfinderTestCase(APITestCase):
                 code="invalid",
             ),
         )
+
+    @patch("apps.pathfinder.views.get_s3_xbox_earn_dict")
+    @patch("apps.pathfinder.views.get_s3_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.pathfinder.views.get_current_season_id")
+    def test_pathfinder_dynamo_progress_view_s3(
+        self,
+        mock_get_current_season_id,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s3_discord_earn_dict,
+        mock_get_s3_xbox_earn_dict,
+    ):
+        mock_get_current_season_id.return_value = "3"
 
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
@@ -723,3 +726,18 @@ class PathfinderTestCase(APITestCase):
         mock_get_s3_xbox_earn_dict.assert_not_called()
         mock_get_s3_discord_earn_dict.reset_mock()
         mock_get_s3_xbox_earn_dict.reset_mock()
+
+    @patch("apps.pathfinder.views.get_s4_xbox_earn_dict")
+    @patch("apps.pathfinder.views.get_s4_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.pathfinder.views.get_current_season_id")
+    def test_pathfinder_scout_progress_view_s4(
+        self,
+        mock_get_current_season_id,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s4_discord_earn_dict,
+        mock_get_s4_xbox_earn_dict,
+    ):
+        mock_get_current_season_id.return_value = "4"
+
+        # TODO: Complete this test.

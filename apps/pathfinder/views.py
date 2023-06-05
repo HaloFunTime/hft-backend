@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
+from apps.halo_infinite.utils import get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
 from apps.pathfinder.serializers import (
@@ -16,6 +17,8 @@ from apps.pathfinder.serializers import (
     HikeSubmissionPostResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
     PathfinderDynamoProgressResponseSerializer,
+    PathfinderDynamoSeason3ProgressResponseSerializer,
+    PathfinderDynamoSeason4ProgressResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
     WAYWOPostRequestSerializer,
@@ -24,6 +27,8 @@ from apps.pathfinder.serializers import (
 from apps.pathfinder.utils import (
     get_s3_discord_earn_dict,
     get_s3_xbox_earn_dict,
+    get_s4_discord_earn_dict,
+    get_s4_xbox_earn_dict,
     is_dynamo_qualified,
     is_illuminated_qualified,
 )
@@ -283,75 +288,88 @@ class PathfinderDynamoProgressView(APIView):
         """
         Evaluate an individual Discord ID's progress toward the Pathfinder Dynamo role.
         """
+
+        def raise_exception(ex):
+            logger.error("Error attempting the Pathfinder Dynamo progress check.")
+            logger.error(ex)
+            raise APIException("Error attempting the Pathfinder Dynamo progress check.")
+
         validation_serializer = PathfinderDynamoProgressRequestSerializer(
             data=request.data
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_tag = validation_serializer.data.get("discordUserTag")
-            points_gone_hiking = 0
-            points_map_maker = 0
-            points_show_and_tell = 0
-            points_bookmarked = 0
-            points_playtime = 0
-            points_tagtacular = 0
-            points_forged_in_fire = 0
             try:
+                season_id = get_current_season_id()
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_tag, request.user
                 )
-
-                # Tally the Discord Points
-                discord_earns = get_s3_discord_earn_dict(
-                    [discord_account.discord_id]
-                ).get(discord_account.discord_id)
-                points_gone_hiking = discord_earns.get("gone_hiking")
-                points_map_maker = discord_earns.get("map_maker")
-                points_show_and_tell = discord_earns.get("show_and_tell")
-
-                # Tally the Xbox Points
                 link = None
                 try:
                     link = DiscordXboxLiveLink.objects.filter(
                         discord_account_id=discord_account.discord_id, verified=True
                     ).get()
-                    xbox_earns = get_s3_xbox_earn_dict([link.xbox_live_account_id]).get(
-                        link.xbox_live_account_id
-                    )
-                    points_bookmarked = xbox_earns.get("bookmarked")
-                    points_playtime = xbox_earns.get("playtime")
-                    points_tagtacular = xbox_earns.get("tagtacular")
-                    points_forged_in_fire = xbox_earns.get("forged_in_fire")
                 except DiscordXboxLiveLink.DoesNotExist:
                     pass
-
-                # Calculate the total points
-                total_points = (
-                    points_gone_hiking
-                    + points_map_maker
-                    + points_show_and_tell
-                    + points_bookmarked
-                    + points_playtime
-                    + points_tagtacular
-                    + points_forged_in_fire
-                )
             except Exception as ex:
-                logger.error("Error attempting the Pathfinder Dynamo progress check.")
-                logger.error(ex)
-                raise APIException(
-                    "Error attempting the Pathfinder Dynamo progress check."
-                )
-            serializer = PathfinderDynamoProgressResponseSerializer(
-                {
-                    "linkedGamertag": link is not None,
-                    "totalPoints": total_points,
-                    "pointsGoneHiking": points_gone_hiking,
-                    "pointsMapMaker": points_map_maker,
-                    "pointsShowAndTell": points_show_and_tell,
-                    "pointsBookmarked": points_bookmarked,
-                    "pointsPlaytime": points_playtime,
-                    "pointsTagtacular": points_tagtacular,
-                    "pointsForgedInFire": points_forged_in_fire,
-                }
-            )
+                raise_exception(ex)
+
+            serializer_class = None
+            serializable_dict = {}
+            try:
+                if season_id == "3":
+                    serializer_class = PathfinderDynamoSeason3ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s3_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsGoneHiking"] = discord_earns.get(
+                        "gone_hiking", 0
+                    )
+                    serializable_dict["pointsMapMaker"] = discord_earns.get(
+                        "map_maker", 0
+                    )
+                    serializable_dict["pointsShowAndTell"] = discord_earns.get(
+                        "show_and_tell", 0
+                    )
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s3_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsBookmarked"] = xbox_earns.get(
+                        "bookmarked", 0
+                    )
+                    serializable_dict["pointsPlaytime"] = xbox_earns.get("playtime", 0)
+                    serializable_dict["pointsTagtacular"] = xbox_earns.get(
+                        "tagtacular", 0
+                    )
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
+                elif season_id == "4":
+                    serializer_class = PathfinderDynamoSeason4ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s4_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    # TODO: Establish S4 Discord challenges
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s4_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    # TODO: Establish S4 Xbox challenges
+            except Exception as ex:
+                raise_exception(ex)
+            merged_dict = {
+                "linkedGamertag": link is not None,
+                "totalPoints": sum(serializable_dict.values()),
+            } | serializable_dict
+            serializer = serializer_class(merged_dict)
             return Response(serializer.data, status=status.HTTP_200_OK)

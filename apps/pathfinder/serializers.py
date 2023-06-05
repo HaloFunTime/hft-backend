@@ -49,6 +49,11 @@ class PathfinderDynamoProgressRequestSerializer(serializers.Serializer):
 class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     linkedGamertag = serializers.BooleanField()
     totalPoints = serializers.IntegerField()
+
+
+class PathfinderDynamoSeason3ProgressResponseSerializer(
+    PathfinderDynamoProgressResponseSerializer
+):
     pointsGoneHiking = serializers.IntegerField()
     pointsMapMaker = serializers.IntegerField()
     pointsShowAndTell = serializers.IntegerField()
@@ -56,6 +61,17 @@ class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     pointsPlaytime = serializers.IntegerField()
     pointsTagtacular = serializers.IntegerField()
     pointsForgedInFire = serializers.IntegerField()
+
+
+class PathfinderDynamoSeason4ProgressResponseSerializer(
+    PathfinderDynamoProgressResponseSerializer
+):
+    pass
+
+
+class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
+    linkedGamertag = serializers.BooleanField()
+    totalPoints = serializers.IntegerField()
 
 
 class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
