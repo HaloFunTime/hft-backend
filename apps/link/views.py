@@ -1,5 +1,4 @@
 import logging
-import re
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -89,8 +88,8 @@ class DiscordToXboxLive(APIView):
             )
             return Response(serializer.data, status=400)
 
-        # Validate that the string passed in as a Discord Account Username matches the regex
-        if not re.match(r".+\d{4}$", discord_account_username):
+        # Validate that the string passed in as a Discord Account Username meets the requirements
+        if len(discord_account_username) < 2 or len(discord_account_username) > 32:
             serializer = DiscordXboxLiveLinkErrorSerializer(
                 {"error": LINK_ERROR_INVALID_DISCORD_USERNAME}
             )

@@ -46,7 +46,7 @@ class LinkTestCase(APITestCase):
 
         # Invalid `discordUsername` throws error
         response = self.client.get(
-            "/link/discord-to-xbox-live?discordId=123&discordUsername=invalid"
+            "/link/discord-to-xbox-live?discordId=123&discordUsername=i"
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_USERNAME})
