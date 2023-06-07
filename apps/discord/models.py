@@ -17,7 +17,7 @@ class DiscordAccount(BaseWithoutPrimaryKey):
         primary_key=True, max_length=20, blank=False, verbose_name="Discord User ID"
     )
     discord_username = models.CharField(
-        max_length=32,
+        max_length=37,
         blank=False,
         verbose_name="Discord Username",
         validators=[MinLengthValidator(2)],
