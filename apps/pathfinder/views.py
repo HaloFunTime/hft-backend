@@ -121,8 +121,8 @@ class HikeSubmissionView(APIView):
             map_submitter_discord_id = validation_serializer.data.get(
                 "mapSubmitterDiscordId"
             )
-            map_submitter_discord_tag = validation_serializer.data.get(
-                "mapSubmitterDiscordTag"
+            map_submitter_discord_username = validation_serializer.data.get(
+                "mapSubmitterDiscordUsername"
             )
             max_player_count = validation_serializer.data.get("maxPlayerCount")
             map = validation_serializer.data.get("map")
@@ -130,7 +130,9 @@ class HikeSubmissionView(APIView):
             mode_2 = validation_serializer.data.get("mode2")
             try:
                 map_submitter_discord = update_or_create_discord_account(
-                    map_submitter_discord_id, map_submitter_discord_tag, request.user
+                    map_submitter_discord_id,
+                    map_submitter_discord_username,
+                    request.user,
                 )
             except Exception as ex:
                 logger.error(ex)
@@ -193,10 +195,10 @@ class PathfinderSeasonalRoleCheckView(APIView):
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
-            discord_tag = validation_serializer.data.get("discordUserTag")
+            discord_username = validation_serializer.data.get("discordUsername")
             try:
                 discord_account = update_or_create_discord_account(
-                    discord_id, discord_tag, request.user
+                    discord_id, discord_username, request.user
                 )
                 link = None
                 try:
@@ -251,12 +253,14 @@ class PathfinderWAYWOPostView(APIView):
         validation_serializer = WAYWOPostRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             poster_discord_id = validation_serializer.data.get("posterDiscordId")
-            poster_discord_tag = validation_serializer.data.get("posterDiscordTag")
+            poster_discord_username = validation_serializer.data.get(
+                "posterDiscordUsername"
+            )
             post_id = validation_serializer.data.get("postId")
             post_title = validation_serializer.data.get("postTitle") or ""
             try:
                 poster_discord = update_or_create_discord_account(
-                    poster_discord_id, poster_discord_tag, request.user
+                    poster_discord_id, poster_discord_username, request.user
                 )
             except Exception as ex:
                 logger.error(ex)
@@ -299,11 +303,11 @@ class PathfinderDynamoProgressView(APIView):
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
-            discord_tag = validation_serializer.data.get("discordUserTag")
+            discord_username = validation_serializer.data.get("discordUsername")
             try:
                 season_id = get_current_season_id()
                 discord_account = update_or_create_discord_account(
-                    discord_id, discord_tag, request.user
+                    discord_id, discord_username, request.user
                 )
                 link = None
                 try:

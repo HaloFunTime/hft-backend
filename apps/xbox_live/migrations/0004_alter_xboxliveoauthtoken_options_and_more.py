@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("xbox_live", "0003_remove_xboxliveaccount_id_xboxliveaccount_xuid_and_more"),
     ]

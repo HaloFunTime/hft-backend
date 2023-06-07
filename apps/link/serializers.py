@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 class DiscordXboxLiveLinkResponseSerializer(serializers.Serializer):
     discordUserId = serializers.CharField()
-    discordUserTag = serializers.CharField()
+    discordUsername = serializers.CharField()
     xboxLiveXuid = serializers.IntegerField()
     xboxLiveGamertag = serializers.CharField()
     verified = serializers.BooleanField()
@@ -13,7 +13,7 @@ class DiscordXboxLiveLinkResponseSerializer(serializers.Serializer):
 
 class DiscordToXboxLiveRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(max_length=20)
-    discordUserTag = serializers.CharField(max_length=37)
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
     xboxLiveGamertag = serializers.CharField(min_length=1, max_length=15)
 
     def validate_discordUserId(self, value):
@@ -22,14 +22,6 @@ class DiscordToXboxLiveRequestSerializer(serializers.Serializer):
         """
         if not value.isnumeric():
             raise serializers.ValidationError("Only numeric characters are allowed.")
-        return value
-
-    def validate_discordUserTag(self, value):
-        """
-        Validate that the discordUserTag is properly formatted.
-        """
-        if value.count("#") != 1:
-            raise serializers.ValidationError("One '#' character is required.")
         return value
 
     def validate_xboxLiveGamertag(self, value):

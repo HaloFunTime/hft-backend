@@ -18,9 +18,9 @@ class PlusRepErrorSerializer(serializers.Serializer):
 
 class PlusRepRequestSerializer(serializers.Serializer):
     giverDiscordId = serializers.CharField()
-    giverDiscordTag = serializers.CharField()
+    giverDiscordUsername = serializers.CharField(min_length=2, max_length=32)
     receiverDiscordId = serializers.CharField()
-    receiverDiscordTag = serializers.CharField()
+    receiverDiscordUsername = serializers.CharField(min_length=2, max_length=32)
     message = serializers.CharField()
 
 

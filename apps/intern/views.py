@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.discord.utils import update_or_create_discord_account
 from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
@@ -60,8 +61,8 @@ INTERN_CHATTER_PAUSE_DENIAL_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_CHATTER_PAUSE_ERROR_MISSING_ID = (
     "A valid discordUserId (numeric string) must be provided."
 )
-INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG = (
-    "A valid discordUserTag (string with one '#' character) must be provided."
+INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME = (
+    "A valid discordUsername must be provided."
 )
 INTERN_CHATTER_PAUSE_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT = "Absolutely!"
@@ -362,17 +363,23 @@ class PauseInternChatter(APIView):
                 {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_ID}
             )
             return Response(serializer.data, status=400)
-        discord_user_tag = request.data.get("discordUserTag")
-        if not discord_user_tag or "#" not in discord_user_tag:
+        discord_username = request.data.get("discordUsername")
+        if (
+            not discord_username
+            or len(discord_username) < 2
+            or len(discord_username) > 32
+        ):
             serializer = InternChatterPauseErrorSerializer(
-                {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+                {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME}
             )
             return Response(serializer.data, status=400)
         try:
+            pauser = update_or_create_discord_account(
+                discord_user_id, discord_username, request.user
+            )
             InternChatterPause.objects.create(
                 creator=request.user,
-                discord_user_id=discord_user_id,
-                discord_user_tag=discord_user_tag,
+                pauser=pauser,
             )
             serializer = InternChatterPauseResponseSerializer({"success": True})
             return Response(

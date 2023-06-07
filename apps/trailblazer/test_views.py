@@ -38,16 +38,16 @@ class TrailblazerTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
+            details.get("discordUsername"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/trailblazer/seasonal-role-check",
-            {"discordUserId": "abc", "discordUserTag": "foo"},
+            {"discordUserId": "abc", "discordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -57,19 +57,19 @@ class TrailblazerTestCase(APITestCase):
             details.get("discordUserId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag")[0],
+            details.get("discordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
         # Create some test data
         mock_get_xuid_and_exact_gamertag.return_value = (0, "test0")
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="0", discord_tag="TestTag0#1234"
+            creator=self.user, discord_id="0", discord_username="TestUsername01234"
         )
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="testGT0"
@@ -87,7 +87,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/seasonal-role-check",
             {
                 "discordUserId": link.discord_account.discord_id,
-                "discordUserTag": link.discord_account.discord_tag,
+                "discordUsername": link.discord_account.discord_username,
             },
             format="json",
         )
@@ -110,7 +110,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/seasonal-role-check",
             {
                 "discordUserId": link.discord_account.discord_id,
-                "discordUserTag": link.discord_account.discord_tag,
+                "discordUsername": link.discord_account.discord_username,
             },
             format="json",
         )
@@ -138,7 +138,7 @@ class TrailblazerTestCase(APITestCase):
                 "/trailblazer/seasonal-role-check",
                 {
                     "discordUserId": link.discord_account.discord_id,
-                    "discordUserTag": link.discord_account.discord_tag,
+                    "discordUsername": link.discord_account.discord_username,
                 },
                 format="json",
             )
@@ -164,7 +164,7 @@ class TrailblazerTestCase(APITestCase):
                 "/trailblazer/seasonal-role-check",
                 {
                     "discordUserId": link.discord_account.discord_id,
-                    "discordUserTag": link.discord_account.discord_tag,
+                    "discordUsername": link.discord_account.discord_username,
                 },
                 format="json",
             )
@@ -193,16 +193,16 @@ class TrailblazerTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
+            details.get("discordUsername"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/trailblazer/scout-progress",
-            {"discordUserId": "abc", "discordUserTag": "foo"},
+            {"discordUserId": "abc", "discordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -212,12 +212,12 @@ class TrailblazerTestCase(APITestCase):
             details.get("discordUserId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag")[0],
+            details.get("discordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
@@ -237,7 +237,7 @@ class TrailblazerTestCase(APITestCase):
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="1234", discord_tag="TestTag#1234"
+            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
         )
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="testGT1234"
@@ -255,7 +255,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -278,7 +278,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -316,7 +316,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -356,7 +356,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": discord_account.discord_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -393,7 +393,7 @@ class TrailblazerTestCase(APITestCase):
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="1234", discord_tag="TestTag#1234"
+            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
         )
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="testGT1234"
@@ -411,7 +411,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -434,7 +434,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -472,7 +472,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -512,7 +512,7 @@ class TrailblazerTestCase(APITestCase):
             "/trailblazer/scout-progress",
             {
                 "discordUserId": discord_account.discord_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )

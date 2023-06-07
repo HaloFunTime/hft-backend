@@ -26,7 +26,7 @@ from apps.intern.views import (
     INTERN_CHATTER_PAUSE_ACCEPTANCE_QUIP_DEFAULT,
     INTERN_CHATTER_PAUSE_DENIAL_QUIP_DEFAULT,
     INTERN_CHATTER_PAUSE_ERROR_MISSING_ID,
-    INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG,
+    INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME,
     INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT,
     INTERN_HELPFUL_HINT_DEFAULT_MESSAGE,
     INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT,
@@ -209,30 +209,30 @@ class InternChatterTestCase(APITestCase):
             response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_ID}
         )
 
-        # Missing 'discordUserTag' throws error
+        # Missing 'discordUsername' throws error
         response = self.client.post(
             "/intern/pause-chatter", {"discordUserId": "1234"}, format="json"
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME}
         )
 
-        # Invalid 'discordUserTag' throws error
+        # Invalid 'discordUsername' throws error
         response = self.client.post(
             "/intern/pause-chatter",
-            {"discordUserId": "1234", "discordUserTag": "foo"},
+            {"discordUserId": "1234", "discordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_TAG}
+            response.data, {"error": INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME}
         )
 
-        # Valid 'discordUserId' and 'discordUserTag' results in record creation
+        # Valid 'discordUserId' and 'discordUsername' results in record creation
         response = self.client.post(
             "/intern/pause-chatter",
-            {"discordUserId": "1234", "discordUserTag": "HFTIntern#1234"},
+            {"discordUserId": "1234", "discordUsername": "HFTIntern1234"},
             format="json",
         )
         self.assertEqual(response.status_code, 200)

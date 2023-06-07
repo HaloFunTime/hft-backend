@@ -39,7 +39,7 @@ class InternChatterPauseErrorSerializer(serializers.Serializer):
 
 class InternChatterPauseRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField()
-    discordUserTag = serializers.CharField()
+    discordUsername = serializers.CharField()
 
 
 class InternChatterPauseResponseSerializer(serializers.Serializer):

@@ -38,15 +38,15 @@ class VoiceConnectView(APIView):
         validation_serializer = VoiceConnectPostRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             connector_discord_id = validation_serializer.data.get("connectorDiscordId")
-            connector_discord_tag = validation_serializer.data.get(
-                "connectorDiscordTag"
+            connector_discord_username = validation_serializer.data.get(
+                "connectorDiscordUsername"
             )
             connected_at = validation_serializer.data.get("connectedAt")
             channel_id = validation_serializer.data.get("channelId")
             channel_name = validation_serializer.data.get("channelName") or ""
             try:
                 connector_discord = update_or_create_discord_account(
-                    connector_discord_id, connector_discord_tag, request.user
+                    connector_discord_id, connector_discord_username, request.user
                 )
             except Exception as ex:
                 logger.error(ex)
@@ -88,15 +88,15 @@ class VoiceDisconnectView(APIView):
             disconnector_discord_id = validation_serializer.data.get(
                 "disconnectorDiscordId"
             )
-            disconnector_discord_tag = validation_serializer.data.get(
-                "disconnectorDiscordTag"
+            disconnector_discord_username = validation_serializer.data.get(
+                "disconnectorDiscordUsername"
             )
             disconnected_at = validation_serializer.data.get("disconnectedAt")
             channel_id = validation_serializer.data.get("channelId")
             channel_name = validation_serializer.data.get("channelName") or ""
             try:
                 disconnector_discord = update_or_create_discord_account(
-                    disconnector_discord_id, disconnector_discord_tag, request.user
+                    disconnector_discord_id, disconnector_discord_username, request.user
                 )
             except Exception as ex:
                 logger.error(ex)

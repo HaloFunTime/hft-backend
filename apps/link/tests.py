@@ -12,9 +12,9 @@ from apps.link.models import DiscordXboxLiveLink
 from apps.link.utils import update_or_create_discord_xbox_live_link
 from apps.link.views import (
     LINK_ERROR_INVALID_DISCORD_ID,
-    LINK_ERROR_INVALID_DISCORD_TAG,
+    LINK_ERROR_INVALID_DISCORD_USERNAME,
     LINK_ERROR_MISSING_DISCORD_ID,
-    LINK_ERROR_MISSING_DISCORD_TAG,
+    LINK_ERROR_MISSING_DISCORD_USERNAME,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -39,27 +39,27 @@ class LinkTestCase(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_ID})
 
-        # Missing `discordTag` throws error
+        # Missing `discordUsername` throws error
         response = self.client.get("/link/discord-to-xbox-live?discordId=123")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": LINK_ERROR_MISSING_DISCORD_TAG})
+        self.assertEqual(response.data, {"error": LINK_ERROR_MISSING_DISCORD_USERNAME})
 
-        # Invalid `discordTag` throws error
+        # Invalid `discordUsername` throws error
         response = self.client.get(
-            "/link/discord-to-xbox-live?discordId=123&discordTag=invalid"
+            "/link/discord-to-xbox-live?discordId=123&discordUsername=invalid"
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_TAG})
+        self.assertEqual(response.data, {"error": LINK_ERROR_INVALID_DISCORD_USERNAME})
 
         # No DiscordXboxLiveLink returns 404
         response = self.client.get(
-            "/link/discord-to-xbox-live?discordId=123456789&discordTag=Test#0123"
+            "/link/discord-to-xbox-live?discordId=123456789&discordUsername=Test0123"
         )
         self.assertEqual(response.status_code, 404)
 
         # Existing DiscordXboxLiveLink returns 200
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="123", discord_tag="ABC#1234"
+            creator=self.user, discord_id="123", discord_username="ABC1234"
         )
         mock_get_xuid_and_exact_gamertag.return_value = (0, "Test123")
         xbox_live_account = XboxLiveAccount.objects.create(
@@ -72,12 +72,12 @@ class LinkTestCase(APITestCase):
         )
         response = self.client.get(
             f"/link/discord-to-xbox-live?discordId={discord_account.discord_id}"
-            f"&discordTag={discord_account.discord_tag}"
+            f"&discordUsername={discord_account.discord_username}"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), discord_account.discord_id)
         self.assertEqual(
-            response.data.get("discordUserTag"), discord_account.discord_tag
+            response.data.get("discordUsername"), discord_account.discord_username
         )
         self.assertEqual(response.data.get("xboxLiveXuid"), xbox_live_account.xuid)
         self.assertEqual(
@@ -101,9 +101,9 @@ class LinkTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
+            details.get("discordUsername"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
         self.assertIn("xboxLiveGamertag", details)
@@ -115,7 +115,7 @@ class LinkTestCase(APITestCase):
         # Improperly formatted values throw errors
         response = self.client.post(
             "/link/discord-to-xbox-live",
-            {"discordUserId": "ABC", "discordUserTag": "1", "xboxLiveGamertag": "2ed"},
+            {"discordUserId": "ABC", "discordUsername": "1", "xboxLiveGamertag": "2ed"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -129,10 +129,15 @@ class LinkTestCase(APITestCase):
                 )
             ],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
-            [ErrorDetail(string="One '#' character is required.", code="invalid")],
+            details.get("discordUsername"),
+            [
+                ErrorDetail(
+                    string="Ensure this field has at least 2 characters.",
+                    code="min_length",
+                )
+            ],
         )
         self.assertIn("xboxLiveGamertag", details)
         self.assertEqual(
@@ -152,14 +157,14 @@ class LinkTestCase(APITestCase):
             "/link/discord-to-xbox-live",
             {
                 "discordUserId": "123",
-                "discordUserTag": "Test#0123",
+                "discordUsername": "Test0123",
                 "xboxLiveGamertag": "Test",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), "123")
-        self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
+        self.assertEqual(response.data.get("discordUsername"), "Test0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "test")
         self.assertEqual(response.data.get("verified"), False)
@@ -179,14 +184,14 @@ class LinkTestCase(APITestCase):
             "/link/discord-to-xbox-live",
             {
                 "discordUserId": "123",
-                "discordUserTag": "TEST#0123",
+                "discordUsername": "TEST0123",
                 "xboxLiveGamertag": "Test",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), "123")
-        self.assertEqual(response.data.get("discordUserTag"), "TEST#0123")
+        self.assertEqual(response.data.get("discordUsername"), "TEST0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "TEST")
         self.assertEqual(response.data.get("verified"), True)
@@ -206,7 +211,7 @@ class LinkTestCase(APITestCase):
             "/link/discord-to-xbox-live",
             {
                 "discordUserId": "456",
-                "discordUserTag": "Test#0456",
+                "discordUsername": "Test0456",
                 "xboxLiveGamertag": "Test",
             },
             format="json",
@@ -224,14 +229,14 @@ class LinkTestCase(APITestCase):
             "/link/discord-to-xbox-live",
             {
                 "discordUserId": "123",
-                "discordUserTag": "Test#0123",
+                "discordUsername": "Test0123",
                 "xboxLiveGamertag": "Test1",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), "123")
-        self.assertEqual(response.data.get("discordUserTag"), "Test#0123")
+        self.assertEqual(response.data.get("discordUsername"), "Test0123")
         self.assertEqual(response.data.get("xboxLiveXuid"), 1)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "test1")
         self.assertEqual(response.data.get("verified"), False)
@@ -251,14 +256,14 @@ class LinkTestCase(APITestCase):
             "/link/discord-to-xbox-live",
             {
                 "discordUserId": "456",
-                "discordUserTag": "Test#0456",
+                "discordUsername": "Test0456",
                 "xboxLiveGamertag": "Test",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("discordUserId"), "456")
-        self.assertEqual(response.data.get("discordUserTag"), "Test#0456")
+        self.assertEqual(response.data.get("discordUsername"), "Test0456")
         self.assertEqual(response.data.get("xboxLiveXuid"), 0)
         self.assertEqual(response.data.get("xboxLiveGamertag"), "test")
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
@@ -288,10 +293,10 @@ class LinkUtilsTestCase(TestCase):
             mock_utils_get_xuid_and_exact_gamertag.reset_mock()
 
         discord_account_1 = DiscordAccount.objects.create(
-            creator=self.user, discord_id="123", discord_tag="ABC#1234"
+            creator=self.user, discord_id="123", discord_username="ABC1234"
         )
         discord_account_2 = DiscordAccount.objects.create(
-            creator=self.user, discord_id="456", discord_tag="ABC#1234"
+            creator=self.user, discord_id="456", discord_username="ABC1234"
         )
         set_both_mock_return_values((1, "xbl1"))
         xbox_live_account_1 = XboxLiveAccount.objects.create(

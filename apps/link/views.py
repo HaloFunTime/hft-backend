@@ -26,9 +26,13 @@ logger = logging.getLogger(__name__)
 LINK_ERROR_INVALID_DISCORD_ID = (
     "The provided discordId must be a string representing a valid positive integer."
 )
-LINK_ERROR_INVALID_DISCORD_TAG = "The provided discordTag must be a valid Discord tag."
+LINK_ERROR_INVALID_DISCORD_USERNAME = (
+    "The provided discordUsername must be a valid Discord username."
+)
 LINK_ERROR_MISSING_DISCORD_ID = "A discordId must be provided as a query parameter."
-LINK_ERROR_MISSING_DISCORD_TAG = "A discordTag must be provided as a query parameter."
+LINK_ERROR_MISSING_DISCORD_USERNAME = (
+    "A discordUsername must be provided as a query parameter."
+)
 LINK_ERROR_NOT_FOUND = "Not found."
 
 
@@ -44,7 +48,7 @@ class DiscordToXboxLive(APIView):
                 explode=False,
             ),
             OpenApiParameter(
-                name="discordTag",
+                name="discordUsername",
                 type={"type": "string"},
                 location=OpenApiParameter.QUERY,
                 required=True,
@@ -77,18 +81,18 @@ class DiscordToXboxLive(APIView):
             )
             return Response(serializer.data, status=400)
 
-        # Validate that there is a passed-in Discord Account Tag
-        discord_account_tag = request.query_params.get("discordTag")
-        if discord_account_tag is None:
+        # Validate that there is a passed-in Discord Account Username
+        discord_account_username = request.query_params.get("discordUsername")
+        if discord_account_username is None:
             serializer = DiscordXboxLiveLinkErrorSerializer(
-                {"error": LINK_ERROR_MISSING_DISCORD_TAG}
+                {"error": LINK_ERROR_MISSING_DISCORD_USERNAME}
             )
             return Response(serializer.data, status=400)
 
-        # Validate that the string passed in as a Discord Account Tag matches the regex
-        if not re.match(r".+\d{4}$", discord_account_tag):
+        # Validate that the string passed in as a Discord Account Username matches the regex
+        if not re.match(r".+\d{4}$", discord_account_username):
             serializer = DiscordXboxLiveLinkErrorSerializer(
-                {"error": LINK_ERROR_INVALID_DISCORD_TAG}
+                {"error": LINK_ERROR_INVALID_DISCORD_USERNAME}
             )
             return Response(serializer.data, status=400)
 
@@ -96,7 +100,7 @@ class DiscordToXboxLive(APIView):
         discord_account = get_or_create_discord_account(
             discord_account_id,
             request.user,
-            discord_account_tag,
+            discord_account_username,
         )
 
         # Get the DiscordXboxLiveLink record for the DiscordAccount, if it exists
@@ -112,7 +116,7 @@ class DiscordToXboxLive(APIView):
         serializer = DiscordXboxLiveLinkResponseSerializer(
             {
                 "discordUserId": discord_xbox_live_link.discord_account.discord_id,
-                "discordUserTag": discord_xbox_live_link.discord_account.discord_tag,
+                "discordUsername": discord_xbox_live_link.discord_account.discord_username,
                 "xboxLiveXuid": discord_xbox_live_link.xbox_live_account.xuid,
                 "xboxLiveGamertag": discord_xbox_live_link.xbox_live_account.gamertag,
                 "verified": discord_xbox_live_link.verified,
@@ -136,11 +140,11 @@ class DiscordToXboxLive(APIView):
         validation_serializer = DiscordToXboxLiveRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
-            discord_tag = validation_serializer.data.get("discordUserTag")
+            discord_username = validation_serializer.data.get("discordUsername")
             xbox_live_gamertag = validation_serializer.data.get("xboxLiveGamertag")
             try:
                 discord_account = update_or_create_discord_account(
-                    discord_id, discord_tag, request.user
+                    discord_id, discord_username, request.user
                 )
                 xbox_live_account = update_or_create_xbox_live_account(
                     xbox_live_gamertag, request.user
@@ -157,7 +161,7 @@ class DiscordToXboxLive(APIView):
             serializer = DiscordXboxLiveLinkResponseSerializer(
                 {
                     "discordUserId": discord_xbox_live_link.discord_account.discord_id,
-                    "discordUserTag": discord_xbox_live_link.discord_account.discord_tag,
+                    "discordUsername": discord_xbox_live_link.discord_account.discord_username,
                     "xboxLiveXuid": discord_xbox_live_link.xbox_live_account.xuid,
                     "xboxLiveGamertag": discord_xbox_live_link.xbox_live_account.gamertag,
                     "verified": discord_xbox_live_link.verified,

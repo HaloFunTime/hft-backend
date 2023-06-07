@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.discord.serializers import validate_discord_id, validate_discord_tag
+from apps.discord.serializers import validate_discord_id
 
 
 class HikeSubmissionSerializer(serializers.Serializer):
@@ -26,7 +26,7 @@ class HikeSubmissionPostRequestSerializer(serializers.Serializer):
     mapSubmitterDiscordId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    mapSubmitterDiscordTag = serializers.CharField(validators=[validate_discord_tag])
+    mapSubmitterDiscordUsername = serializers.CharField(min_length=2, max_length=32)
     maxPlayerCount = serializers.CharField()
     map = serializers.CharField()
     mode1 = serializers.CharField()
@@ -41,9 +41,7 @@ class PathfinderDynamoProgressRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    discordUserTag = serializers.CharField(
-        max_length=37, validators=[validate_discord_tag]
-    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
 class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
@@ -78,9 +76,7 @@ class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    discordUserTag = serializers.CharField(
-        max_length=37, validators=[validate_discord_tag]
-    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
 class PathfinderSeasonalRoleCheckResponseSerializer(serializers.Serializer):
@@ -95,7 +91,7 @@ class WAYWOPostRequestSerializer(serializers.Serializer):
     posterDiscordId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    posterDiscordTag = serializers.CharField(validators=[validate_discord_tag])
+    posterDiscordUsername = serializers.CharField(min_length=2, max_length=32)
     postId = serializers.CharField(max_length=20, validators=[validate_discord_id])
     postTitle = serializers.CharField()
 

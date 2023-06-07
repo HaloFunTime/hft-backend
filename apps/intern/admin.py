@@ -34,12 +34,13 @@ class InternChatterPauseAdmin(AutofillCreatorModelAdmin):
     list_display = (
         "id",
         "created_at",
+        "pauser",
         "discord_user_id",
         "discord_user_tag",
         "creator",
     )
     list_filter = ("creator",)
-    fields = ("discord_user_id", "discord_user_tag", "creator")
+    fields = ("pauser", "discord_user_id", "discord_user_tag", "creator")
 
 
 @admin.register(InternChatterPauseAcceptanceQuip)

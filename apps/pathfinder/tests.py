@@ -34,7 +34,9 @@ class PathfinderUtilsTestCase(TestCase):
         for i in range(2):
             discord_accounts.append(
                 DiscordAccount.objects.create(
-                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
                 )
             )
 
@@ -286,7 +288,9 @@ class PathfinderUtilsTestCase(TestCase):
         for i in range(2):
             discord_accounts.append(
                 DiscordAccount.objects.create(
-                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
                 )
             )
 
@@ -367,7 +371,9 @@ class PathfinderUtilsTestCase(TestCase):
         for i in range(10):
             mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
             discord_account = DiscordAccount.objects.create(
-                creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                creator=self.user,
+                discord_id=str(i),
+                discord_username=f"TestUsername{i}",
             )
             xbox_live_account = XboxLiveAccount.objects.create(
                 creator=self.user, gamertag=f"testGT{i}"

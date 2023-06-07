@@ -1,5 +1,6 @@
 from django.db import models
 
+from apps.discord.models import DiscordAccount
 from apps.overrides.models import Base
 
 
@@ -51,6 +52,9 @@ class InternChatterPause(Base):
         verbose_name = "Chatter Pause"
         verbose_name_plural = "Chatter Pauses"
 
+    pauser = models.ForeignKey(
+        DiscordAccount, on_delete=models.RESTRICT, related_name="pausers", null=True
+    )
     discord_user_id = models.CharField(max_length=32, verbose_name="Discord User ID")
     discord_user_tag = models.CharField(
         max_length=40, blank=True, verbose_name="Discord Username"

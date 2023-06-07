@@ -34,7 +34,9 @@ class PathfinderTestCase(APITestCase):
         for i in range(range_bound):
             discord_accounts.append(
                 DiscordAccount.objects.create(
-                    creator=self.user, discord_id=str(i), discord_tag=f"TestTag{i}#1234"
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
                 )
             )
         hike_submissions = []
@@ -155,7 +157,7 @@ class PathfinderTestCase(APITestCase):
             "waywoPostTitle",
             "waywoPostId",
             "mapSubmitterDiscordId",
-            "mapSubmitterDiscordTag",
+            "mapSubmitterDiscordUsername",
             "maxPlayerCount",
             "map",
             "mode1",
@@ -175,7 +177,7 @@ class PathfinderTestCase(APITestCase):
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
                 "waywoPostId": "abc",
                 "mapSubmitterDiscordId": "abc",
-                "mapSubmitterDiscordTag": "abc",
+                "mapSubmitterDiscordUsername": "a",
                 "maxPlayerCount": "abc",
                 "map": "abc",
                 "mode1": "abc",
@@ -201,12 +203,12 @@ class PathfinderTestCase(APITestCase):
                     string="Only numeric characters are allowed.", code="invalid"
                 ),
             )
-        self.assertIn("mapSubmitterDiscordTag", details)
+        self.assertIn("mapSubmitterDiscordUsername", details)
         self.assertEqual(
-            details.get("mapSubmitterDiscordTag")[0],
+            details.get("mapSubmitterDiscordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
@@ -217,7 +219,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostTitle": "Test Title",
                 "waywoPostId": "7890",
                 "mapSubmitterDiscordId": "1234",
-                "mapSubmitterDiscordTag": "Test#1234",
+                "mapSubmitterDiscordUsername": "Test1234",
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
                 "mode1": "TestMode1",
@@ -234,7 +236,7 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(pf_hike_submission.waywo_post_id, "7890")
         self.assertEqual(pf_hike_submission.map_submitter_discord.discord_id, "1234")
         self.assertEqual(
-            pf_hike_submission.map_submitter_discord.discord_tag, "Test#1234"
+            pf_hike_submission.map_submitter_discord.discord_username, "Test1234"
         )
         self.assertEqual(pf_hike_submission.max_player_count, "8 players")
         self.assertEqual(pf_hike_submission.map, "TestMap")
@@ -248,7 +250,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostTitle": "Test Title",
                 "waywoPostId": "7890",
                 "mapSubmitterDiscordId": "3456",
-                "mapSubmitterDiscordTag": "Test#3456",
+                "mapSubmitterDiscordUsername": "Test3456",
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
                 "mode1": "TestModeA",
@@ -276,7 +278,7 @@ class PathfinderTestCase(APITestCase):
                 "waywoPostTitle": "Test Title",
                 "waywoPostId": "0987",
                 "mapSubmitterDiscordId": "1234",
-                "mapSubmitterDiscordTag": "Test#1234",
+                "mapSubmitterDiscordUsername": "Test1234",
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
                 "mode1": "TestModeA",
@@ -317,16 +319,16 @@ class PathfinderTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
+            details.get("discordUsername"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/pathfinder/seasonal-role-check",
-            {"discordUserId": "abc", "discordUserTag": "foo"},
+            {"discordUserId": "abc", "discordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -336,19 +338,19 @@ class PathfinderTestCase(APITestCase):
             details.get("discordUserId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag")[0],
+            details.get("discordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
         # Create some test data
         mock_get_xuid_and_exact_gamertag.return_value = (0, "test0")
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="0", discord_tag="TestTag0#1234"
+            creator=self.user, discord_id="0", discord_username="TestUsername01234"
         )
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="testGT0"
@@ -366,7 +368,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/seasonal-role-check",
             {
                 "discordUserId": link.discord_account.discord_id,
-                "discordUserTag": link.discord_account.discord_tag,
+                "discordUsername": link.discord_account.discord_username,
             },
             format="json",
         )
@@ -389,7 +391,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/seasonal-role-check",
             {
                 "discordUserId": link.discord_account.discord_id,
-                "discordUserTag": link.discord_account.discord_tag,
+                "discordUsername": link.discord_account.discord_username,
             },
             format="json",
         )
@@ -417,7 +419,7 @@ class PathfinderTestCase(APITestCase):
                 "/pathfinder/seasonal-role-check",
                 {
                     "discordUserId": link.discord_account.discord_id,
-                    "discordUserTag": link.discord_account.discord_tag,
+                    "discordUsername": link.discord_account.discord_username,
                 },
                 format="json",
             )
@@ -445,7 +447,7 @@ class PathfinderTestCase(APITestCase):
                 "/pathfinder/seasonal-role-check",
                 {
                     "discordUserId": link.discord_account.discord_id,
-                    "discordUserTag": link.discord_account.discord_tag,
+                    "discordUsername": link.discord_account.discord_username,
                 },
                 format="json",
             )
@@ -471,7 +473,7 @@ class PathfinderTestCase(APITestCase):
         details = response.data.get("error").get("details")
         for field in [
             "posterDiscordId",
-            "posterDiscordTag",
+            "posterDiscordUsername",
             "postId",
             "postTitle",
         ]:
@@ -486,7 +488,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/waywo-post",
             {
                 "posterDiscordId": "abc",
-                "posterDiscordTag": "abc",
+                "posterDiscordUsername": "a",
                 "postId": "abc",
                 "postTitle": "abc",
             },
@@ -502,12 +504,12 @@ class PathfinderTestCase(APITestCase):
                     string="Only numeric characters are allowed.", code="invalid"
                 ),
             )
-        self.assertIn("posterDiscordTag", details)
+        self.assertIn("posterDiscordUsername", details)
         self.assertEqual(
-            details.get("posterDiscordTag")[0],
+            details.get("posterDiscordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
@@ -516,7 +518,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/waywo-post",
             {
                 "posterDiscordId": "123",
-                "posterDiscordTag": "Test#0123",
+                "posterDiscordUsername": "Test0123",
                 "postId": "456",
                 "postTitle": "My Test Map",
             },
@@ -525,10 +527,10 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         discord_account = DiscordAccount.objects.first()
         self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_tag, "Test#0123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
         waywo_post = PathfinderWAYWOPost.objects.first()
         self.assertEqual(waywo_post.poster_discord.discord_id, "123")
-        self.assertEqual(waywo_post.poster_discord.discord_tag, "Test#0123")
+        self.assertEqual(waywo_post.poster_discord.discord_username, "Test0123")
         self.assertEqual(waywo_post.post_id, "456")
         self.assertEqual(waywo_post.post_title, "My Test Map")
         waywo_post.delete()
@@ -543,16 +545,16 @@ class PathfinderTestCase(APITestCase):
             details.get("discordUserId"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag"),
+            details.get("discordUsername"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
 
         # Improperly formatted value throws errors
         response = self.client.post(
             "/pathfinder/dynamo-progress",
-            {"discordUserId": "abc", "discordUserTag": "foo"},
+            {"discordUserId": "abc", "discordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -562,12 +564,12 @@ class PathfinderTestCase(APITestCase):
             details.get("discordUserId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
         )
-        self.assertIn("discordUserTag", details)
+        self.assertIn("discordUsername", details)
         self.assertEqual(
-            details.get("discordUserTag")[0],
+            details.get("discordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
 
@@ -587,7 +589,7 @@ class PathfinderTestCase(APITestCase):
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="1234", discord_tag="TestTag#1234"
+            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
         )
         xbox_live_account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="testGT1234"
@@ -605,7 +607,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/dynamo-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -628,7 +630,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/dynamo-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -666,7 +668,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/dynamo-progress",
             {
                 "discordUserId": link.discord_account_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )
@@ -706,7 +708,7 @@ class PathfinderTestCase(APITestCase):
             "/pathfinder/dynamo-progress",
             {
                 "discordUserId": discord_account.discord_id,
-                "discordUserTag": discord_account.discord_tag,
+                "discordUsername": discord_account.discord_username,
             },
             format="json",
         )

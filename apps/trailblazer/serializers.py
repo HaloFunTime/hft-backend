@@ -1,15 +1,13 @@
 from rest_framework import serializers
 
-from apps.discord.serializers import validate_discord_id, validate_discord_tag
+from apps.discord.serializers import validate_discord_id
 
 
 class TrailblazerScoutProgressRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    discordUserTag = serializers.CharField(
-        max_length=37, validators=[validate_discord_tag]
-    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
 class TrailblazerScoutProgressResponseSerializer(serializers.Serializer):
@@ -45,9 +43,7 @@ class TrailblazerSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
-    discordUserTag = serializers.CharField(
-        max_length=37, validators=[validate_discord_tag]
-    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
 class TrailblazerSeasonalRoleCheckResponseSerializer(serializers.Serializer):

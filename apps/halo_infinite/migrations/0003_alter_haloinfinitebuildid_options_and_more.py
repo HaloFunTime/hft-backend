@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("halo_infinite", "0002_haloinfiniteseason_haloinfiniteplaylist"),
     ]

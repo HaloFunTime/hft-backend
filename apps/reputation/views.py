@@ -28,9 +28,7 @@ from apps.reputation.utils import (
 
 REPUTATION_ERROR_FORBIDDEN = "This reputation transaction is not allowed."
 REPUTATION_ERROR_GIVER_ID = "A valid giverDiscordId (numeric string) must be provided."
-REPUTATION_ERROR_GIVER_TAG = (
-    "A valid giverDiscordTag (string with one '#' character) must be provided."
-)
+REPUTATION_ERROR_GIVER_USERNAME = "A valid giverDiscordUsername must be provided."
 REPUTATION_ERROR_INVALID_COUNT = (
     "The provided count must be a valid non-negative integer."
 )
@@ -43,9 +41,7 @@ REPUTATION_ERROR_MISSING_DISCORD_ID = (
 REPUTATION_ERROR_RECEIVER_ID = (
     "A valid receiverDiscordId (numeric string) must be provided."
 )
-REPUTATION_ERROR_RECEIVER_TAG = (
-    "A valid receiverDiscordTag (string with one '#' character) must be provided."
-)
+REPUTATION_ERROR_RECEIVER_USERNAME = "A valid receiverDiscordUsername must be provided."
 REPUTATION_ERROR_UNKNOWN = "An unknown error occurred."
 
 logger = logging.getLogger(__name__)
@@ -160,9 +156,15 @@ class NewPlusRep(APIView):
             serializer = PlusRepErrorSerializer({"error": REPUTATION_ERROR_GIVER_ID})
             return Response(serializer.data, status=400)
 
-        giver_discord_tag = request.data.get("giverDiscordTag")
-        if not giver_discord_tag or "#" not in giver_discord_tag:
-            serializer = PlusRepErrorSerializer({"error": REPUTATION_ERROR_GIVER_TAG})
+        giver_discord_username = request.data.get("giverDiscordUsername")
+        if (
+            not giver_discord_username
+            or len(giver_discord_username) < 2
+            or len(giver_discord_username) > 32
+        ):
+            serializer = PlusRepErrorSerializer(
+                {"error": REPUTATION_ERROR_GIVER_USERNAME}
+            )
             return Response(serializer.data, status=400)
 
         receiver_discord_id = request.data.get("receiverDiscordId")
@@ -170,10 +172,14 @@ class NewPlusRep(APIView):
             serializer = PlusRepErrorSerializer({"error": REPUTATION_ERROR_RECEIVER_ID})
             return Response(serializer.data, status=400)
 
-        receiver_discord_tag = request.data.get("receiverDiscordTag")
-        if not receiver_discord_tag or "#" not in receiver_discord_tag:
+        receiver_discord_username = request.data.get("receiverDiscordUsername")
+        if (
+            not receiver_discord_username
+            or len(receiver_discord_username) < 2
+            or len(receiver_discord_username) > 32
+        ):
             serializer = PlusRepErrorSerializer(
-                {"error": REPUTATION_ERROR_RECEIVER_TAG}
+                {"error": REPUTATION_ERROR_RECEIVER_USERNAME}
             )
             return Response(serializer.data, status=400)
 
@@ -181,10 +187,10 @@ class NewPlusRep(APIView):
 
         try:
             giver_discord_account = update_or_create_discord_account(
-                giver_discord_id, giver_discord_tag, request.user
+                giver_discord_id, giver_discord_username, request.user
             )
             receiver_discord_account = update_or_create_discord_account(
-                receiver_discord_id, receiver_discord_tag, request.user
+                receiver_discord_id, receiver_discord_username, request.user
             )
             plus_rep = create_new_plus_rep(
                 giver_discord_account, receiver_discord_account, message, request.user

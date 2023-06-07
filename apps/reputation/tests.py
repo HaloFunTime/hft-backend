@@ -23,12 +23,12 @@ from apps.reputation.utils import (
 from apps.reputation.views import (
     REPUTATION_ERROR_FORBIDDEN,
     REPUTATION_ERROR_GIVER_ID,
-    REPUTATION_ERROR_GIVER_TAG,
+    REPUTATION_ERROR_GIVER_USERNAME,
     REPUTATION_ERROR_INVALID_COUNT,
     REPUTATION_ERROR_INVALID_DISCORD_ID,
     REPUTATION_ERROR_MISSING_DISCORD_ID,
     REPUTATION_ERROR_RECEIVER_ID,
-    REPUTATION_ERROR_RECEIVER_TAG,
+    REPUTATION_ERROR_RECEIVER_USERNAME,
 )
 
 
@@ -152,26 +152,26 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": REPUTATION_ERROR_GIVER_ID})
 
-        # Missing 'giverDiscordTag' throws error
+        # Missing 'giverDiscordUsername' throws error
         response = self.client.post(
             "/reputation/plus-rep", {"giverDiscordId": "1234"}, format="json"
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": REPUTATION_ERROR_GIVER_TAG})
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_GIVER_USERNAME})
 
-        # Invalid 'giverDiscordTag' throws error
+        # Invalid 'giverDiscordUsername' throws error
         response = self.client.post(
             "/reputation/plus-rep",
-            {"giverDiscordId": "1234", "giverDiscordTag": "foo"},
+            {"giverDiscordId": "1234", "giverDiscordUsername": "f"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": REPUTATION_ERROR_GIVER_TAG})
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_GIVER_USERNAME})
 
         # Missing 'receiverDiscordId' throws error
         response = self.client.post(
             "/reputation/plus-rep",
-            {"giverDiscordId": "1234", "giverDiscordTag": "HFTIntern#1234"},
+            {"giverDiscordId": "1234", "giverDiscordUsername": "HFTIntern1234"},
             format="json",
         )
         self.assertEqual(response.status_code, 400)
@@ -182,7 +182,7 @@ class PlusRepTestCase(APITestCase):
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "abc",
             },
             format="json",
@@ -190,41 +190,41 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"error": REPUTATION_ERROR_RECEIVER_ID})
 
-        # Missing 'receiverDiscordTag' throws error
+        # Missing 'receiverDiscordUsername' throws error
         response = self.client.post(
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "1234",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": REPUTATION_ERROR_RECEIVER_TAG})
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_RECEIVER_USERNAME})
 
-        # Invalid 'receiverDiscordTag' throws error
+        # Invalid 'receiverDiscordUsername' throws error
         response = self.client.post(
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "1234",
-                "receiverDiscordTag": "foo",
+                "receiverDiscordUsername": "f",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": REPUTATION_ERROR_RECEIVER_TAG})
+        self.assertEqual(response.data, {"error": REPUTATION_ERROR_RECEIVER_USERNAME})
 
         # 1: Valid data (excluding 'message') succeeds
         response = self.client.post(
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "5678",
-                "receiverDiscordTag": "HFTIntern#5678",
+                "receiverDiscordUsername": "HFTIntern5678",
             },
             format="json",
         )
@@ -233,9 +233,9 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(PlusRep.objects.count(), 1)
         plus_rep_1 = PlusRep.objects.order_by("-created_at").first()
         self.assertEqual(plus_rep_1.giver.discord_id, "1234")
-        self.assertEqual(plus_rep_1.giver.discord_tag, "HFTIntern#1234")
+        self.assertEqual(plus_rep_1.giver.discord_username, "HFTIntern1234")
         self.assertEqual(plus_rep_1.receiver.discord_id, "5678")
-        self.assertEqual(plus_rep_1.receiver.discord_tag, "HFTIntern#5678")
+        self.assertEqual(plus_rep_1.receiver.discord_username, "HFTIntern5678")
         self.assertEqual(plus_rep_1.message, "")
 
         # 2: Valid data succeeds
@@ -243,9 +243,9 @@ class PlusRepTestCase(APITestCase):
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "6789",
-                "receiverDiscordTag": "HFTIntern#6789",
+                "receiverDiscordUsername": "HFTIntern6789",
                 "message": "I think Halo is a pretty cool guy. Eh kills aleins and doesnt afraid of anything.",
             },
             format="json",
@@ -255,9 +255,9 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(PlusRep.objects.count(), 2)
         plus_rep_2 = PlusRep.objects.order_by("-created_at").first()
         self.assertEqual(plus_rep_2.giver.discord_id, "1234")
-        self.assertEqual(plus_rep_2.giver.discord_tag, "HFTIntern#1234")
+        self.assertEqual(plus_rep_2.giver.discord_username, "HFTIntern1234")
         self.assertEqual(plus_rep_2.receiver.discord_id, "6789")
-        self.assertEqual(plus_rep_2.receiver.discord_tag, "HFTIntern#6789")
+        self.assertEqual(plus_rep_2.receiver.discord_username, "HFTIntern6789")
         self.assertEqual(
             plus_rep_2.message,
             "I think Halo is a pretty cool guy. Eh kills aleins and doesnt afraid of anything.",
@@ -268,9 +268,9 @@ class PlusRepTestCase(APITestCase):
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "7890",
-                "receiverDiscordTag": "HFTIntern#7890",
+                "receiverDiscordUsername": "HFTIntern7890",
                 "message": None,
             },
             format="json",
@@ -280,9 +280,9 @@ class PlusRepTestCase(APITestCase):
         self.assertEqual(PlusRep.objects.count(), 3)
         plus_rep_3 = PlusRep.objects.order_by("-created_at").first()
         self.assertEqual(plus_rep_3.giver.discord_id, "1234")
-        self.assertEqual(plus_rep_3.giver.discord_tag, "HFTIntern#1234")
+        self.assertEqual(plus_rep_3.giver.discord_username, "HFTIntern1234")
         self.assertEqual(plus_rep_3.receiver.discord_id, "7890")
-        self.assertEqual(plus_rep_3.receiver.discord_tag, "HFTIntern#7890")
+        self.assertEqual(plus_rep_3.receiver.discord_username, "HFTIntern7890")
         self.assertEqual(plus_rep_3.message, "")
 
         # 4: 403 if giver cannot send rep - no record created
@@ -291,9 +291,9 @@ class PlusRepTestCase(APITestCase):
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "7890",
-                "receiverDiscordTag": "HFTIntern#7890",
+                "receiverDiscordUsername": "HFTIntern7890",
                 "message": None,
             },
             format="json",
@@ -309,9 +309,9 @@ class PlusRepTestCase(APITestCase):
             "/reputation/plus-rep",
             {
                 "giverDiscordId": "1234",
-                "giverDiscordTag": "HFTIntern#1234",
+                "giverDiscordUsername": "HFTIntern1234",
                 "receiverDiscordId": "7890",
-                "receiverDiscordTag": "HFTIntern#7890",
+                "receiverDiscordUsername": "HFTIntern7890",
                 "message": None,
             },
             format="json",

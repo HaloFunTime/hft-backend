@@ -27,7 +27,7 @@ class FunTimeFridayTestCase(APITestCase):
         details = response.data.get("error").get("details")
         for field in [
             "connectorDiscordId",
-            "connectorDiscordTag",
+            "connectorDiscordUsername",
             "connectedAt",
             "channelId",
         ]:
@@ -42,7 +42,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-connect",
             {
                 "connectorDiscordId": "abc",
-                "connectorDiscordTag": "abc",
+                "connectorDiscordUsername": "a",
                 "connectedAt": "abc",
                 "channelId": "abc",
             },
@@ -58,12 +58,12 @@ class FunTimeFridayTestCase(APITestCase):
                     string="Only numeric characters are allowed.", code="invalid"
                 ),
             )
-        self.assertIn("connectorDiscordTag", details)
+        self.assertIn("connectorDiscordUsername", details)
         self.assertEqual(
-            details.get("connectorDiscordTag")[0],
+            details.get("connectorDiscordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
         self.assertIn("connectedAt", details)
@@ -81,7 +81,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-connect",
             {
                 "connectorDiscordId": "123",
-                "connectorDiscordTag": "Test#0123",
+                "connectorDiscordUsername": "Test0123",
                 "connectedAt": "2023-03-10T09:08:07Z",
                 "channelId": "456",
             },
@@ -90,10 +90,10 @@ class FunTimeFridayTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         discord_account = DiscordAccount.objects.first()
         self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_tag, "Test#0123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
         voice_connect = FunTimeFridayVoiceConnect.objects.first()
         self.assertEqual(voice_connect.connector_discord.discord_id, "123")
-        self.assertEqual(voice_connect.connector_discord.discord_tag, "Test#0123")
+        self.assertEqual(voice_connect.connector_discord.discord_username, "Test0123")
         self.assertEqual(
             voice_connect.connected_at,
             datetime.datetime(
@@ -115,7 +115,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-connect",
             {
                 "connectorDiscordId": "123",
-                "connectorDiscordTag": "Test#0124",
+                "connectorDiscordUsername": "Test0124",
                 "connectedAt": "2023-03-11T00:01:02Z",
                 "channelId": "789",
                 "channelName": "This channel name is a bit longer than fifty characters",
@@ -125,10 +125,10 @@ class FunTimeFridayTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         discord_account = DiscordAccount.objects.first()
         self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_tag, "Test#0124")
+        self.assertEqual(discord_account.discord_username, "Test0124")
         voice_connect = FunTimeFridayVoiceConnect.objects.first()
         self.assertEqual(voice_connect.connector_discord.discord_id, "123")
-        self.assertEqual(voice_connect.connector_discord.discord_tag, "Test#0124")
+        self.assertEqual(voice_connect.connector_discord.discord_username, "Test0124")
         self.assertEqual(
             voice_connect.connected_at,
             datetime.datetime(
@@ -157,7 +157,7 @@ class FunTimeFridayTestCase(APITestCase):
         details = response.data.get("error").get("details")
         for field in [
             "disconnectorDiscordId",
-            "disconnectorDiscordTag",
+            "disconnectorDiscordUsername",
             "disconnectedAt",
             "channelId",
         ]:
@@ -172,7 +172,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-disconnect",
             {
                 "disconnectorDiscordId": "abc",
-                "disconnectorDiscordTag": "abc",
+                "disconnectorDiscordUsername": "a",
                 "disconnectedAt": "abc",
                 "channelId": "abc",
             },
@@ -188,12 +188,12 @@ class FunTimeFridayTestCase(APITestCase):
                     string="Only numeric characters are allowed.", code="invalid"
                 ),
             )
-        self.assertIn("disconnectorDiscordTag", details)
+        self.assertIn("disconnectorDiscordUsername", details)
         self.assertEqual(
-            details.get("disconnectorDiscordTag")[0],
+            details.get("disconnectorDiscordUsername")[0],
             ErrorDetail(
-                string="Only characters constituting a valid Discord Tag are allowed.",
-                code="invalid",
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
             ),
         )
         self.assertIn("disconnectedAt", details)
@@ -211,7 +211,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-disconnect",
             {
                 "disconnectorDiscordId": "123",
-                "disconnectorDiscordTag": "Test#0123",
+                "disconnectorDiscordUsername": "Test0123",
                 "disconnectedAt": "2023-03-10T09:08:07Z",
                 "channelId": "456",
             },
@@ -220,10 +220,12 @@ class FunTimeFridayTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         discord_account = DiscordAccount.objects.first()
         self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_tag, "Test#0123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
         voice_disconnect = FunTimeFridayVoiceDisconnect.objects.first()
         self.assertEqual(voice_disconnect.disconnector_discord.discord_id, "123")
-        self.assertEqual(voice_disconnect.disconnector_discord.discord_tag, "Test#0123")
+        self.assertEqual(
+            voice_disconnect.disconnector_discord.discord_username, "Test0123"
+        )
         self.assertEqual(
             voice_disconnect.disconnected_at,
             datetime.datetime(
@@ -245,7 +247,7 @@ class FunTimeFridayTestCase(APITestCase):
             "/fun-time-friday/voice-disconnect",
             {
                 "disconnectorDiscordId": "123",
-                "disconnectorDiscordTag": "Test#0124",
+                "disconnectorDiscordUsername": "Test0124",
                 "disconnectedAt": "2023-03-11T00:01:02Z",
                 "channelId": "789",
                 "channelName": "This channel name is a bit longer than fifty characters",
@@ -255,10 +257,12 @@ class FunTimeFridayTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         discord_account = DiscordAccount.objects.first()
         self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_tag, "Test#0124")
+        self.assertEqual(discord_account.discord_username, "Test0124")
         voice_disconnect = FunTimeFridayVoiceDisconnect.objects.first()
         self.assertEqual(voice_disconnect.disconnector_discord.discord_id, "123")
-        self.assertEqual(voice_disconnect.disconnector_discord.discord_tag, "Test#0124")
+        self.assertEqual(
+            voice_disconnect.disconnector_discord.discord_username, "Test0124"
+        )
         self.assertEqual(
             voice_disconnect.disconnected_at,
             datetime.datetime(

@@ -50,10 +50,10 @@ class TrailblazerSeasonalRoleCheckView(APIView):
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
-            discord_tag = validation_serializer.data.get("discordUserTag")
+            discord_username = validation_serializer.data.get("discordUsername")
             try:
                 discord_account = update_or_create_discord_account(
-                    discord_id, discord_tag, request.user
+                    discord_id, discord_username, request.user
                 )
                 link = None
                 try:
@@ -114,11 +114,11 @@ class TrailblazerScoutProgressView(APIView):
         )
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
-            discord_tag = validation_serializer.data.get("discordUserTag")
+            discord_username = validation_serializer.data.get("discordUsername")
             try:
                 season_id = get_current_season_id()
                 discord_account = update_or_create_discord_account(
-                    discord_id, discord_tag, request.user
+                    discord_id, discord_username, request.user
                 )
                 link = None
                 try:
