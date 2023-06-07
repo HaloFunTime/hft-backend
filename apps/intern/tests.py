@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient, APITestCase
 
+from apps.discord.utils import update_or_create_discord_account
 from apps.intern.models import (
     InternChatter,
     InternChatterForbiddenChannel,
@@ -56,11 +57,10 @@ def chatter_forbidden_channel_factory(
 def chatter_pause_factory(
     creator: User, discord_user_id: int = None
 ) -> InternChatterPause:
+    id_str = str(abs(uuid.uuid4().int) % 2147483647)
     return InternChatterPause.objects.create(
         creator=creator,
-        discord_user_id=abs(uuid.uuid4().int) % 2147483647
-        if discord_user_id is None
-        else discord_user_id,
+        pauser=update_or_create_discord_account(id_str, str(len(id_str)), creator),
     )
 
 
