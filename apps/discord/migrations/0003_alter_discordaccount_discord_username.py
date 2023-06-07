@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             model_name="discordaccount",
             name="discord_username",
             field=models.CharField(
-                max_length=32,
+                max_length=37,
                 validators=[django.core.validators.MinLengthValidator(2)],
                 verbose_name="Discord Username",
             ),
