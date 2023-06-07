@@ -12,7 +12,7 @@ from apps.intern.models import (
     InternNewHereYeetQuip,
     InternPlusRepQuip,
 )
-from apps.overrides.admin import AutofillCreatorModelAdmin
+from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 
 
 @admin.register(InternChatter)
@@ -34,13 +34,14 @@ class InternChatterPauseAdmin(AutofillCreatorModelAdmin):
     list_display = (
         "id",
         "created_at",
-        "pauser",
-        "discord_user_id",
-        "discord_user_tag",
+        linkify("pauser"),
         "creator",
     )
-    list_filter = ("creator",)
-    fields = ("pauser", "discord_user_id", "discord_user_tag", "creator")
+    list_filter = (
+        "pauser",
+        "creator",
+    )
+    fields = ("pauser", "creator")
 
 
 @admin.register(InternChatterPauseAcceptanceQuip)
