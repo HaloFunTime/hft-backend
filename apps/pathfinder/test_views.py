@@ -733,7 +733,7 @@ class PathfinderTestCase(APITestCase):
     @patch("apps.pathfinder.views.get_s4_discord_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     @patch("apps.pathfinder.views.get_current_season_id")
-    def test_pathfinder_scout_progress_view_s4(
+    def test_pathfinder_dynamo_progress_view_s4(
         self,
         mock_get_current_season_id,
         mock_get_xuid_and_exact_gamertag,

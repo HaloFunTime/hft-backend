@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "apps.pathfinder",
     "apps.ping",
     "apps.reputation",
+    "apps.season_04",
     "apps.series",
     "apps.trailblazer",
     "apps.xbox_live",
