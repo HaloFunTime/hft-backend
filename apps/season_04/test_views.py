@@ -135,9 +135,9 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scorePackedHouse"), -1)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
-        self.assertEqual(response.data.get("completedATeam"), False)
-        self.assertEqual(response.data.get("completedSneedsSeedGreed"), False)
-        self.assertEqual(response.data.get("completedFuckThatGuy"), False)
+        self.assertEqual(response.data.get("completedTypeA"), False)
+        self.assertEqual(response.data.get("completedFormerlyChucks"), False)
+        self.assertEqual(response.data.get("completedInParticular"), False)
 
         # Success - no linked gamertag
         link.delete()
@@ -171,6 +171,6 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scorePackedHouse"), -1)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
-        self.assertEqual(response.data.get("completedATeam"), False)
-        self.assertEqual(response.data.get("completedSneedsSeedGreed"), False)
-        self.assertEqual(response.data.get("completedFuckThatGuy"), False)
+        self.assertEqual(response.data.get("completedTypeA"), False)
+        self.assertEqual(response.data.get("completedFormerlyChucks"), False)
+        self.assertEqual(response.data.get("completedInParticular"), False)

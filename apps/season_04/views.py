@@ -88,9 +88,9 @@ class CheckStampsView(APIView):
                     "scorePackedHouse": -1,
                     "completedFinishInFive": False,
                     "completedVictoryLap": False,
-                    "completedATeam": False,
-                    "completedSneedsSeedGreed": False,
-                    "completedFuckThatGuy": False,
+                    "completedTypeA": False,
+                    "completedFormerlyChucks": False,
+                    "completedInParticular": False,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
