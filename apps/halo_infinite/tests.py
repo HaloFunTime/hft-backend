@@ -7,6 +7,12 @@ from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 from django.test import TestCase
 
+from apps.halo_infinite.constants import (
+    SEARCH_ASSET_KIND_MAP,
+    SEARCH_ASSET_KIND_MODE,
+    SEARCH_ASSET_KIND_PREFAB,
+    SEASON_DATA_DICT,
+)
 from apps.halo_infinite.exceptions import (
     HaloInfiniteClearanceTokenMissingException,
     HaloInfiniteSpartanTokenMissingException,
@@ -29,10 +35,6 @@ from apps.halo_infinite.tokens import (
     get_xsts_token,
 )
 from apps.halo_infinite.utils import (
-    SEARCH_ASSET_KIND_MAP,
-    SEARCH_ASSET_KIND_MODE,
-    SEARCH_ASSET_KIND_PREFAB,
-    SEASON_DAYS_AND_TIMES,
     get_343_recommended_contributors,
     get_authored_maps,
     get_authored_modes,
@@ -1022,7 +1024,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
 
     @patch("apps.halo_infinite.utils.matches_between")
     def test_get_get_season_custom_matches_for_xuid(self, mock_matches_between):
-        for season_id in SEASON_DAYS_AND_TIMES.keys():
+        for season_id in SEASON_DATA_DICT.keys():
             start_time, end_time = get_start_and_end_times_for_season(season_id)
             mock_matches_between.return_value = [
                 {"MatchId": "foo"},
@@ -1038,7 +1040,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
 
     @patch("apps.halo_infinite.utils.matches_between")
     def test_get_season_ranked_arena_matches_for_xuid(self, mock_matches_between):
-        for season_id in SEASON_DAYS_AND_TIMES.keys():
+        for season_id in SEASON_DATA_DICT.keys():
             start_time, end_time = get_start_and_end_times_for_season(season_id)
             ranked_arena_playlist_id = get_ranked_arena_playlist_id_for_season(
                 season_id

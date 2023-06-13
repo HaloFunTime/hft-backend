@@ -578,7 +578,7 @@ class HaloInfiniteAPITestCase(TestCase):
             {}, playlist_version("test_playlist_id", "test_version_id")
         )
 
-    @patch("apps.halo_infinite.api.service_record.requests.Session")
+    @patch("apps.halo_infinite.api.recommended.requests.Session")
     def test_recommended(self, mock_Session):
         # Successful call
         mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
@@ -956,7 +956,14 @@ class HaloInfiniteAPITestCase(TestCase):
 
     @patch("apps.halo_infinite.api.service_record.requests.Session")
     def test_service_record(self, mock_Session):
-        # Successful call
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, service_record(2535405290989773))
+        mock_Session.reset_mock()
+
+        # Successful call - all seasons
         mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
             200
         )
@@ -981,19 +988,95 @@ class HaloInfiniteAPITestCase(TestCase):
                 "x-343-authorization-spartan": self.spartan_token.token,
             },
         )
-        self.assertIn("MatchesCompleted", service_record_data)
-        self.assertIn("Wins", service_record_data)
-        self.assertIn("Losses", service_record_data)
-        self.assertIn("Ties", service_record_data)
+        self.assertEqual(service_record_data.get("MatchesCompleted"), 3518)
+        self.assertEqual(service_record_data.get("Wins"), 1954)
+        self.assertEqual(service_record_data.get("Losses"), 1496)
+        self.assertEqual(service_record_data.get("Ties"), 57)
         self.assertIn("CoreStats", service_record_data)
-        self.assertIn("Kills", service_record_data.get("CoreStats"))
-        self.assertIn("Deaths", service_record_data.get("CoreStats"))
-        self.assertIn("Assists", service_record_data.get("CoreStats"))
-        self.assertIn("AverageKDA", service_record_data.get("CoreStats"))
+        self.assertEqual(service_record_data.get("CoreStats").get("Kills"), 47626)
+        self.assertEqual(service_record_data.get("CoreStats").get("Deaths"), 37802)
+        self.assertEqual(service_record_data.get("CoreStats").get("Assists"), 18549)
+        self.assertEqual(
+            service_record_data.get("CoreStats").get("AverageKDA"), 4.5500284252416145
+        )
         mock_Session.reset_mock()
 
-        # Failed call
+        # Successful call - specific season
         mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            404
+            200
         )
-        self.assertDictEqual({}, service_record(2535405290989773))
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "MatchesCompleted": 1759,
+            "Wins": 977,
+            "Losses": 748,
+            "Ties": 34,
+            "CoreStats": {
+                "Kills": 4762,
+                "Deaths": 3780,
+                "Assists": 1854,
+                "AverageKDA": 2.012345,
+            },
+        }
+        service_record_data = service_record(2535405290989773, "test_season_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://halostats.svc.halowaypoint.com/hi/players/xuid(2535405290989773)/matchmade/servicerecord"
+            "?SeasonId=test_season_id",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertEqual(service_record_data.get("MatchesCompleted"), 1759)
+        self.assertEqual(service_record_data.get("Wins"), 977)
+        self.assertEqual(service_record_data.get("Losses"), 748)
+        self.assertEqual(service_record_data.get("Ties"), 34)
+        self.assertIn("CoreStats", service_record_data)
+        self.assertEqual(service_record_data.get("CoreStats").get("Kills"), 4762)
+        self.assertEqual(service_record_data.get("CoreStats").get("Deaths"), 3780)
+        self.assertEqual(service_record_data.get("CoreStats").get("Assists"), 1854)
+        self.assertEqual(
+            service_record_data.get("CoreStats").get("AverageKDA"), 2.012345
+        )
+        mock_Session.reset_mock()
+
+        # Successful call - season and playlist
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "MatchesCompleted": 10,
+            "Wins": 5,
+            "Losses": 4,
+            "Ties": 1,
+            "CoreStats": {
+                "Kills": 123,
+                "Deaths": 99,
+                "Assists": 40,
+                "AverageKDA": 1.111111111,
+            },
+        }
+        service_record_data = service_record(
+            2535405290989773, "test_season_id", "test_playlist_id"
+        )
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://halostats.svc.halowaypoint.com/hi/players/xuid(2535405290989773)/matchmade/servicerecord"
+            "?SeasonId=test_season_id&PlaylistAssetId=test_playlist_id",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertEqual(service_record_data.get("MatchesCompleted"), 10)
+        self.assertEqual(service_record_data.get("Wins"), 5)
+        self.assertEqual(service_record_data.get("Losses"), 4)
+        self.assertEqual(service_record_data.get("Ties"), 1)
+        self.assertIn("CoreStats", service_record_data)
+        self.assertEqual(service_record_data.get("CoreStats").get("Kills"), 123)
+        self.assertEqual(service_record_data.get("CoreStats").get("Deaths"), 99)
+        self.assertEqual(service_record_data.get("CoreStats").get("Assists"), 40)
+        self.assertEqual(
+            service_record_data.get("CoreStats").get("AverageKDA"), 1.111111111
+        )
+        mock_Session.reset_mock()

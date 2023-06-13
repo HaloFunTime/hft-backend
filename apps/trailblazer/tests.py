@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
-from apps.halo_infinite.utils import SEASON_3_START_TIME, SEASON_4_START_TIME
+from apps.halo_infinite.constants import SEASON_3_START_TIME, SEASON_4_START_TIME
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.models import (
     TrailblazerExcellentVODReview,

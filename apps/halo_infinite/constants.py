@@ -1,3 +1,5 @@
+import datetime
+
 MAP_ID_AQUARIUS = "33c0766c-ef15-48f8-b298-34aba5bff3b4"
 MAP_ID_ARGYLE = "dd600260-d91c-4d77-9990-3f35873c90a1"
 MAP_ID_BAZAAR = "298d5036-cd43-47b3-a4bd-31e127566593"
@@ -16,3 +18,84 @@ MAP_ID_LIVE_FIRE = "b6aca0c7-8ba7-4066-bf91-693571374c3c"
 MAP_ID_OASIS = "6aa0a116-66a6-4242-a1b3-41aa417d6dc6"
 MAP_ID_RECHARGE = "8420410b-044d-44d7-80b6-98a766c8c39f"
 MAP_ID_STREETS = "f0a1760f-0d4a-4bcc-ac7a-e8f9aee331dc"
+
+SEARCH_ASSET_KIND_MAP = 2
+SEARCH_ASSET_KIND_MODE = 6
+SEARCH_ASSET_KIND_PREFAB = 4
+
+SEASON_1_API_ID = "Seasons/Season6.json"
+SEASON_1_RESET_API_ID = "Seasons/Season6-2.json"
+SEASON_2_API_ID = "Seasons/Season7.json"
+SEASON_WU_API_ID = "Seasons/Season-Winter-Break-22.json"
+SEASON_3_API_ID = "Seasons/Season3.json"
+SEASON_3_FIRST_DAY = datetime.date(year=2023, month=3, day=7)
+SEASON_3_LAST_DAY = datetime.date(year=2023, month=6, day=19)
+SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
+SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00.000Z")
+SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
+SEASON_3_DEV_MAP_IDS = {
+    MAP_ID_AQUARIUS,
+    MAP_ID_ARGYLE,
+    MAP_ID_BAZAAR,
+    MAP_ID_BEHEMOTH,
+    MAP_ID_BREAKER,
+    MAP_ID_CATALYST,
+    MAP_ID_CHASM,
+    MAP_ID_CLIFFHANGER,
+    MAP_ID_DEADLOCK,
+    MAP_ID_DETACHMENT,
+    MAP_ID_EMPYREAN,
+    MAP_ID_FRAGMENTATION,
+    MAP_ID_HIGHPOWER,
+    MAP_ID_LAUNCH_SITE,
+    MAP_ID_LIVE_FIRE,
+    MAP_ID_OASIS,
+    MAP_ID_RECHARGE,
+    MAP_ID_STREETS,
+}
+SEASON_4_API_ID = ""
+SEASON_4_FIRST_DAY = datetime.date(year=2023, month=6, day=20)
+SEASON_4_LAST_DAY = datetime.date(year=2023, month=9, day=25)
+SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00Z")
+SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-09-26T17:00:00Z")
+SEASON_4_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
+SEASON_4_DEV_MAP_IDS = {
+    MAP_ID_AQUARIUS,
+    MAP_ID_ARGYLE,
+    MAP_ID_BAZAAR,
+    MAP_ID_BEHEMOTH,
+    MAP_ID_BREAKER,
+    MAP_ID_CATALYST,
+    MAP_ID_CHASM,
+    MAP_ID_CLIFFHANGER,
+    MAP_ID_DEADLOCK,
+    MAP_ID_DETACHMENT,
+    MAP_ID_EMPYREAN,
+    MAP_ID_FRAGMENTATION,
+    MAP_ID_HIGHPOWER,
+    MAP_ID_LAUNCH_SITE,
+    MAP_ID_LIVE_FIRE,
+    MAP_ID_OASIS,
+    MAP_ID_RECHARGE,
+    MAP_ID_STREETS,
+}
+SEASON_DATA_DICT = {
+    "3": {
+        "api_id": SEASON_3_API_ID,
+        "first_day": SEASON_3_FIRST_DAY,
+        "last_day": SEASON_3_LAST_DAY,
+        "start_time": SEASON_3_START_TIME,
+        "end_time": SEASON_3_END_TIME,
+        "ranked_arena_playlist_id": SEASON_3_RANKED_ARENA_PLAYLIST_ID,
+        "dev_map_ids": SEASON_3_DEV_MAP_IDS,
+    },
+    "4": {
+        "api_id": SEASON_4_API_ID,
+        "first_day": SEASON_4_FIRST_DAY,
+        "last_day": SEASON_4_LAST_DAY,
+        "start_time": SEASON_4_START_TIME,
+        "end_time": SEASON_4_END_TIME,
+        "ranked_arena_playlist_id": SEASON_4_RANKED_ARENA_PLAYLIST_ID,
+        "dev_map_ids": SEASON_4_DEV_MAP_IDS,
+    },
+}
