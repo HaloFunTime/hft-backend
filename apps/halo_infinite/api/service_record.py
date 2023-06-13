@@ -33,7 +33,4 @@ def service_record(
         )
         if response.status_code == 200:
             return_dict = response.json()
-    import json
-
-    logger.warn(json.dumps(return_dict))
     return return_dict

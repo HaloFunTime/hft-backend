@@ -14,6 +14,9 @@ class CheckStampsRequestSerializer(serializers.Serializer):
 
 class CheckStampsResponseSerializer(serializers.Serializer):
     linkedGamertag = serializers.BooleanField()
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
     stampsCompleted = serializers.IntegerField()
     scoreChatterbox = serializers.IntegerField()
     scoreFuntagious = serializers.IntegerField()

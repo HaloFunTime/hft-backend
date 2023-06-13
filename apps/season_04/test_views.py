@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -6,6 +6,11 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.constants import (
+    MEDAL_ID_PERFECTION,
+    PLAYLIST_ID_BOT_BOOTCAMP,
+    SEASON_3_API_ID,
+)
 from apps.link.models import DiscordXboxLiveLink
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -87,8 +92,11 @@ class Season04TestCase(APITestCase):
             ),
         )
 
+    @patch("apps.season_04.views.service_record")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_check_stamps_view(self, mock_get_xuid_and_exact_gamertag):
+    def test_check_stamps_view(
+        self, mock_get_xuid_and_exact_gamertag, mock_service_record
+    ):
         # Create test data
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
@@ -105,29 +113,58 @@ class Season04TestCase(APITestCase):
         )
 
         # Success - point totals come through for all values
+        mock_service_record.side_effect = [
+            {
+                "Wins": 6,
+                "CoreStats": {
+                    "Kills": 7,
+                    "HeadshotKills": 8,
+                    "PowerWeaponKills": 9,
+                },
+            },
+            {
+                "CoreStats": {
+                    "Medals": [
+                        {
+                            "NameId": MEDAL_ID_PERFECTION,
+                            "Count": 10,
+                        }
+                    ],
+                }
+            },
+        ]
         response = self.client.post(
             "/season-04/check-stamps",
             {
                 "discordUserId": link.discord_account_id,
                 "discordUsername": discord_account.discord_username,
-                "funTimerRank": 5,
-                "inviteUses": 1,
+                "funTimerRank": 1,
+                "inviteUses": 2,
             },
             format="json",
         )
+        mock_service_record.assert_has_calls(
+            [
+                call(link.xbox_live_account_id, SEASON_3_API_ID),
+                call(
+                    link.xbox_live_account_id, SEASON_3_API_ID, PLAYLIST_ID_BOT_BOOTCAMP
+                ),
+            ]
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), True)
+        self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
         self.assertEqual(response.data.get("stampsCompleted"), 2)
-        self.assertEqual(response.data.get("scoreChatterbox"), 5)
-        self.assertEqual(response.data.get("scoreFuntagious"), 1)
+        self.assertEqual(response.data.get("scoreChatterbox"), 1)
+        self.assertEqual(response.data.get("scoreFuntagious"), 2)
         self.assertEqual(response.data.get("scoreReppingIt"), -1)
         self.assertEqual(response.data.get("scoreFundurance"), -1)
         self.assertEqual(response.data.get("scoreGangsAllHere"), -1)
-        self.assertEqual(response.data.get("scoreStackingDubs"), -1)
-        self.assertEqual(response.data.get("scoreLicenseToKill"), -1)
-        self.assertEqual(response.data.get("scoreAimForTheHead"), -1)
-        self.assertEqual(response.data.get("scorePowerTrip"), -1)
-        self.assertEqual(response.data.get("scoreBotBullying"), -1)
+        self.assertEqual(response.data.get("scoreStackingDubs"), 6)
+        self.assertEqual(response.data.get("scoreLicenseToKill"), 7)
+        self.assertEqual(response.data.get("scoreAimForTheHead"), 8)
+        self.assertEqual(response.data.get("scorePowerTrip"), 9)
+        self.assertEqual(response.data.get("scoreBotBullying"), 10)
         self.assertEqual(response.data.get("scoreOneFundo"), -1)
         self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
         self.assertEqual(response.data.get("scoreWellTraveled"), -1)
@@ -138,6 +175,7 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("completedTypeA"), False)
         self.assertEqual(response.data.get("completedFormerlyChucks"), False)
         self.assertEqual(response.data.get("completedInParticular"), False)
+        mock_service_record.reset_mock()
 
         # Success - no linked gamertag
         link.delete()
@@ -146,24 +184,26 @@ class Season04TestCase(APITestCase):
             {
                 "discordUserId": discord_account.discord_id,
                 "discordUsername": discord_account.discord_username,
-                "funTimerRank": 5,
-                "inviteUses": 1,
+                "funTimerRank": 1,
+                "inviteUses": 2,
             },
             format="json",
         )
+        mock_service_record.assert_not_called()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), False)
-        self.assertEqual(response.data.get("stampsCompleted"), 2)
-        self.assertEqual(response.data.get("scoreChatterbox"), 5)
-        self.assertEqual(response.data.get("scoreFuntagious"), 1)
+        self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
+        self.assertEqual(response.data.get("stampsCompleted"), 1)
+        self.assertEqual(response.data.get("scoreChatterbox"), 1)
+        self.assertEqual(response.data.get("scoreFuntagious"), 2)
         self.assertEqual(response.data.get("scoreReppingIt"), -1)
         self.assertEqual(response.data.get("scoreFundurance"), -1)
         self.assertEqual(response.data.get("scoreGangsAllHere"), -1)
-        self.assertEqual(response.data.get("scoreStackingDubs"), -1)
-        self.assertEqual(response.data.get("scoreLicenseToKill"), -1)
-        self.assertEqual(response.data.get("scoreAimForTheHead"), -1)
-        self.assertEqual(response.data.get("scorePowerTrip"), -1)
-        self.assertEqual(response.data.get("scoreBotBullying"), -1)
+        self.assertEqual(response.data.get("scoreStackingDubs"), 0)
+        self.assertEqual(response.data.get("scoreLicenseToKill"), 0)
+        self.assertEqual(response.data.get("scoreAimForTheHead"), 0)
+        self.assertEqual(response.data.get("scorePowerTrip"), 0)
+        self.assertEqual(response.data.get("scoreBotBullying"), 0)
         self.assertEqual(response.data.get("scoreOneFundo"), -1)
         self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
         self.assertEqual(response.data.get("scoreWellTraveled"), -1)
