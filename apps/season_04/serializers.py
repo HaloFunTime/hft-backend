@@ -10,6 +10,7 @@ class CheckStampsRequestSerializer(serializers.Serializer):
     discordUsername = serializers.CharField(min_length=2, max_length=32)
     funTimerRank = serializers.IntegerField(min_value=0, max_value=20)
     inviteUses = serializers.IntegerField(min_value=0)
+    societiesJoined = serializers.IntegerField(min_value=0)
 
 
 class CheckStampsResponseSerializer(serializers.Serializer):
@@ -22,7 +23,7 @@ class CheckStampsResponseSerializer(serializers.Serializer):
     scoreFuntagious = serializers.IntegerField()
     scoreReppingIt = serializers.IntegerField()
     scoreFundurance = serializers.IntegerField()
-    scoreGangsAllHere = serializers.IntegerField()
+    scoreSecretSocialite = serializers.IntegerField()
     scoreStackingDubs = serializers.IntegerField()
     scoreLicenseToKill = serializers.IntegerField()
     scoreAimForTheHead = serializers.IntegerField()
@@ -32,7 +33,7 @@ class CheckStampsResponseSerializer(serializers.Serializer):
     scoreGleeFiddy = serializers.IntegerField()
     scoreWellTraveled = serializers.IntegerField()
     scoreMoModesMoFun = serializers.IntegerField()
-    scorePackedHouse = serializers.IntegerField()
+    scoreEpidemic = serializers.IntegerField()
     completedFinishInFive = serializers.BooleanField()
     completedVictoryLap = serializers.BooleanField()
     completedTypeA = serializers.BooleanField()

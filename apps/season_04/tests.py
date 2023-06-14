@@ -22,12 +22,15 @@ class Season04TestCase(TestCase):
         stamp_champ_earner = StampChampEarner.objects.create(
             creator=self.user,
             earner=discord_account,
-            earned_at=datetime.datetime(2023, 6, 7, 0, 0, 0),
+            earned_at=datetime.datetime(
+                2023, 6, 7, 0, 0, 0, tzinfo=datetime.timezone.utc
+            ),
         )
         self.assertEqual(stamp_champ_earner.creator, self.user)
         self.assertEqual(stamp_champ_earner.earner_id, discord_account.discord_id)
         self.assertEqual(
-            stamp_champ_earner.earned_at, datetime.datetime(2023, 6, 7, 0, 0, 0)
+            stamp_champ_earner.earned_at,
+            datetime.datetime(2023, 6, 7, 0, 0, 0, tzinfo=datetime.timezone.utc),
         )
         self.assertEqual(discord_account.stamp_champ_earner, stamp_champ_earner)
 
@@ -39,5 +42,7 @@ class Season04TestCase(TestCase):
             StampChampEarner.objects.create,
             creator=self.user,
             earner=discord_account,
-            earned_at=datetime.datetime(2023, 7, 7, 0, 0, 0),
+            earned_at=datetime.datetime(
+                2023, 7, 7, 0, 0, 0, tzinfo=datetime.timezone.utc
+            ),
         )

@@ -7,13 +7,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
+from apps.fun_time_friday.utils import get_voice_connections
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
     MEDAL_ID_PERFECTION,
     PLAYLIST_ID_BOT_BOOTCAMP,
     SEASON_3_API_ID,
+    SEASON_3_END_TIME,
+    SEASON_3_START_TIME,
 )
 from apps.link.models import DiscordXboxLiveLink
+from apps.reputation.models import PlusRep
 from apps.season_04.serializers import (
     CheckStampsRequestSerializer,
     CheckStampsResponseSerializer,
@@ -42,14 +46,12 @@ class CheckStampsView(APIView):
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_username = validation_serializer.data.get("discordUsername")
-            funtimer_rank = validation_serializer.data.get("funTimerRank")
-            invite_uses = validation_serializer.data.get("inviteUses")
             stamps_completed = 0
             score_chatterbox = 0
             score_funtagious = 0
-            score_repping_it = -1
-            score_fundurance = -1
-            score_gangs_all_here = -1
+            score_repping_it = 0
+            score_fundurance = 0
+            score_secret_socialite = 0
             score_stacking_dubs = 0
             score_license_to_kill = 0
             score_aim_for_the_head = 0
@@ -59,12 +61,16 @@ class CheckStampsView(APIView):
             score_glee_fiddy = -1
             score_well_traveled = -1
             score_mo_modes_mo_fun = -1
-            score_packed_house = -1
+            score_epidemic = -1
             completed_finish_in_five = False
             completed_victory_lap = False
             completed_type_a = False
             completed_formerly_chucks = False
             completed_in_particular = False
+            # TODO: Update the following variables for Season 4 when known
+            season_start_time = SEASON_3_START_TIME
+            season_end_time = SEASON_3_END_TIME
+            season_api_id = SEASON_3_API_ID
             try:
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_username, request.user
@@ -78,24 +84,46 @@ class CheckStampsView(APIView):
                     pass
 
                 # HALOFUNTIME DISCORD CHALLENGES
+                funtimer_rank = validation_serializer.data.get("funTimerRank")
+                invite_uses = validation_serializer.data.get("inviteUses")
+                voice_connections = get_voice_connections(
+                    discord_account, season_start_time, season_end_time
+                )
+                societies_joined = validation_serializer.data.get("societiesJoined")
                 # CHALLENGE #1: Chatterbox
                 score_chatterbox = funtimer_rank
-                if funtimer_rank >= 5:
+                if score_chatterbox >= 5:
                     stamps_completed += 1
                 # CHALLENGE #2: Funtagious
                 score_funtagious = invite_uses
-                if invite_uses > 0:
+                if score_funtagious >= 1:
                     stamps_completed += 1
-                # TODO: Check challenges 3-5 here
+                # CHALLENGE #3: Repping It
+                score_repping_it = PlusRep.objects.filter(
+                    giver=discord_account,
+                    created_at__range=(season_start_time, season_end_time),
+                ).count()
+                if score_repping_it >= 10:
+                    stamps_completed += 1
+                # CHALLENGE #4: Fundurance
+                if voice_connections:
+                    max_connected_seconds = max(
+                        voice_connections, key=lambda x: x.get("time_connected")
+                    )["time_connected"].total_seconds()
+                    score_fundurance = int(max_connected_seconds / 3600)
+                if score_fundurance >= 3:
+                    stamps_completed += 1
+                # CHALLENGE #5: Secret Socialite
+                score_secret_socialite = societies_joined
+                if score_secret_socialite >= 1:
+                    stamps_completed += 1
 
                 if link is not None:
                     # HALO INFINITE MATCHMAKING CHALLENGES
-                    season_sr = service_record(
-                        link.xbox_live_account_id, SEASON_3_API_ID
-                    )  # TODO: Update this for Season 4 when Season 4 API ID is known
+                    season_sr = service_record(link.xbox_live_account_id, season_api_id)
                     bot_bootcamp_season_sr = service_record(
                         link.xbox_live_account_id,
-                        SEASON_3_API_ID,
+                        season_api_id,
                         PLAYLIST_ID_BOT_BOOTCAMP,
                     )  # TODO: Update this for Season 4 when Season 4 API ID is known
                     medals = bot_bootcamp_season_sr.get("CoreStats").get("Medals")
@@ -146,7 +174,7 @@ class CheckStampsView(APIView):
                     "scoreFuntagious": score_funtagious,
                     "scoreReppingIt": score_repping_it,
                     "scoreFundurance": score_fundurance,
-                    "scoreGangsAllHere": score_gangs_all_here,
+                    "scoreSecretSocialite": score_secret_socialite,
                     "scoreStackingDubs": score_stacking_dubs,
                     "scoreLicenseToKill": score_license_to_kill,
                     "scoreAimForTheHead": score_aim_for_the_head,
@@ -156,7 +184,7 @@ class CheckStampsView(APIView):
                     "scoreGleeFiddy": score_glee_fiddy,
                     "scoreWellTraveled": score_well_traveled,
                     "scoreMoModesMoFun": score_mo_modes_mo_fun,
-                    "scorePackedHouse": score_packed_house,
+                    "scoreEpidemic": score_epidemic,
                     "completedFinishInFive": completed_finish_in_five,
                     "completedVictoryLap": completed_victory_lap,
                     "completedTypeA": completed_type_a,

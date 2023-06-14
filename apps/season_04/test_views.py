@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import call, patch
 
 from django.contrib.auth.models import User
@@ -6,12 +7,18 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
+from apps.fun_time_friday.models import (
+    FunTimeFridayVoiceConnect,
+    FunTimeFridayVoiceDisconnect,
+)
 from apps.halo_infinite.constants import (
     MEDAL_ID_PERFECTION,
     PLAYLIST_ID_BOT_BOOTCAMP,
     SEASON_3_API_ID,
+    SEASON_3_START_TIME,
 )
 from apps.link.models import DiscordXboxLiveLink
+from apps.reputation.models import PlusRep
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -48,6 +55,11 @@ class Season04TestCase(APITestCase):
             details.get("inviteUses"),
             [ErrorDetail(string="This field is required.", code="required")],
         )
+        self.assertIn("societiesJoined", details)
+        self.assertEqual(
+            details.get("societiesJoined"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
 
         # Improperly formatted values throw errors
         response = self.client.post(
@@ -57,6 +69,7 @@ class Season04TestCase(APITestCase):
                 "discordUsername": "f",
                 "funTimerRank": -1,
                 "inviteUses": -1,
+                "societiesJoined": -1,
             },
             format="json",
         )
@@ -91,6 +104,14 @@ class Season04TestCase(APITestCase):
                 code="min_value",
             ),
         )
+        self.assertIn("societiesJoined", details)
+        self.assertEqual(
+            details.get("societiesJoined")[0],
+            ErrorDetail(
+                string="Ensure this value is greater than or equal to 0.",
+                code="min_value",
+            ),
+        )
 
     @patch("apps.season_04.views.service_record")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
@@ -98,6 +119,8 @@ class Season04TestCase(APITestCase):
         self, mock_get_xuid_and_exact_gamertag, mock_service_record
     ):
         # Create test data
+        season_start_time = SEASON_3_START_TIME
+        season_api_id = SEASON_3_API_ID
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
             creator=self.user, discord_id="1234", discord_username="TestUsername1234"
@@ -110,6 +133,27 @@ class Season04TestCase(APITestCase):
             discord_account=discord_account,
             xbox_live_account=xbox_live_account,
             verified=True,
+        )
+        plus_reps = []
+        for _ in range(3):
+            plus_reps.append(
+                PlusRep.objects.create(
+                    creator=self.user,
+                    giver=discord_account,
+                    receiver=discord_account,
+                )
+            )
+        FunTimeFridayVoiceConnect.objects.create(
+            creator=self.user,
+            connector_discord=discord_account,
+            connected_at=season_start_time,
+            channel_id="test123",
+        )
+        FunTimeFridayVoiceDisconnect.objects.create(
+            creator=self.user,
+            disconnector_discord=discord_account,
+            disconnected_at=season_start_time + datetime.timedelta(hours=4),
+            channel_id="test123",
         )
 
         # Success - point totals come through for all values
@@ -140,26 +184,27 @@ class Season04TestCase(APITestCase):
                 "discordUsername": discord_account.discord_username,
                 "funTimerRank": 1,
                 "inviteUses": 2,
+                "societiesJoined": 5,
             },
             format="json",
         )
         mock_service_record.assert_has_calls(
             [
-                call(link.xbox_live_account_id, SEASON_3_API_ID),
+                call(link.xbox_live_account_id, season_api_id),
                 call(
-                    link.xbox_live_account_id, SEASON_3_API_ID, PLAYLIST_ID_BOT_BOOTCAMP
+                    link.xbox_live_account_id, season_api_id, PLAYLIST_ID_BOT_BOOTCAMP
                 ),
             ]
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
-        self.assertEqual(response.data.get("stampsCompleted"), 2)
+        self.assertEqual(response.data.get("stampsCompleted"), 4)
         self.assertEqual(response.data.get("scoreChatterbox"), 1)
         self.assertEqual(response.data.get("scoreFuntagious"), 2)
-        self.assertEqual(response.data.get("scoreReppingIt"), -1)
-        self.assertEqual(response.data.get("scoreFundurance"), -1)
-        self.assertEqual(response.data.get("scoreGangsAllHere"), -1)
+        self.assertEqual(response.data.get("scoreReppingIt"), 3)
+        self.assertEqual(response.data.get("scoreFundurance"), 4)
+        self.assertEqual(response.data.get("scoreSecretSocialite"), 5)
         self.assertEqual(response.data.get("scoreStackingDubs"), 6)
         self.assertEqual(response.data.get("scoreLicenseToKill"), 7)
         self.assertEqual(response.data.get("scoreAimForTheHead"), 8)
@@ -169,7 +214,7 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
         self.assertEqual(response.data.get("scoreWellTraveled"), -1)
         self.assertEqual(response.data.get("scoreMoModesMoFun"), -1)
-        self.assertEqual(response.data.get("scorePackedHouse"), -1)
+        self.assertEqual(response.data.get("scoreEpidemic"), -1)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
         self.assertEqual(response.data.get("completedTypeA"), False)
@@ -186,6 +231,7 @@ class Season04TestCase(APITestCase):
                 "discordUsername": discord_account.discord_username,
                 "funTimerRank": 1,
                 "inviteUses": 2,
+                "societiesJoined": 5,
             },
             format="json",
         )
@@ -193,12 +239,12 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), False)
         self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
-        self.assertEqual(response.data.get("stampsCompleted"), 1)
+        self.assertEqual(response.data.get("stampsCompleted"), 3)
         self.assertEqual(response.data.get("scoreChatterbox"), 1)
         self.assertEqual(response.data.get("scoreFuntagious"), 2)
-        self.assertEqual(response.data.get("scoreReppingIt"), -1)
-        self.assertEqual(response.data.get("scoreFundurance"), -1)
-        self.assertEqual(response.data.get("scoreGangsAllHere"), -1)
+        self.assertEqual(response.data.get("scoreReppingIt"), 3)
+        self.assertEqual(response.data.get("scoreFundurance"), 4)
+        self.assertEqual(response.data.get("scoreSecretSocialite"), 5)
         self.assertEqual(response.data.get("scoreStackingDubs"), 0)
         self.assertEqual(response.data.get("scoreLicenseToKill"), 0)
         self.assertEqual(response.data.get("scoreAimForTheHead"), 0)
@@ -208,7 +254,7 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
         self.assertEqual(response.data.get("scoreWellTraveled"), -1)
         self.assertEqual(response.data.get("scoreMoModesMoFun"), -1)
-        self.assertEqual(response.data.get("scorePackedHouse"), -1)
+        self.assertEqual(response.data.get("scoreEpidemic"), -1)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
         self.assertEqual(response.data.get("completedTypeA"), False)
