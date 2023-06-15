@@ -22,6 +22,13 @@ from apps.halo_infinite.constants import (
 from apps.halo_infinite.utils import get_season_custom_matches_for_xuid
 from apps.link.models import DiscordXboxLiveLink
 from apps.reputation.models import PlusRep
+from apps.season_04.models import (
+    StampChallenge16Completion,
+    StampChallenge17Completion,
+    StampChallenge18Completion,
+    StampChallenge19Completion,
+    StampChallenge20Completion,
+)
 from apps.season_04.serializers import (
     CheckStampsRequestSerializer,
     CheckStampsResponseSerializer,
@@ -239,7 +246,52 @@ class CheckStampsView(APIView):
                     if score_epidemic >= 25:
                         stamps_completed += 1
 
-                    # TODO: Check challenges 16-20 here
+                    # HALOFUNTIME BTB CHALLENGES
+                    # CHALLENGE #16: Finish in Five
+                    completed_finish_in_five = (
+                        StampChallenge16Completion.objects.filter(
+                            xuid=link.xbox_live_account_id
+                        ).count()
+                        > 0
+                    )
+                    if completed_finish_in_five:
+                        stamps_completed += 1
+                    # CHALLENGE #17: Victory Lap
+                    completed_victory_lap = (
+                        StampChallenge17Completion.objects.filter(
+                            xuid=link.xbox_live_account_id
+                        ).count()
+                        > 0
+                    )
+                    if completed_victory_lap:
+                        stamps_completed += 1
+                    # CHALLENGE #18: Type A
+                    completed_type_a = (
+                        StampChallenge18Completion.objects.filter(
+                            xuid=link.xbox_live_account_id
+                        ).count()
+                        > 0
+                    )
+                    if completed_type_a:
+                        stamps_completed += 1
+                    # CHALLENGE #19: Formerly Chuck's
+                    completed_formerly_chucks = (
+                        StampChallenge19Completion.objects.filter(
+                            xuid=link.xbox_live_account_id
+                        ).count()
+                        > 0
+                    )
+                    if completed_formerly_chucks:
+                        stamps_completed += 1
+                    # CHALLENGE #20: In Particular
+                    completed_in_particular = (
+                        StampChallenge20Completion.objects.filter(
+                            xuid=link.xbox_live_account_id
+                        ).count()
+                        > 0
+                    )
+                    if completed_in_particular:
+                        stamps_completed += 1
             except Exception as ex:
                 logger.error("Error attempting to check Stamp Challenge progress.")
                 logger.error(ex)
