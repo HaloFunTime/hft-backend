@@ -12,6 +12,7 @@ from apps.fun_time_friday.models import (
     FunTimeFridayVoiceDisconnect,
 )
 from apps.halo_infinite.constants import (
+    GAME_VARIANT_CATEGORY_INFECTION,
     MEDAL_ID_PERFECTION,
     PLAYLIST_ID_BOT_BOOTCAMP,
     SEASON_3_API_ID,
@@ -113,14 +114,19 @@ class Season04TestCase(APITestCase):
             ),
         )
 
+    @patch("apps.season_04.views.get_season_custom_matches_for_xuid")
     @patch("apps.season_04.views.service_record")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_check_stamps_view(
-        self, mock_get_xuid_and_exact_gamertag, mock_service_record
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_service_record,
+        mock_get_season_custom_matches_for_xuid,
     ):
         # Create test data
         season_start_time = SEASON_3_START_TIME
         season_api_id = SEASON_3_API_ID
+        season_id = "3"
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
             creator=self.user, discord_id="1234", discord_username="TestUsername1234"
@@ -177,6 +183,204 @@ class Season04TestCase(APITestCase):
                 }
             },
         ]
+        mock_get_season_custom_matches_for_xuid.return_value = [
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-01T00:00:00.000Z",
+                    "EndTime": "2023-06-01T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test01",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test01",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-02T00:00:00.000Z",
+                    "EndTime": "2023-06-02T01:06:00.000Z",
+                    "GameVariantCategory": GAME_VARIANT_CATEGORY_INFECTION,
+                    "MapVariant": {
+                        "AssetId": "test02",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test02",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-03T00:00:00.000Z",
+                    "EndTime": "2023-06-03T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test03",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test03",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-04T00:00:00.000Z",
+                    "EndTime": "2023-06-04T01:06:00.000Z",
+                    "GameVariantCategory": GAME_VARIANT_CATEGORY_INFECTION,
+                    "MapVariant": {
+                        "AssetId": "test04",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test04",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-05T00:00:00.000Z",
+                    "EndTime": "2023-06-05T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test05",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test05",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-06T00:00:00.000Z",
+                    "EndTime": "2023-06-06T01:06:00.000Z",
+                    "GameVariantCategory": GAME_VARIANT_CATEGORY_INFECTION,
+                    "MapVariant": {
+                        "AssetId": "test06",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test06",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-07T00:00:00.000Z",
+                    "EndTime": "2023-06-07T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test07",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test07",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-08T00:00:00.000Z",
+                    "EndTime": "2023-06-08T01:06:00.000Z",
+                    "GameVariantCategory": GAME_VARIANT_CATEGORY_INFECTION,
+                    "MapVariant": {
+                        "AssetId": "test08",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test08",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-09T00:00:00.000Z",
+                    "EndTime": "2023-06-09T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test09",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test09",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-10T00:00:00.000Z",
+                    "EndTime": "2023-06-10T01:06:00.000Z",
+                    "GameVariantCategory": GAME_VARIANT_CATEGORY_INFECTION,
+                    "MapVariant": {
+                        "AssetId": "test10",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test10",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-11T00:00:00.000Z",
+                    "EndTime": "2023-06-11T01:06:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test11",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test11",
+                    },
+                },
+                "PresentAtEndOfMatch": True,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-11T00:00:00.000Z",
+                    "EndTime": "2023-06-11T00:00:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test12",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test12",
+                    },
+                },
+                "PresentAtEndOfMatch": False,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-11T00:00:00.000Z",
+                    "EndTime": "2023-06-11T00:00:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test13",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test13",
+                    },
+                },
+                "PresentAtEndOfMatch": False,
+            },
+            {
+                "MatchInfo": {
+                    "StartTime": "2023-06-11T00:00:00.000Z",
+                    "EndTime": "2023-06-11T00:00:00.000Z",
+                    "GameVariantCategory": 15,
+                    "MapVariant": {
+                        "AssetId": "test13",
+                    },
+                    "UgcGameVariant": {
+                        "AssetId": "test14",
+                    },
+                },
+                "PresentAtEndOfMatch": False,
+            },
+        ]
         response = self.client.post(
             "/season-04/check-stamps",
             {
@@ -196,6 +400,9 @@ class Season04TestCase(APITestCase):
                 ),
             ]
         )
+        mock_get_season_custom_matches_for_xuid.assert_called_once_with(
+            link.xbox_live_account_id, season_id
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
@@ -210,17 +417,18 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scoreAimForTheHead"), 8)
         self.assertEqual(response.data.get("scorePowerTrip"), 9)
         self.assertEqual(response.data.get("scoreBotBullying"), 10)
-        self.assertEqual(response.data.get("scoreOneFundo"), -1)
-        self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
-        self.assertEqual(response.data.get("scoreWellTraveled"), -1)
-        self.assertEqual(response.data.get("scoreMoModesMoFun"), -1)
-        self.assertEqual(response.data.get("scoreEpidemic"), -1)
+        self.assertEqual(response.data.get("scoreOneFundo"), 11)
+        self.assertEqual(response.data.get("scoreGleeFiddy"), 12)
+        self.assertEqual(response.data.get("scoreWellTraveled"), 13)
+        self.assertEqual(response.data.get("scoreMoModesMoFun"), 14)
+        self.assertEqual(response.data.get("scoreEpidemic"), 5)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
         self.assertEqual(response.data.get("completedTypeA"), False)
         self.assertEqual(response.data.get("completedFormerlyChucks"), False)
         self.assertEqual(response.data.get("completedInParticular"), False)
         mock_service_record.reset_mock()
+        mock_get_season_custom_matches_for_xuid.reset_mock()
 
         # Success - no linked gamertag
         link.delete()
@@ -236,6 +444,7 @@ class Season04TestCase(APITestCase):
             format="json",
         )
         mock_service_record.assert_not_called()
+        mock_get_season_custom_matches_for_xuid.assert_not_called()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get("linkedGamertag"), False)
         self.assertEqual(response.data.get("discordUserId"), link.discord_account_id)
@@ -250,11 +459,11 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("scoreAimForTheHead"), 0)
         self.assertEqual(response.data.get("scorePowerTrip"), 0)
         self.assertEqual(response.data.get("scoreBotBullying"), 0)
-        self.assertEqual(response.data.get("scoreOneFundo"), -1)
-        self.assertEqual(response.data.get("scoreGleeFiddy"), -1)
-        self.assertEqual(response.data.get("scoreWellTraveled"), -1)
-        self.assertEqual(response.data.get("scoreMoModesMoFun"), -1)
-        self.assertEqual(response.data.get("scoreEpidemic"), -1)
+        self.assertEqual(response.data.get("scoreOneFundo"), 0)
+        self.assertEqual(response.data.get("scoreGleeFiddy"), 0)
+        self.assertEqual(response.data.get("scoreWellTraveled"), 0)
+        self.assertEqual(response.data.get("scoreMoModesMoFun"), 0)
+        self.assertEqual(response.data.get("scoreEpidemic"), 0)
         self.assertEqual(response.data.get("completedFinishInFive"), False)
         self.assertEqual(response.data.get("completedVictoryLap"), False)
         self.assertEqual(response.data.get("completedTypeA"), False)

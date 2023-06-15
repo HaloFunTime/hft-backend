@@ -216,12 +216,12 @@ def get_playlist_latest_version_info(playlist_id: str):
     }
 
 
-def get_season_custom_matches_for_xuid(season_id: str, xuid: int) -> list[dict]:
+def get_season_custom_matches_for_xuid(xuid: int, season_id: str) -> list[dict]:
     start_time, end_time = get_start_and_end_times_for_season(season_id)
     return matches_between(xuid, start_time, end_time, "Custom")
 
 
-def get_season_ranked_arena_matches_for_xuid(season_id: str, xuid: int) -> list[dict]:
+def get_season_ranked_arena_matches_for_xuid(xuid: int, season_id: str) -> list[dict]:
     start_time, end_time = get_start_and_end_times_for_season(season_id)
     matches = matches_between(xuid, start_time, end_time, "Matchmaking")
     return [

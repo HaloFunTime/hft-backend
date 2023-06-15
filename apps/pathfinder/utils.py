@@ -79,7 +79,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         maps = get_authored_maps(xuid)
 
         # Get custom matches for this XUID
-        custom_matches = get_season_custom_matches_for_xuid("3", xuid)
+        custom_matches = get_season_custom_matches_for_xuid(xuid, "3")
         custom_matches_sorted = sorted(
             custom_matches,
             key=lambda m: datetime.datetime.fromisoformat(

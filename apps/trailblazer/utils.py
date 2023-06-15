@@ -81,7 +81,7 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         strongholds_wins = 0
 
         # Get matches for this XUID
-        matches = get_season_ranked_arena_matches_for_xuid("3", xuid)
+        matches = get_season_ranked_arena_matches_for_xuid(xuid, "3")
         matches_sorted = sorted(
             matches,
             key=lambda m: datetime.datetime.fromisoformat(
@@ -237,7 +237,7 @@ def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         koth_wins = 0
 
         # Get matches for this XUID
-        matches = get_season_ranked_arena_matches_for_xuid("4", xuid)
+        matches = get_season_ranked_arena_matches_for_xuid(xuid, "4")
         matches_sorted = sorted(
             matches,
             key=lambda m: datetime.datetime.fromisoformat(

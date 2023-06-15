@@ -1031,7 +1031,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
                 {"MatchId": "bar"},
                 {"MatchId": "baz"},
             ]
-            season_custom_matches = get_season_custom_matches_for_xuid(season_id, 123)
+            season_custom_matches = get_season_custom_matches_for_xuid(123, season_id)
             self.assertEqual(len(season_custom_matches), 3)
             mock_matches_between.assert_called_once_with(
                 123, start_time, end_time, "Custom"
@@ -1051,7 +1051,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
                 {"MatchInfo": {"Playlist": {"AssetId": ranked_arena_playlist_id}}},
             ]
             seasonal_ranked_arena_matches = get_season_ranked_arena_matches_for_xuid(
-                season_id, 123
+                123, season_id
             )
             self.assertEqual(len(seasonal_ranked_arena_matches), 2)
             mock_matches_between.assert_called_once_with(
