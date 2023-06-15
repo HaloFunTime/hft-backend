@@ -20,6 +20,7 @@ from apps.halo_infinite.constants import (
 )
 from apps.link.models import DiscordXboxLiveLink
 from apps.reputation.models import PlusRep
+from apps.season_04.models import StampChampEarner
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -469,3 +470,96 @@ class Season04TestCase(APITestCase):
         self.assertEqual(response.data.get("completedTypeA"), False)
         self.assertEqual(response.data.get("completedFormerlyChucks"), False)
         self.assertEqual(response.data.get("completedInParticular"), False)
+
+    def test_save_earner_view(self):
+        # Missing field values throw errors
+        response = self.client.post("/season-04/save-earner", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("stampsEarned", details)
+        self.assertEqual(
+            details.get("stampsEarned"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/season-04/save-earner",
+            {
+                "discordUserId": "abc",
+                "discordUsername": "f",
+                "stampsEarned": "not_an_int",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
+            ),
+        )
+        self.assertIn("stampsEarned", details)
+        self.assertEqual(
+            details.get("stampsEarned")[0],
+            ErrorDetail(
+                string="A valid integer is required.",
+                code="invalid",
+            ),
+        )
+
+        # New earner
+        now_before_post = datetime.datetime.now(tz=datetime.timezone.utc)
+        response = self.client.post(
+            "/season-04/save-earner",
+            {
+                "discordUserId": "123",
+                "discordUsername": "test123",
+                "stampsEarned": 16,
+            },
+            format="json",
+        )
+        self.assertEqual(StampChampEarner.objects.all().count(), 1)
+        earner_record = StampChampEarner.objects.first()
+        self.assertEqual(earner_record.earner_id, "123")
+        self.assertGreaterEqual(earner_record.earned_at, now_before_post)
+        self.assertEqual(earner_record.stamp_count, 16)
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(response.data.get("newEarner"), True)
+        initial_earned_at = earner_record.earned_at
+
+        # Existing earner, stamp count update
+        response = self.client.post(
+            "/season-04/save-earner",
+            {
+                "discordUserId": "123",
+                "discordUsername": "test1234",
+                "stampsEarned": 17,
+            },
+            format="json",
+        )
+        self.assertEqual(StampChampEarner.objects.all().count(), 1)
+        earner_record = StampChampEarner.objects.first()
+        self.assertEqual(earner_record.earner_id, "123")
+        self.assertGreaterEqual(earner_record.earned_at, initial_earned_at)
+        self.assertEqual(earner_record.stamp_count, 17)
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(response.data.get("newEarner"), False)

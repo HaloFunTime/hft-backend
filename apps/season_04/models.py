@@ -99,6 +99,7 @@ class StampChampEarner(Base):
         DiscordAccount, on_delete=models.RESTRICT, related_name="stamp_champ_earner"
     )
     earned_at = models.DateTimeField()
+    stamp_count = models.IntegerField(default=0)
 
     def __str__(self):
-        return str(self.earner) + " earned on " + str(self.earned_at)
+        return f"{self.earner} ({self.earned_at})"

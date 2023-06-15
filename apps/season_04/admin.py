@@ -27,11 +27,13 @@ class StampChampEarnerAdmin(AutofillCreatorModelAdmin):
         "__str__",
         linkify("earner"),
         "earned_at",
+        "stamp_count",
         "creator",
     )
-    list_filter = ("earner", "earned_at", "creator")
+    list_filter = ("earner", "earned_at", "stamp_count", "creator")
     fields = (
         "earner",
         "earned_at",
+        "stamp_count",
         "creator",
     )

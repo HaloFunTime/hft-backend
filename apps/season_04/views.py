@@ -28,10 +28,13 @@ from apps.season_04.models import (
     StampChallenge18Completion,
     StampChallenge19Completion,
     StampChallenge20Completion,
+    StampChampEarner,
 )
 from apps.season_04.serializers import (
     CheckStampsRequestSerializer,
     CheckStampsResponseSerializer,
+    SaveEarnerRequestSerializer,
+    SaveEarnerResponseSerializer,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -323,6 +326,62 @@ class CheckStampsView(APIView):
                     "completedTypeA": completed_type_a,
                     "completedFormerlyChucks": completed_formerly_chucks,
                     "completedInParticular": completed_in_particular,
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SaveEarnerView(APIView):
+    @extend_schema(
+        request=SaveEarnerRequestSerializer,
+        responses={
+            200: SaveEarnerResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Save whether a Discord User ID has already completed the Season 4 Stamp Challenge. Update or create a record
+        in the StampChampEarner table based on that information.
+        """
+        validation_serializer = SaveEarnerRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            stamps_earned = validation_serializer.data.get("stampsEarned")
+
+            try:
+                existing_earner = StampChampEarner.objects.filter(
+                    earner_id=discord_id
+                ).get()
+            except StampChampEarner.DoesNotExist:
+                existing_earner = None
+
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+
+                if existing_earner is None:
+                    StampChampEarner.objects.create(
+                        creator=request.user,
+                        earner=discord_account,
+                        earned_at=datetime.datetime.now(tz=datetime.timezone.utc),
+                        stamp_count=stamps_earned,
+                    )
+                else:
+                    existing_earner.stamp_count = stamps_earned
+                    existing_earner.save()
+
+            except Exception as ex:
+                logger.error("Error attempting to save a Stamp Challenge Earner.")
+                logger.error(ex)
+                raise APIException("Error attempting to save a Stamp Challenge Earner.")
+            serializer = SaveEarnerResponseSerializer(
+                {
+                    "discordUserId": discord_id,
+                    "newEarner": existing_earner is None,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)

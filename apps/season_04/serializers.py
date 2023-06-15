@@ -3,6 +3,21 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
+class SaveEarnerRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+    stampsEarned = serializers.IntegerField(min_value=0)
+
+
+class SaveEarnerResponseSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    newEarner = serializers.BooleanField()
+
+
 class CheckStampsRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
