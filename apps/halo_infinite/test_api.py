@@ -9,6 +9,7 @@ from apps.halo_infinite.api.match import (
     match_count,
     match_privacy,
     match_skill,
+    match_stats,
     matches_between,
 )
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
@@ -361,6 +362,49 @@ class HaloInfiniteAPITestCase(TestCase):
             404
         )
         self.assertDictEqual({}, match_skill(2535405290989773, "test_id"))
+
+    @patch("apps.halo_infinite.api.match.requests.Session")
+    def test_match_stats(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "Value": [
+                {
+                    "Id": "xuid(2535405290989773)",
+                    "Result": {
+                        "RankRecap": {
+                            "PreMatchCsr": {},
+                            "PostMatchCsr": {},
+                        },
+                    },
+                }
+            ]
+        }
+        match_stats_data = match_stats("test_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://halostats.svc.halowaypoint.com/hi/matches/test_id/stats",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("Value", match_stats_data)
+        value = match_stats_data.get("Value")[0]
+        self.assertIn("Id", value)
+        self.assertIn("Result", value)
+        rank_recap = value.get("Result").get("RankRecap")
+        self.assertIn("PreMatchCsr", rank_recap)
+        self.assertIn("PostMatchCsr", rank_recap)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, match_stats("test_id"))
 
     @patch("apps.halo_infinite.api.match.requests.Session")
     def test_matches_between(self, mock_Session):
