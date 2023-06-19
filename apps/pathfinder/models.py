@@ -84,6 +84,30 @@ class PathfinderHikeSubmission(Base):
         return f"{schedule_string}: {self.map}"
 
 
+class PathfinderTestingLFGPost(Base):
+    class Meta:
+        db_table = "PathfinderTestingLFGPost"
+        ordering = [
+            "-created_at",
+        ]
+        verbose_name = "Testing LFG Post"
+        verbose_name_plural = "Testing LFG Posts"
+
+    post_title = models.CharField(
+        max_length=100, blank=False, verbose_name="Post Title"
+    )
+    post_id = models.CharField(max_length=20, blank=False, verbose_name="Post ID")
+    poster_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Poster Discord",
+        related_name="pathfinder_testing_lfg_posters",
+    )
+
+    def __str__(self):
+        return self.post_title
+
+
 class PathfinderWAYWOPost(Base):
     class Meta:
         db_table = "PathfinderWAYWOPost"

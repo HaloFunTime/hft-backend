@@ -9,7 +9,11 @@ from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
+from apps.pathfinder.models import (
+    PathfinderHikeSubmission,
+    PathfinderTestingLFGPost,
+    PathfinderWAYWOPost,
+)
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -465,6 +469,75 @@ class PathfinderTestCase(APITestCase):
             )
             mock_is_illuminated_qualified.reset_mock()
             mock_is_dynamo_qualified.reset_mock()
+
+    def test_pathfinder_testing_lfg_post(self):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/testing-lfg-post", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for field in [
+            "posterDiscordId",
+            "posterDiscordUsername",
+            "postId",
+            "postTitle",
+        ]:
+            self.assertIn(field, details)
+            self.assertEqual(
+                details.get(field),
+                [ErrorDetail(string="This field is required.", code="required")],
+            )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/testing-lfg-post",
+            {
+                "posterDiscordId": "abc",
+                "posterDiscordUsername": "a",
+                "postId": "abc",
+                "postTitle": "abc",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for id_field in ["posterDiscordId", "postId"]:
+            self.assertIn(id_field, details)
+            self.assertEqual(
+                details.get(id_field)[0],
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                ),
+            )
+        self.assertIn("posterDiscordUsername", details)
+        self.assertEqual(
+            details.get("posterDiscordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
+            ),
+        )
+
+        # Success (excluding channel name)
+        response = self.client.post(
+            "/pathfinder/testing-lfg-post",
+            {
+                "posterDiscordId": "123",
+                "posterDiscordUsername": "Test0123",
+                "postId": "456",
+                "postTitle": "Please Test",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
+        testing_lfg_post = PathfinderTestingLFGPost.objects.first()
+        self.assertEqual(testing_lfg_post.poster_discord.discord_id, "123")
+        self.assertEqual(testing_lfg_post.poster_discord.discord_username, "Test0123")
+        self.assertEqual(testing_lfg_post.post_id, "456")
+        self.assertEqual(testing_lfg_post.post_title, "Please Test")
+        testing_lfg_post.delete()
 
     def test_pathfinder_waywo_post(self):
         # Missing field values throw errors

@@ -10,7 +10,11 @@ from rest_framework.views import APIView
 from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.utils import get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.models import PathfinderHikeSubmission, PathfinderWAYWOPost
+from apps.pathfinder.models import (
+    PathfinderHikeSubmission,
+    PathfinderTestingLFGPost,
+    PathfinderWAYWOPost,
+)
 from apps.pathfinder.serializers import (
     HikeQueueResponseSerializer,
     HikeSubmissionPostRequestSerializer,
@@ -21,6 +25,8 @@ from apps.pathfinder.serializers import (
     PathfinderDynamoSeason4ProgressResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
+    TestingLFGPostRequestSerializer,
+    TestingLFGPostResponseSerializer,
     WAYWOPostRequestSerializer,
     WAYWOPostResponseSerializer,
 )
@@ -234,6 +240,52 @@ class PathfinderSeasonalRoleCheckView(APIView):
                     "dynamo": dynamo_qualified,
                 }
             )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PathfinderTestingLFGPostView(APIView):
+    @extend_schema(
+        request=TestingLFGPostRequestSerializer,
+        responses={
+            200: TestingLFGPostResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Record that someone has made a Testing LFG post.
+        """
+        validation_serializer = TestingLFGPostRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            poster_discord_id = validation_serializer.data.get("posterDiscordId")
+            poster_discord_username = validation_serializer.data.get(
+                "posterDiscordUsername"
+            )
+            post_id = validation_serializer.data.get("postId")
+            post_title = validation_serializer.data.get("postTitle") or ""
+            try:
+                poster_discord = update_or_create_discord_account(
+                    poster_discord_id, poster_discord_username, request.user
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to record a PathfinderTestingLFGPost."
+                )
+            try:
+                PathfinderTestingLFGPost.objects.create(
+                    creator=request.user,
+                    poster_discord=poster_discord,
+                    post_id=post_id,
+                    post_title=post_title[:100],
+                )
+            except Exception as ex:
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to create a PathfinderTestingLFGPost."
+                )
+            serializer = TestingLFGPostResponseSerializer({"success": True})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 

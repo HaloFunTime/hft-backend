@@ -16,6 +16,11 @@ urlpatterns = [
         name="seasonal-role-check",
     ),
     path(
+        "testing-lfg-post",
+        views.PathfinderTestingLFGPostView.as_view(),
+        name="waywo-post",
+    ),
+    path(
         "waywo-post",
         views.PathfinderWAYWOPostView.as_view(),
         name="waywo-post",

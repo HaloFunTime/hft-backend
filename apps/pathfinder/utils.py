@@ -176,8 +176,63 @@ def is_s3_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
 def get_s4_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
     first_day, last_day = get_first_and_last_days_for_season("4")
     start_time, end_time = get_start_and_end_times_for_season("4")
-    return {}
-    # TODO: Establish S4 challenges
+    annotated_discord_accounts = DiscordAccount.objects.annotate(
+        hike_attendances=Count(
+            "pathfinder_hike_attendees",
+            distinct=True,
+            filter=Q(
+                pathfinder_hike_attendees__attendee_discord_id__in=discord_ids,
+                pathfinder_hike_attendees__attendance_date__range=[
+                    first_day,
+                    last_day,
+                ],
+            ),
+        ),
+        hike_submissions=Count(
+            "pathfinder_hike_submitters",
+            distinct=True,
+            filter=Q(
+                pathfinder_hike_submitters__map_submitter_discord_id__in=discord_ids,
+                pathfinder_hike_submitters__scheduled_playtest_date__range=[
+                    first_day,
+                    last_day,
+                ],
+            ),
+        ),
+        waywo_posts=Count(
+            "pathfinder_waywo_posters",
+            distinct=True,
+            filter=Q(
+                pathfinder_waywo_posters__poster_discord_id__in=discord_ids,
+                pathfinder_waywo_posters__created_at__range=[
+                    start_time,
+                    end_time,
+                ],
+            ),
+        ),
+        testing_lfg_posts=Count(
+            "pathfinder_testing_lfg_posters",
+            distinct=True,
+            filter=Q(
+                pathfinder_testing_lfg_posters__poster_discord_id__in=discord_ids,
+                pathfinder_testing_lfg_posters__created_at__range=[
+                    start_time,
+                    end_time,
+                ],
+            ),
+        ),
+    ).filter(discord_id__in=discord_ids)
+
+    earn_dict = {}
+    for account in annotated_discord_accounts:
+        earn_dict[account.discord_id] = {
+            "gone_hiking": min(account.hike_attendances, 5) * 50,  # Max 5 per account
+            "the_road_more_traveled": min(account.hike_submissions, 2)
+            * 50,  # Max 2 per account
+            "block_talk": min(account.waywo_posts, 2) * 25,  # Max 2 per account
+            "test_driven": min(account.testing_lfg_posts, 2) * 50,  # Max 2 per account
+        }
+    return earn_dict
 
 
 def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
@@ -195,8 +250,14 @@ def is_s4_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
         discord_earn_dict = get_s4_discord_earn_dict([discord_id])
         earns = discord_earn_dict.get(discord_id)
 
-        # TODO: Establish S4 challenges
-        logger.info(earns)
+        # Gone Hiking
+        points += earns.get("gone_hiking")
+        # The Road More Traveled
+        points += earns.get("the_road_more_traveled")
+        # Block Talk
+        points += earns.get("block_talk")
+        # Test Driven
+        points += earns.get("test_driven")
 
     # XBOX LIVE CHALLENGES
     if xuid is not None:
