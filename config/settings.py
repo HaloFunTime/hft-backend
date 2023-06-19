@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.reputation",
     "apps.season_04",
     "apps.series",
+    "apps.showcase",
     "apps.trailblazer",
     "apps.xbox_live",
 ]

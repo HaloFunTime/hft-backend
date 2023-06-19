@@ -81,5 +81,6 @@ urlpatterns = [
     path("reputation/", include("apps.reputation.urls")),
     path("season-04/", include("apps.season_04.urls")),
     path("series/", include("apps.series.urls")),
+    path("showcase/", include("apps.showcase.urls")),
     path("trailblazer/", include("apps.trailblazer.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
