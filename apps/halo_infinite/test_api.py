@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.halo_infinite.api.csr import csr
+from apps.halo_infinite.api.files import get_map, get_mode, get_prefab
 from apps.halo_infinite.api.match import (
     match_count,
     match_privacy,
@@ -257,6 +258,201 @@ class HaloInfiniteAPITestCase(TestCase):
                 "test_playlist_id",
             ),
         )
+
+    @patch("apps.halo_infinite.api.files.requests.Session")
+    def test_get_map(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "CustomData": {},
+            "Tags": [],
+            "AssetId": "test_id",
+            "VersionId": "test_version_id",
+            "PublicName": "Test Map",
+            "Description": "This is a test description for Test Map.",
+            "Files": {
+                "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/map/test_id/test_version_id/",
+                "FileRelativePaths": ["images/thumbnail.jpg"],
+            },
+            "Contributors": ["xuid(123)", "xuid(456)"],
+            "AssetStats": {
+                "PlaysRecent": 1,
+                "PlaysAllTime": 2,
+                "Favorites": 3,
+                "AverageRating": 4,
+                "NumberOfRatings": 5,
+            },
+            "PublishedDate": {"ISO8601Date": "2023-06-19T00:00:00.000Z"},
+            "VersionNumber": 1234,
+            "Admin": "xuid(123)",
+        }
+        get_map_data = get_map("test_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://discovery-infiniteugc.svc.halowaypoint.com/hi/maps/test_id",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("CustomData", get_map_data)
+        self.assertIn("Tags", get_map_data)
+        self.assertIn("AssetId", get_map_data)
+        self.assertIn("VersionId", get_map_data)
+        self.assertIn("PublicName", get_map_data)
+        self.assertIn("Description", get_map_data)
+        self.assertIn("Files", get_map_data)
+        self.assertIn("Prefix", get_map_data.get("Files"))
+        self.assertIn("FileRelativePaths", get_map_data.get("Files"))
+        self.assertIn("Contributors", get_map_data)
+        self.assertIn("AssetStats", get_map_data)
+        self.assertIn("PlaysRecent", get_map_data.get("AssetStats"))
+        self.assertIn("PlaysAllTime", get_map_data.get("AssetStats"))
+        self.assertIn("Favorites", get_map_data.get("AssetStats"))
+        self.assertIn("AverageRating", get_map_data.get("AssetStats"))
+        self.assertIn("NumberOfRatings", get_map_data.get("AssetStats"))
+        self.assertIn("PublishedDate", get_map_data)
+        self.assertIn("VersionNumber", get_map_data)
+        self.assertIn("Admin", get_map_data)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, get_map("test_id"))
+
+    @patch("apps.halo_infinite.api.files.requests.Session")
+    def test_get_mode(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "CustomData": {},
+            "Tags": [],
+            "AssetId": "test_id",
+            "VersionId": "test_version_id",
+            "PublicName": "Test Mode",
+            "Description": "This is a test description for Test Mode.",
+            "Files": {
+                "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/ugcgamevariant/test_id/test_version_id/",  # noqa
+                "FileRelativePaths": ["images/thumbnail.png"],
+            },
+            "Contributors": [],
+            "AssetStats": {
+                "PlaysRecent": 1,
+                "PlaysAllTime": 2,
+                "Favorites": 3,
+                "AverageRating": 4,
+                "NumberOfRatings": 5,
+            },
+            "PublishedDate": {"ISO8601Date": "2023-06-19T00:00:00.000Z"},
+            "VersionNumber": 1234,
+            "Admin": "xuid(123)",
+        }
+        get_mode_data = get_mode("test_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://discovery-infiniteugc.svc.halowaypoint.com/hi/ugcGameVariants/test_id",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("CustomData", get_mode_data)
+        self.assertIn("Tags", get_mode_data)
+        self.assertIn("AssetId", get_mode_data)
+        self.assertIn("VersionId", get_mode_data)
+        self.assertIn("PublicName", get_mode_data)
+        self.assertIn("Description", get_mode_data)
+        self.assertIn("Files", get_mode_data)
+        self.assertIn("Prefix", get_mode_data.get("Files"))
+        self.assertIn("FileRelativePaths", get_mode_data.get("Files"))
+        self.assertIn("Contributors", get_mode_data)
+        self.assertIn("AssetStats", get_mode_data)
+        self.assertIn("PlaysRecent", get_mode_data.get("AssetStats"))
+        self.assertIn("PlaysAllTime", get_mode_data.get("AssetStats"))
+        self.assertIn("Favorites", get_mode_data.get("AssetStats"))
+        self.assertIn("AverageRating", get_mode_data.get("AssetStats"))
+        self.assertIn("NumberOfRatings", get_mode_data.get("AssetStats"))
+        self.assertIn("PublishedDate", get_mode_data)
+        self.assertIn("VersionNumber", get_mode_data)
+        self.assertIn("Admin", get_mode_data)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, get_mode("test_id"))
+
+    @patch("apps.halo_infinite.api.files.requests.Session")
+    def test_get_prefab(self, mock_Session):
+        # Successful call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "CustomData": {},
+            "Tags": [],
+            "AssetId": "test_id",
+            "VersionId": "test_version_id",
+            "PublicName": "Test Prefab",
+            "Description": "This is a test description for Test Prefab.",
+            "Files": {
+                "Prefix": "https://blobs-infiniteugc.svc.halowaypoint.com/ugcstorage/prefab/test_id/test_version_id/",
+                "FileRelativePaths": ["images/thumbnail.jpg", "prefab.mvar"],
+            },
+            "Contributors": ["xuid(123)", "xuid(456)"],
+            "AssetStats": {
+                "PlaysRecent": 1,
+                "PlaysAllTime": 2,
+                "Favorites": 3,
+                "AverageRating": 4,
+                "NumberOfRatings": 5,
+            },
+            "PublishedDate": {"ISO8601Date": "2023-06-19T00:00:00.000Z"},
+            "VersionNumber": 1234,
+            "Admin": "xuid(123)",
+        }
+        get_prefab_data = get_prefab("test_id")
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://discovery-infiniteugc.svc.halowaypoint.com/hi/prefabs/test_id",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+            },
+        )
+        self.assertIn("CustomData", get_prefab_data)
+        self.assertIn("Tags", get_prefab_data)
+        self.assertIn("AssetId", get_prefab_data)
+        self.assertIn("VersionId", get_prefab_data)
+        self.assertIn("PublicName", get_prefab_data)
+        self.assertIn("Description", get_prefab_data)
+        self.assertIn("Files", get_prefab_data)
+        self.assertIn("Prefix", get_prefab_data.get("Files"))
+        self.assertIn("FileRelativePaths", get_prefab_data.get("Files"))
+        self.assertIn("Contributors", get_prefab_data)
+        self.assertIn("AssetStats", get_prefab_data)
+        self.assertIn("PlaysRecent", get_prefab_data.get("AssetStats"))
+        self.assertIn("PlaysAllTime", get_prefab_data.get("AssetStats"))
+        self.assertIn("Favorites", get_prefab_data.get("AssetStats"))
+        self.assertIn("AverageRating", get_prefab_data.get("AssetStats"))
+        self.assertIn("NumberOfRatings", get_prefab_data.get("AssetStats"))
+        self.assertIn("PublishedDate", get_prefab_data)
+        self.assertIn("VersionNumber", get_prefab_data)
+        self.assertIn("Admin", get_prefab_data)
+        mock_Session.reset_mock()
+
+        # Failed call
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({}, get_prefab("test_id"))
 
     @patch("apps.halo_infinite.api.match.requests.Session")
     def test_match_count(self, mock_Session):
