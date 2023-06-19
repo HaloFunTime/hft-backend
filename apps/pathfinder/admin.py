@@ -7,6 +7,7 @@ from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.pathfinder.models import (
     PathfinderHikeAttendance,
     PathfinderHikeSubmission,
+    PathfinderTestingLFGPost,
     PathfinderWAYWOPost,
 )
 
@@ -97,6 +98,28 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "mode_1_played",
         "mode_2_played",
         "submitter_present_for_playtest",
+        "creator",
+    )
+
+
+@admin.register(PathfinderTestingLFGPost)
+class PathfinderTestingLFGPostAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["poster_discord"]
+    list_display = (
+        "__str__",
+        linkify("poster_discord"),
+        "post_title",
+        "post_id",
+        "creator",
+    )
+    list_filter = (
+        "poster_discord",
+        "creator",
+    )
+    fields = (
+        "poster_discord",
+        "post_id",
+        "post_title",
         "creator",
     )
 
