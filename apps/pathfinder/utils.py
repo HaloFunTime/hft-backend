@@ -4,6 +4,7 @@ import logging
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.api.files import get_map, get_mode, get_prefab
 from apps.halo_infinite.utils import (
     get_343_recommended_contributors,
     get_authored_maps,
@@ -13,6 +14,8 @@ from apps.halo_infinite.utils import (
     get_season_custom_matches_for_xuid,
     get_start_and_end_times_for_season,
 )
+from apps.link.models import DiscordXboxLiveLink
+from apps.showcase.models import ShowcaseFile
 
 logger = logging.getLogger(__name__)
 
@@ -237,9 +240,69 @@ def get_s4_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
 
 def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     dev_map_ids = get_dev_map_ids_for_season("4")
-    return {}
-    # TODO: Establish S4 challenges
-    logger.info(dev_map_ids)
+    earn_dict = {}
+    for xuid in xuids:
+        link = DiscordXboxLiveLink.objects.get(xbox_live_account_id=xuid)
+
+        # Get custom matches for this XUID
+        custom_matches = get_season_custom_matches_for_xuid(xuid, "4")
+        custom_matches_sorted = sorted(
+            custom_matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("StartTime")
+            ),
+        )
+
+        # Showing Off: Add files to your Showcase
+        showcase_files = ShowcaseFile.objects.filter(
+            showcase_owner_id=link.discord_account_id
+        )
+
+        # Play On: Accumulate plays on maps and modes in your Showcase
+        showcase_file_plays = 0
+        for file in showcase_files:
+            if file.file_type == ShowcaseFile.FileType.Map:
+                file_data = get_map(file.file_id)
+            if file.file_type == ShowcaseFile.FileType.Mode:
+                file_data = get_mode(file.file_id)
+            elif file.file_type == ShowcaseFile.FileType.Prefab:
+                file_data = get_prefab(file.file_id)
+            showcase_file_plays += file_data.get("AssetStats", {}).get(
+                "PlaysAllTime", 0
+            )
+
+        # Forged in Fire: Play hours of custom games on Forge maps
+        custom_seconds_played = 0
+        for match in custom_matches_sorted:
+            # Only matches where the player was present count
+            if (
+                match.get("PresentAtEndOfMatch", False)
+                and match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
+                not in dev_map_ids
+            ):
+                match_start = datetime.datetime.strptime(
+                    match.get("MatchInfo", {})
+                    .get("StartTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                match_end = datetime.datetime.strptime(
+                    match.get("MatchInfo", {})
+                    .get("EndTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                custom_seconds_played += (match_end - match_start).total_seconds()
+        forge_custom_game_hours = int(custom_seconds_played / 3600)
+
+        earn_dict[xuid] = {
+            "showing_off": min(len(showcase_files), 3) * 50,
+            "play_on": int(min(showcase_file_plays, 1500) / 10),
+            "forged_in_fire": min(forge_custom_game_hours, 200),
+        }
+    return earn_dict
 
 
 def is_s4_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
@@ -264,8 +327,12 @@ def is_s4_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
         xbox_earn_dict = get_s4_xbox_earn_dict([xuid])
         earns = xbox_earn_dict.get(xuid)
 
-        # TODO: Establish S4 challenges
-        logger.info(earns)
+        # Showing Off
+        points += earns.get("showing_off")
+        # Play On
+        points += earns.get("play_on")
+        # Forged in Fire
+        points += earns.get("forged_in_fire")
 
     logger.info(f"Dynamo Points for {discord_id}: {points}")
     return points >= 500

@@ -64,7 +64,13 @@ class PathfinderDynamoSeason3ProgressResponseSerializer(
 class PathfinderDynamoSeason4ProgressResponseSerializer(
     PathfinderDynamoProgressResponseSerializer
 ):
-    pass
+    pointsGoneHiking = serializers.IntegerField()
+    pointsTheRoadMoreTraveled = serializers.IntegerField()
+    pointsBlockTalk = serializers.IntegerField()
+    pointsTestDriven = serializers.IntegerField()
+    pointsShowingOff = serializers.IntegerField()
+    pointsPlayOn = serializers.IntegerField()
+    pointsForgedInFire = serializers.IntegerField()
 
 
 class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):

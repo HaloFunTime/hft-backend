@@ -412,7 +412,18 @@ class PathfinderDynamoProgressView(APIView):
                     discord_earns = get_s4_discord_earn_dict(
                         [discord_account.discord_id]
                     ).get(discord_account.discord_id)
-                    # TODO: Establish S4 Discord challenges
+                    serializable_dict["pointsGoneHiking"] = discord_earns.get(
+                        "gone_hiking", 0
+                    )
+                    serializable_dict["pointsTheRoadMoreTraveled"] = discord_earns.get(
+                        "the_road_more_traveled", 0
+                    )
+                    serializable_dict["pointsBlockTalk"] = discord_earns.get(
+                        "block_talk", 0
+                    )
+                    serializable_dict["pointsTestDriven"] = discord_earns.get(
+                        "test_driven", 0
+                    )
 
                     # Tally the Xbox Points
                     xbox_earns = {}
@@ -420,7 +431,13 @@ class PathfinderDynamoProgressView(APIView):
                         xbox_earns = get_s4_xbox_earn_dict(
                             [link.xbox_live_account_id]
                         ).get(link.xbox_live_account_id)
-                    # TODO: Establish S4 Xbox challenges
+                    serializable_dict["pointsShowingOff"] = xbox_earns.get(
+                        "showing_off", 0
+                    )
+                    serializable_dict["pointsPlayOn"] = xbox_earns.get("play_on", 0)
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
             except Exception as ex:
                 raise_exception(ex)
             merged_dict = {
