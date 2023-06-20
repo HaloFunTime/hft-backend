@@ -139,21 +139,21 @@ class AddFileView(APIView):
                 showcase_files = ShowcaseFile.objects.filter(
                     showcase_owner=discord_account
                 ).order_by("position")
-
-                # Check linked gamertag
-                link = None
-                try:
-                    link = DiscordXboxLiveLink.objects.filter(
-                        discord_account_id=discord_account.discord_id, verified=True
-                    ).get()
-                except DiscordXboxLiveLink.DoesNotExist:
-                    raise PermissionDenied(
-                        "Must have a verified linked gamertag to add to a Showcase."
-                    )
             except Exception as ex:
                 logger.error("Error attempting to add to a Showcase.")
                 logger.error(ex)
                 raise APIException("Error attempting to add to a Showcase.")
+
+            # Check linked gamertag
+            link = None
+            try:
+                link = DiscordXboxLiveLink.objects.filter(
+                    discord_account_id=discord_account.discord_id, verified=True
+                ).get()
+            except DiscordXboxLiveLink.DoesNotExist:
+                raise PermissionDenied(
+                    "Must have a verified linked gamertag to add to a Showcase."
+                )
 
             # Check count
             if len(showcase_files) >= 5:
