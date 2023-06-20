@@ -245,3 +245,11 @@ class ShowcaseTestCase(APITestCase):
         mock_get_map.assert_called_once_with(map_asset_id)
         mock_get_mode.assert_called_once_with(mode_asset_id)
         mock_get_prefab.assert_called_once_with(prefab_asset_id)
+
+    # TODO: Write this test
+    def test_add_file_view(self):
+        pass
+
+    # TODO: Write this test
+    def test_remove_file_view(self):
+        pass
