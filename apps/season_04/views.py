@@ -14,10 +14,10 @@ from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_INFECTION,
     MEDAL_ID_PERFECTION,
     PLAYLIST_ID_BOT_BOOTCAMP,
-    SEASON_3_API_ID,
-    SEASON_3_DEV_MAP_IDS,
-    SEASON_3_END_TIME,
-    SEASON_3_START_TIME,
+    SEASON_4_API_ID,
+    SEASON_4_DEV_MAP_IDS,
+    SEASON_4_END_TIME,
+    SEASON_4_START_TIME,
 )
 from apps.halo_infinite.utils import get_season_custom_matches_for_xuid
 from apps.link.models import DiscordXboxLiveLink
@@ -81,12 +81,11 @@ class CheckStampsView(APIView):
             completed_type_a = False
             completed_formerly_chucks = False
             completed_in_particular = False
-            # TODO: Update the following variables for Season 4 when known
-            season_start_time = SEASON_3_START_TIME
-            season_end_time = SEASON_3_END_TIME
-            season_api_id = SEASON_3_API_ID
-            season_dev_map_ids = SEASON_3_DEV_MAP_IDS
-            season_id = "3"
+            season_start_time = SEASON_4_START_TIME
+            season_end_time = SEASON_4_END_TIME
+            season_api_id = SEASON_4_API_ID
+            season_dev_map_ids = SEASON_4_DEV_MAP_IDS
+            season_id = "4"
             try:
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_username, request.user
@@ -141,7 +140,7 @@ class CheckStampsView(APIView):
                         link.xbox_live_account_id,
                         season_api_id,
                         PLAYLIST_ID_BOT_BOOTCAMP,
-                    )  # TODO: Update this for Season 4 when Season 4 API ID is known
+                    )
                     medals = bot_bootcamp_season_sr.get("CoreStats").get("Medals")
                     medals_list = list(
                         filter(lambda x: x.get("NameId") == MEDAL_ID_PERFECTION, medals)

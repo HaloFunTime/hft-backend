@@ -15,8 +15,8 @@ from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_INFECTION,
     MEDAL_ID_PERFECTION,
     PLAYLIST_ID_BOT_BOOTCAMP,
-    SEASON_3_API_ID,
-    SEASON_3_START_TIME,
+    SEASON_4_API_ID,
+    SEASON_4_START_TIME,
 )
 from apps.link.models import DiscordXboxLiveLink
 from apps.reputation.models import PlusRep
@@ -125,9 +125,9 @@ class Season04TestCase(APITestCase):
         mock_get_season_custom_matches_for_xuid,
     ):
         # Create test data
-        season_start_time = SEASON_3_START_TIME
-        season_api_id = SEASON_3_API_ID
-        season_id = "3"
+        season_start_time = SEASON_4_START_TIME
+        season_api_id = SEASON_4_API_ID
+        season_id = "4"
         mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
         discord_account = DiscordAccount.objects.create(
             creator=self.user, discord_id="1234", discord_username="TestUsername1234"
@@ -150,6 +150,9 @@ class Season04TestCase(APITestCase):
                     receiver=discord_account,
                 )
             )
+        for plus_rep in plus_reps:
+            plus_rep.created_at = season_start_time
+            plus_rep.save()
         FunTimeFridayVoiceConnect.objects.create(
             creator=self.user,
             connector_discord=discord_account,

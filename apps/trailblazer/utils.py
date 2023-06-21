@@ -4,6 +4,13 @@ import logging
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.constants import (
+    GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG,
+    GAME_VARIANT_CATEGORY_KING_OF_THE_HILL,
+    GAME_VARIANT_CATEGORY_ODDBALL,
+    GAME_VARIANT_CATEGORY_SLAYER,
+    GAME_VARIANT_CATEGORY_STRONGHOLDS,
+)
 from apps.halo_infinite.utils import (
     get_csr_after_match,
     get_csrs,
@@ -13,12 +20,6 @@ from apps.halo_infinite.utils import (
 )
 
 logger = logging.getLogger(__name__)
-
-MODE_RANKED_CTF_ID = "507191c6-a492-4331-b2ae-a172101eb23e"
-MODE_RANKED_KOTH_ID = "88c22b1f-2d64-48b9-bab1-26fe4721fb23"
-MODE_RANKED_ODDBALL_ID = "751bcc9d-aace-45a1-8d71-358f0bc89f7e"
-MODE_RANKED_SLAYER_ID = "c2d20d44-8606-4669-b894-afae15b3524f"
-MODE_RANKED_STRONGHOLDS_ID = "22b8a0eb-0d02-4eb3-8f56-5f63fc254f83"
 
 
 def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
@@ -123,14 +124,14 @@ def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         # Too Stronk: Win 25 or more Strongholds games
         for match in matches:
             if (
-                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
-                == MODE_RANKED_ODDBALL_ID
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_ODDBALL
             ):
                 if match.get("Outcome") == 2:
                     oddball_wins += 1
             if (
-                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
-                == MODE_RANKED_STRONGHOLDS_ID
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_STRONGHOLDS
             ):
                 if match.get("Outcome") == 2:
                     strongholds_wins += 1
@@ -292,18 +293,16 @@ def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                 else:
                     break
             for win in wins_in_six_hour_window:
-                mode_id = (
-                    win.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
-                )
-                if mode_id == MODE_RANKED_CTF_ID:
+                mode_category = win.get("MatchInfo", {}).get("GameVariantCategory")
+                if mode_category == GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG:
                     ctf_win = True
-                elif mode_id == MODE_RANKED_KOTH_ID:
+                elif mode_category == GAME_VARIANT_CATEGORY_KING_OF_THE_HILL:
                     koth_win = True
-                elif mode_id == MODE_RANKED_ODDBALL_ID:
+                elif mode_category == GAME_VARIANT_CATEGORY_ODDBALL:
                     oddball_win = True
-                elif mode_id == MODE_RANKED_SLAYER_ID:
+                elif mode_category == GAME_VARIANT_CATEGORY_SLAYER:
                     slayer_win = True
-                elif mode_id == MODE_RANKED_STRONGHOLDS_ID:
+                elif mode_category == GAME_VARIANT_CATEGORY_STRONGHOLDS:
                     strongholds_win = True
 
             if ctf_win and koth_win and oddball_win and slayer_win and strongholds_win:
@@ -315,14 +314,14 @@ def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         # Them Thar Hills: Win 25 or more King of the Hill games
         for match in matches:
             if (
-                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
-                == MODE_RANKED_CTF_ID
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG
             ):
                 if match.get("Outcome") == 2:
                     ctf_wins += 1
             if (
-                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
-                == MODE_RANKED_KOTH_ID
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_KING_OF_THE_HILL
             ):
                 if match.get("Outcome") == 2:
                     koth_wins += 1

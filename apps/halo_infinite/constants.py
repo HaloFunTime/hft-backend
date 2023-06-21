@@ -25,12 +25,14 @@ MAP_ID_CLIFFHANGER = "81274d6f-6a94-425a-a16e-3bdb1e2eea9d"
 MAP_ID_DEADLOCK = "08607bf4-6abe-4a5b-9547-290a6cc1433e"
 MAP_ID_DETACHMENT = "d39600e2-3c35-4a3a-bdf5-7b3cbdde98e1"
 MAP_ID_EMPYREAN = "d035fc3e-f298-4c14-9487-465be2e1dc1f"
+MAP_ID_FOREST = "619bea21-f1e6-461f-8a7d-2bb4f905d0ca"
 MAP_ID_FRAGMENTATION = "4f196016-0101-4844-8358-2504f7c44656"
 MAP_ID_HIGHPOWER = "c494ef7c-d203-42a9-9c0f-b3f576334501"
 MAP_ID_LAUNCH_SITE = "56a11b8c-64d1-4537-8893-a9241e4d5b93"
 MAP_ID_LIVE_FIRE = "b6aca0c7-8ba7-4066-bf91-693571374c3c"
 MAP_ID_OASIS = "6aa0a116-66a6-4242-a1b3-41aa417d6dc6"
 MAP_ID_RECHARGE = "8420410b-044d-44d7-80b6-98a766c8c39f"
+MAP_ID_SCARR = "247637f8-1ed2-47de-8ff0-fd4b68f50888"
 MAP_ID_STREETS = "f0a1760f-0d4a-4bcc-ac7a-e8f9aee331dc"
 
 MEDAL_ID_PERFECTION = 865763896
@@ -50,7 +52,7 @@ SEASON_3_API_ID = "Seasons/Season3.json"
 SEASON_3_FIRST_DAY = datetime.date(year=2023, month=3, day=7)
 SEASON_3_LAST_DAY = datetime.date(year=2023, month=6, day=19)
 SEASON_3_START_TIME = datetime.datetime.fromisoformat("2023-03-07T18:00:00Z")
-SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00.000Z")
+SEASON_3_END_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00Z")
 SEASON_3_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEASON_3_DEV_MAP_IDS = {
     MAP_ID_AQUARIUS,
@@ -72,11 +74,11 @@ SEASON_3_DEV_MAP_IDS = {
     MAP_ID_RECHARGE,
     MAP_ID_STREETS,
 }
-SEASON_4_API_ID = ""
+SEASON_4_API_ID = "Seasons/Season4.json"
 SEASON_4_FIRST_DAY = datetime.date(year=2023, month=6, day=20)
-SEASON_4_LAST_DAY = datetime.date(year=2023, month=9, day=25)
+SEASON_4_LAST_DAY = datetime.date(year=2023, month=10, day=17)
 SEASON_4_START_TIME = datetime.datetime.fromisoformat("2023-06-20T17:00:00Z")
-SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-09-26T17:00:00Z")
+SEASON_4_END_TIME = datetime.datetime.fromisoformat("2023-10-18T17:00:00Z")
 SEASON_4_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEASON_4_DEV_MAP_IDS = {
     MAP_ID_AQUARIUS,
@@ -90,14 +92,23 @@ SEASON_4_DEV_MAP_IDS = {
     MAP_ID_DEADLOCK,
     MAP_ID_DETACHMENT,
     MAP_ID_EMPYREAN,
+    MAP_ID_FOREST,
     MAP_ID_FRAGMENTATION,
     MAP_ID_HIGHPOWER,
     MAP_ID_LAUNCH_SITE,
     MAP_ID_LIVE_FIRE,
     MAP_ID_OASIS,
     MAP_ID_RECHARGE,
+    MAP_ID_SCARR,
     MAP_ID_STREETS,
 }
+SEASON_5_API_ID = None
+SEASON_5_FIRST_DAY = datetime.date(year=2023, month=10, day=18)
+SEASON_5_LAST_DAY = None
+SEASON_5_START_TIME = datetime.datetime.fromisoformat("2023-10-18T17:00:00Z")
+SEASON_5_END_TIME = None
+SEASON_5_RANKED_ARENA_PLAYLIST_ID = None
+SEASON_5_DEV_MAP_IDS = {}
 SEASON_DATA_DICT = {
     "3": {
         "api_id": SEASON_3_API_ID,
@@ -117,4 +128,13 @@ SEASON_DATA_DICT = {
         "ranked_arena_playlist_id": SEASON_4_RANKED_ARENA_PLAYLIST_ID,
         "dev_map_ids": SEASON_4_DEV_MAP_IDS,
     },
+    # "5": {
+    #     "api_id": SEASON_5_API_ID,
+    #     "first_day": SEASON_5_FIRST_DAY,
+    #     "last_day": SEASON_5_LAST_DAY,
+    #     "start_time": SEASON_5_START_TIME,
+    #     "end_time": SEASON_5_END_TIME,
+    #     "ranked_arena_playlist_id": SEASON_5_RANKED_ARENA_PLAYLIST_ID,
+    #     "dev_map_ids": SEASON_5_DEV_MAP_IDS,
+    # },
 }
