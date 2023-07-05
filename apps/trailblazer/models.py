@@ -25,7 +25,7 @@ class TrailblazerExcellentVODReview(Base):
     )
 
     def __str__(self):
-        return f"{str(self.submitter_discord)} reviewed on {self.submission_date}"
+        return f"{str(self.reviewer_discord)} reviewed on {self.review_date}"
 
 
 class TrailblazerTuesdayAttendance(Base):
