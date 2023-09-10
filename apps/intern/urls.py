@@ -36,6 +36,11 @@ urlpatterns = [
         name="random-new-here-yeet-quip",
     ),
     path(
+        "random-passion-report-quip",
+        views.RandomInternPassionReportQuip.as_view(),
+        name="random-passion-report-quip",
+    ),
+    path(
         "random-plus-rep-quip",
         views.RandomInternPlusRepQuip.as_view(),
         name="random-plus-rep-quip",

@@ -16,6 +16,7 @@ from apps.intern.models import (
     InternHelpfulHint,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
+    InternPassionReportQuip,
     InternPlusRepQuip,
 )
 from apps.intern.views import (
@@ -32,6 +33,7 @@ from apps.intern.views import (
     INTERN_HELPFUL_HINT_DEFAULT_MESSAGE,
     INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT,
     INTERN_NEW_HERE_YEET_QUIP_DEFAULT,
+    INTERN_PASSION_REPORT_QUIP_DEFAULT,
     INTERN_PLUS_REP_QUIP_DEFAULT,
 )
 
@@ -111,6 +113,15 @@ def intern_new_here_yeet_quip_factory(
     creator: User, quip_text: str = None
 ) -> InternNewHereYeetQuip:
     return InternNewHereYeetQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_passion_report_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternPassionReportQuip:
+    return InternPassionReportQuip.objects.create(
         creator=creator,
         quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
     )
@@ -374,6 +385,28 @@ class InternNewHereYeetQuipTestCase(APITestCase):
         quip_text = "This is my test quip message."
         intern_new_here_yeet_quip_factory(self.user, quip_text)
         response = self.client.get("/intern/random-new-here-yeet-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternPassionReportQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_passion_report_quip(self):
+        # Empty InternPassionReportQuip table returns default quip
+        response = self.client.get("/intern/random-passion-report-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": INTERN_PASSION_REPORT_QUIP_DEFAULT})
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_passion_report_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-passion-report-quip")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"quip": quip_text})
 

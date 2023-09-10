@@ -10,6 +10,7 @@ from apps.intern.models import (
     InternHelpfulHint,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
+    InternPassionReportQuip,
     InternPlusRepQuip,
 )
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
@@ -81,6 +82,13 @@ class InternNewHereWelcomeQuipAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(InternNewHereYeetQuip)
 class InternNewHereYeetQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
+
+
+@admin.register(InternPassionReportQuip)
+class InternPassionReportQuipAdmin(AutofillCreatorModelAdmin):
     list_display = ("id", "short_quip_text", "creator")
     list_filter = ("creator",)
     fields = ("quip_text", "creator")

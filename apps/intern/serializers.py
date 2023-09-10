@@ -70,6 +70,14 @@ class InternNewHereYeetQuipErrorSerializer(serializers.Serializer):
     error = serializers.CharField()
 
 
+class InternPassionReportQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternPassionReportQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
 class InternPlusRepQuipSerializer(serializers.Serializer):
     quip = serializers.CharField()
 

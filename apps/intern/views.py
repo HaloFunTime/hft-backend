@@ -16,6 +16,7 @@ from apps.intern.models import (
     InternHelpfulHint,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
+    InternPassionReportQuip,
     InternPlusRepQuip,
 )
 from apps.intern.serializers import (
@@ -36,6 +37,8 @@ from apps.intern.serializers import (
     InternNewHereWelcomeQuipSerializer,
     InternNewHereYeetQuipErrorSerializer,
     InternNewHereYeetQuipSerializer,
+    InternPassionReportQuipErrorSerializer,
+    InternPassionReportQuipSerializer,
     InternPlusRepQuipErrorSerializer,
     InternPlusRepQuipSerializer,
 )
@@ -75,6 +78,8 @@ INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT = "Glad you're here!"
 INTERN_NEW_HERE_WELCOME_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_NEW_HERE_YEET_QUIP_DEFAULT = "Bye!"
 INTERN_NEW_HERE_YEET_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_PASSION_REPORT_QUIP_DEFAULT = "Passion."
+INTERN_PASSION_REPORT_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_PLUS_REP_QUIP_DEFAULT = "Giving rep is a great way to thank someone."
 INTERN_PLUS_REP_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 
@@ -310,6 +315,35 @@ class RandomInternNewHereYeetQuip(APIView):
             )
             return Response(serializer.data, status=500)
         serializer = InternNewHereYeetQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternPassionReportQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternPassionReportQuipSerializer,
+            500: InternPassionReportQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternPassionReportQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_PASSION_REPORT_QUIP_DEFAULT
+        try:
+            random_quips = InternPassionReportQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternPassionReportQuipErrorSerializer(
+                {"error": INTERN_PASSION_REPORT_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternPassionReportQuipSerializer({"quip": random_quip})
         return Response(
             serializer.data, status=200, headers={"Cache-Control": "no-cache"}
         )
