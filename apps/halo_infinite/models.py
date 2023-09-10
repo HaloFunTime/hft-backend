@@ -73,7 +73,7 @@ class HaloInfiniteXSTSToken(Base):
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 5 minutes early to account for latency
+        # Expired property returns True 2 minutes early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > self.not_after
 
     issue_instant = models.DateTimeField()
@@ -93,9 +93,9 @@ class HaloInfiniteSpartanToken(Base):
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 5 minutes early to account for latency
+        # Expired property returns True 2 minutes early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > (
-            self.expires_utc - datetime.timedelta(minutes=5)
+            self.expires_utc - datetime.timedelta(minutes=2)
         )
 
     expires_utc = models.DateTimeField()
@@ -123,9 +123,9 @@ class HaloInfiniteClearanceToken(Base):
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 5 minutes early to account for latency
+        # Expired property returns True 2 minutes early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > (
-            self.expiration_datetime - datetime.timedelta(minutes=5)
+            self.expiration_datetime - datetime.timedelta(minutes=2)
         )
 
     flight_configuration_id = models.CharField(max_length=256)
