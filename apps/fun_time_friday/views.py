@@ -1,8 +1,10 @@
+import datetime
 import logging
 
-from drf_spectacular.utils import extend_schema
+import pytz
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,14 +14,108 @@ from apps.fun_time_friday.models import (
     FunTimeFridayVoiceDisconnect,
 )
 from apps.fun_time_friday.serializers import (
+    PartyTimeSerializer,
+    ReportSerializer,
     VoiceConnectPostRequestSerializer,
     VoiceConnectPostResponseSerializer,
     VoiceDisconnectPostRequestSerializer,
     VoiceDisconnectPostResponseSerializer,
 )
+from apps.fun_time_friday.utils import get_voice_connection_report
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
+
+
+class ReportView(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="fridayDate",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            )
+        ],
+        responses={
+            200: ReportSerializer,
+            400: StandardErrorSerializer,
+            403: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternChatter if the destination channel isn't forbidden and Intern chatter isn't paused.
+        """
+        # Validate that the date is in fact a Friday
+        friday_date = request.query_params.get("fridayDate")
+        try:
+            friday = datetime.datetime.strptime(friday_date, "%Y-%m-%d").date()
+            if friday.weekday() != 4:
+                raise Exception("Date is not a Friday.")
+        except Exception as ex:
+            logger.error(ex)
+            raise ParseError("Invalid 'fridayDate' provided.")
+
+        friday_noon = pytz.timezone("America/Denver").localize(
+            datetime.datetime(
+                friday.year,
+                friday.month,
+                friday.day,
+                12,
+                0,
+                0,
+                0,
+            )
+        )
+        saturday_noon = friday_noon + datetime.timedelta(days=1)
+        report_data = get_voice_connection_report(
+            time_start=friday_noon, time_end=saturday_noon
+        )
+        if report_data is not None:
+            party_animals = []
+            for animal in report_data["party_animals"]:
+                party_animals.append(
+                    PartyTimeSerializer(
+                        {
+                            "discordId": animal["discord_id"],
+                            "seconds": animal["seconds"],
+                        }
+                    )
+                )
+            party_poopers = []
+            for pooper in report_data["party_poopers"]:
+                party_poopers.append(
+                    PartyTimeSerializer(
+                        {
+                            "discordId": pooper["discord_id"],
+                            "seconds": pooper["seconds"],
+                        }
+                    )
+                )
+            serializer = ReportSerializer(
+                {
+                    "totalPlayers": report_data["total_players"],
+                    "totalHours": report_data["total_hours"],
+                    "totalChannels": report_data["total_channels"],
+                    "partyAnimals": party_animals,
+                    "partyPoopers": party_poopers,
+                }
+            )
+        else:
+            serializer = ReportSerializer(
+                {
+                    "totalPlayers": 0,
+                    "totalHours": 0,
+                    "totalChannels": 0,
+                    "partyAnimals": [],
+                    "partyPoopers": [],
+                }
+            )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class VoiceConnectView(APIView):
