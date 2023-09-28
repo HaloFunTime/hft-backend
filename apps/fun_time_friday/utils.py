@@ -94,17 +94,15 @@ def get_voice_connection_report(
         )
 
     logger.warn(
-        json.dumps(
-            {
-                "total_players": len(unique_discord_accounts),
-                "total_hours": round(
-                    Decimal(total_connection_time.total_seconds() / 3600), 3
-                ),
-                "total_channels": len(unique_channel_ids),
-                "party_animals": party_animals,
-                "party_poopers": party_poopers,
-            }
-        )
+        {
+            "total_players": len(unique_discord_accounts),
+            "total_hours": round(
+                Decimal(total_connection_time.total_seconds() / 3600), 3
+            ),
+            "total_channels": len(unique_channel_ids),
+            "party_animals": party_animals,
+            "party_poopers": party_poopers,
+        }
     )
     return {
         "total_players": len(unique_discord_accounts),
