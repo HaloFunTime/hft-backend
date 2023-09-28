@@ -5,6 +5,7 @@ from apps.showcase.models import ShowcaseFile
 
 
 class ShowcaseFileDataSerializer(serializers.Serializer):
+    isMissing = serializers.BooleanField()
     fileType = serializers.CharField()
     name = serializers.CharField()
     description = serializers.CharField()

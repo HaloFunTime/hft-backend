@@ -185,6 +185,7 @@ class ShowcaseTestCase(APITestCase):
             [
                 OrderedDict(
                     [
+                        ("isMissing", False),
                         ("fileType", "map"),
                         ("name", "Test Map"),
                         ("description", "This is a test description for Test Map."),
@@ -204,6 +205,7 @@ class ShowcaseTestCase(APITestCase):
                 ),
                 OrderedDict(
                     [
+                        ("isMissing", False),
                         ("fileType", "mode"),
                         ("name", "Test Mode"),
                         ("description", "This is a test description for Test Mode."),
@@ -223,6 +225,7 @@ class ShowcaseTestCase(APITestCase):
                 ),
                 OrderedDict(
                     [
+                        ("isMissing", False),
                         ("fileType", "prefab"),
                         ("name", "Test Prefab"),
                         ("description", "This is a test description for Test Prefab."),
@@ -238,6 +241,108 @@ class ShowcaseTestCase(APITestCase):
                         ("favorites", 1),
                         ("ratings", 3),
                         ("averageRating", "2.000000000000000"),
+                    ]
+                ),
+            ],
+        )
+        mock_get_map.assert_called_once_with(map_asset_id)
+        mock_get_mode.assert_called_once_with(mode_asset_id)
+        mock_get_prefab.assert_called_once_with(prefab_asset_id)
+
+        ShowcaseFile.objects.all().delete()
+        mock_get_map.reset_mock()
+        mock_get_mode.reset_mock()
+        mock_get_prefab.reset_mock()
+
+        # Showcase has one map, one mode, one prefab - but all are missing data on the API
+        map_asset_id = uuid.uuid4()
+        mock_get_map.return_value = {}
+        mode_asset_id = uuid.uuid4()
+        mock_get_mode.return_value = {}
+        prefab_asset_id = uuid.uuid4()
+        mock_get_prefab.return_value = {}
+        ShowcaseFile.objects.create(
+            showcase_owner_id="123",
+            file_id=map_asset_id,
+            file_type=ShowcaseFile.FileType.Map,
+            position=1,
+            creator=self.user,
+        )
+        ShowcaseFile.objects.create(
+            showcase_owner_id="123",
+            file_id=mode_asset_id,
+            file_type=ShowcaseFile.FileType.Mode,
+            position=2,
+            creator=self.user,
+        )
+        ShowcaseFile.objects.create(
+            showcase_owner_id="123",
+            file_id=prefab_asset_id,
+            file_type=ShowcaseFile.FileType.Prefab,
+            position=3,
+            creator=self.user,
+        )
+        response = self.client.post(
+            "/showcase/check-showcase",
+            {
+                "discordUserId": "123",
+                "discordUsername": "test123",
+            },
+            format="json",
+        )
+        self.assertEqual(response.data.get("discordUserId"), "123")
+        self.assertEqual(
+            response.data.get("showcaseFiles"),
+            [
+                OrderedDict(
+                    [
+                        ("isMissing", True),
+                        ("fileType", "map"),
+                        ("name", None),
+                        ("description", None),
+                        ("thumbnailURL", None),
+                        (
+                            "waypointURL",
+                            f"https://www.halowaypoint.com/halo-infinite/ugc/maps/{map_asset_id}",
+                        ),
+                        ("plays", None),
+                        ("favorites", None),
+                        ("ratings", None),
+                        ("averageRating", None),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("isMissing", True),
+                        ("fileType", "mode"),
+                        ("name", None),
+                        ("description", None),
+                        ("thumbnailURL", None),
+                        (
+                            "waypointURL",
+                            f"https://www.halowaypoint.com/halo-infinite/ugc/modes/{mode_asset_id}",
+                        ),
+                        ("plays", None),
+                        ("favorites", None),
+                        ("ratings", None),
+                        ("averageRating", None),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("isMissing", True),
+                        ("fileType", "prefab"),
+                        ("name", None),
+                        ("description", None),
+                        ("thumbnailURL", None),
+                        (
+                            "waypointURL",
+                            f"https://www.halowaypoint.com/halo-infinite/ugc/prefabs/{prefab_asset_id}",
+                        ),
+                        ("plays", None),
+                        ("favorites", None),
+                        ("ratings", None),
+                        ("averageRating", None),
                     ]
                 ),
             ],

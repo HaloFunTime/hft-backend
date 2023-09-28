@@ -53,6 +53,7 @@ class CheckShowcaseView(APIView):
                 ).order_by("position")
                 for showcase_file in showcase_files:
                     raw_api_data = {}
+                    thumbnail_url = None
                     waypoint_url = ""
                     if showcase_file.file_type == ShowcaseFile.FileType.Map:
                         raw_api_data = get_map(showcase_file.file_id)
@@ -63,20 +64,23 @@ class CheckShowcaseView(APIView):
                     elif showcase_file.file_type == ShowcaseFile.FileType.Prefab:
                         raw_api_data = get_prefab(showcase_file.file_id)
                         waypoint_url = f"https://www.halowaypoint.com/halo-infinite/ugc/prefabs/{showcase_file.file_id}"
-                    thumbnail_url = (
-                        raw_api_data.get("Files", {}).get("Prefix")
-                        + list(
-                            filter(
-                                lambda x: "thumbnail" in x,
-                                raw_api_data.get("Files", {}).get(
-                                    "FileRelativePaths", []
-                                ),
-                            )
-                        )[0]
-                    )
+                    # NOTE: Raw API data should only be an empty dict if the API returns a non-200 for the file
+                    if raw_api_data != {}:
+                        thumbnail_url = (
+                            raw_api_data.get("Files", {}).get("Prefix")
+                            + list(
+                                filter(
+                                    lambda x: "thumbnail" in x,
+                                    raw_api_data.get("Files", {}).get(
+                                        "FileRelativePaths", []
+                                    ),
+                                )
+                            )[0]
+                        )
                     showcase_file_data.append(
                         ShowcaseFileDataSerializer(
                             {
+                                "isMissing": thumbnail_url is None,
                                 "fileType": showcase_file.file_type,
                                 "name": raw_api_data.get("PublicName"),
                                 "description": raw_api_data.get("Description"),
