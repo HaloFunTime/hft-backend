@@ -12,14 +12,8 @@ class ReportSerializer(serializers.Serializer):
     totalPlayers = serializers.IntegerField()
     totalHours = serializers.DecimalField(max_digits=15, decimal_places=3)
     totalChannels = serializers.IntegerField()
-    partyAnimals = serializers.ListField(
-        allow_empty=True,
-        child=PartyTimeSerializer(),
-    )
-    partyPoopers = serializers.ListField(
-        allow_empty=True,
-        child=PartyTimeSerializer(),
-    )
+    partyAnimals = PartyTimeSerializer(many=True, read_only=True)
+    partyPoopers = PartyTimeSerializer(many=True, read_only=True)
 
 
 class VoiceConnectPostRequestSerializer(serializers.Serializer):
