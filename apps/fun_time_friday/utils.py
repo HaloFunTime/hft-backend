@@ -36,8 +36,6 @@ def get_voice_connection_report(
         unique_discord_accounts.add(connect.connector_discord)
     for disconnect in disconnects:
         unique_discord_accounts.add(disconnect.disconnector_discord)
-    for discord_account in unique_discord_accounts:
-        logger.warn(json.dumps(discord_account.__dict__))
 
     unique_channel_ids = set()
     total_connection_time = datetime.timedelta(seconds=0)
