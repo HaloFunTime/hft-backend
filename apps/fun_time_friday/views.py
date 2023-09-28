@@ -14,7 +14,6 @@ from apps.fun_time_friday.models import (
     FunTimeFridayVoiceDisconnect,
 )
 from apps.fun_time_friday.serializers import (
-    PartyTimeSerializer,
     ReportSerializer,
     VoiceConnectPostRequestSerializer,
     VoiceConnectPostResponseSerializer,
@@ -79,22 +78,18 @@ class ReportView(APIView):
             party_animals = []
             for animal in report_data["party_animals"]:
                 party_animals.append(
-                    PartyTimeSerializer(
-                        {
-                            "discordId": animal["discord_id"],
-                            "seconds": animal["seconds"],
-                        }
-                    )
+                    {
+                        "discordId": animal["discord_id"],
+                        "seconds": animal["seconds"],
+                    }
                 )
             party_poopers = []
             for pooper in report_data["party_poopers"]:
                 party_poopers.append(
-                    PartyTimeSerializer(
-                        {
-                            "discordId": pooper["discord_id"],
-                            "seconds": pooper["seconds"],
-                        }
-                    )
+                    {
+                        "discordId": pooper["discord_id"],
+                        "seconds": pooper["seconds"],
+                    }
                 )
             serializer = ReportSerializer(
                 {
