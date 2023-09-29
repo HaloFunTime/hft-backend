@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from apps.halo_infinite.models import HaloInfinitePlaylist
 from apps.halo_infinite.serializers import (
+    CareerRankResponseSerializer,
     CSRDataSerializer,
     CSRPlaylistSerializer,
     CSRResponseSerializer,
@@ -18,7 +19,7 @@ from apps.halo_infinite.serializers import (
     SummaryMatchmakingSerializer,
     SummaryStatsResponseSerializer,
 )
-from apps.halo_infinite.utils import get_csrs, get_summary_stats
+from apps.halo_infinite.utils import get_career_ranks, get_csrs, get_summary_stats
 from apps.xbox_live.utils import get_xuid_and_exact_gamertag
 from config.serializers import StandardErrorSerializer
 
@@ -27,6 +28,66 @@ logger = logging.getLogger(__name__)
 ERROR_GAMERTAG_MISSING = "Missing 'gamertag' query parameter."
 ERROR_GAMERTAG_INVALID = "The gamertag you specified has invalid characters."
 ERROR_GAMERTAG_NOT_FOUND = "The gamertag you specified was not found on Xbox Live."
+
+
+class CareerRankView(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="gamertag",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            )
+        ],
+        responses={
+            200: CareerRankResponseSerializer,
+            400: StandardErrorSerializer,
+            403: StandardErrorSerializer,
+            404: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the current Career Rank for a given gamertag.
+        """
+        # Validate that there is a passed-in gamertag
+        gamertag_param = request.query_params.get("gamertag")
+        if gamertag_param is None:
+            raise ParseError(detail=ERROR_GAMERTAG_MISSING)
+        gamertag = gamertag_param.replace("#", "", 1)
+        if not re.match(r"[ a-zA-Z][ a-zA-Z0-9]{0,14}", gamertag):
+            raise ParseError(detail=ERROR_GAMERTAG_INVALID)
+
+        logger.debug(f"Called Career Rank endpoint with gamertag '{gamertag}'")
+        gamertag_info = get_xuid_and_exact_gamertag(gamertag)
+        xuid = gamertag_info[0]
+        gamertag = gamertag_info[1]
+        if xuid is None or gamertag is None:
+            raise NotFound(ERROR_GAMERTAG_NOT_FOUND)
+
+        try:
+            career_rank_data = get_career_ranks([xuid])
+            xuid_career_rank_data = career_rank_data.get("career_ranks").get(xuid)
+        except Exception as ex:
+            logger.error(ex)
+            raise APIException(f"Could not get Career Rank for gamertag {gamertag}.")
+
+        serializer = CareerRankResponseSerializer(
+            {
+                "gamertag": gamertag,
+                "xuid": xuid,
+                "currentRankNumber": xuid_career_rank_data["current_rank_number"],
+                "currentRankName": xuid_career_rank_data["current_rank_name"],
+                "currentRankScore": xuid_career_rank_data["current_rank_score"],
+                "currentRankScoreMax": xuid_career_rank_data["current_rank_score_max"],
+                "cumulativeScore": xuid_career_rank_data["cumulative_score"],
+                "cumulativeScoreMax": xuid_career_rank_data["cumulative_score_max"],
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CSRView(APIView):

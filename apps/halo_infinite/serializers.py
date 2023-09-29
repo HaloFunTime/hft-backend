@@ -1,6 +1,17 @@
 from rest_framework import serializers
 
 
+class CareerRankResponseSerializer(serializers.Serializer):
+    gamertag = serializers.CharField()
+    xuid = serializers.CharField()
+    currentRankNumber = serializers.IntegerField()
+    currentRankName = serializers.CharField()
+    currentRankScore = serializers.IntegerField()
+    currentRankScoreMax = serializers.IntegerField()
+    cumulativeScore = serializers.IntegerField()
+    cumulativeScoreMax = serializers.IntegerField()
+
+
 class CSRRequestSerializer(serializers.Serializer):
     gamertag = serializers.CharField()
 

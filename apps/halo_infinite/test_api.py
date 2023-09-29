@@ -4,6 +4,7 @@ from unittest.mock import call, patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 
+from apps.halo_infinite.api.career_rank import career_rank
 from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.files import get_map, get_mode, get_prefab
 from apps.halo_infinite.api.match import (
@@ -38,6 +39,111 @@ class HaloInfiniteAPITestCase(TestCase):
         self.clearance_token = HaloInfiniteClearanceToken.objects.create(
             creator=self.user,
             flight_configuration_id="test_clearance",
+        )
+
+    @patch("apps.halo_infinite.api.career_rank.requests.Session")
+    def test_career_rank(self, mock_Session):
+        # Successful call with one XUID
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "RewardTracks": [
+                {
+                    "Id": "xuid(2535429473929971)",
+                    "ResultCode": "Success",
+                    "Result": {
+                        "RewardTrackPath": "RewardTracks/CareerRanks/careerRank1.json",
+                        "TrackType": "CareerRank",
+                        "CurrentProgress": {"Rank": 159, "PartialProgress": 25805},
+                    },
+                }
+            ]
+        }
+
+        career_rank_data = career_rank([2535429473929971])
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://economy.svc.halowaypoint.com:443/hi/careerranks/careerRank1?players=xuid(2535429473929971)",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+                "343-clearance": self.clearance_token.flight_configuration_id,
+            },
+        )
+        self.assertIn(
+            "2535429473929971", career_rank_data.get("RewardTracks")[0].get("Id")
+        )
+        mock_Session.reset_mock()
+
+        # Successful call with three XUIDs
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            200
+        )
+        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+            "RewardTracks": [
+                {
+                    "Id": "xuid(2535429473929971)",
+                    "ResultCode": "Success",
+                    "Result": {
+                        "RewardTrackPath": "RewardTracks/CareerRanks/careerRank1.json",
+                        "TrackType": "CareerRank",
+                        "CurrentProgress": {"Rank": 159, "PartialProgress": 25805},
+                    },
+                },
+                {
+                    "Id": "xuid(2533274798041992)",
+                    "ResultCode": "Success",
+                    "Result": {
+                        "RewardTrackPath": "RewardTracks/CareerRanks/careerRank1.json",
+                        "TrackType": "CareerRank",
+                        "CurrentProgress": {"Rank": 17, "PartialProgress": 890},
+                    },
+                },
+                {
+                    "Id": "xuid(2535405290989773)",
+                    "ResultCode": "Success",
+                    "Result": {
+                        "RewardTrackPath": "RewardTracks/CareerRanks/careerRank1.json",
+                        "TrackType": "CareerRank",
+                        "CurrentProgress": {"Rank": 272, "PartialProgress": 0},
+                    },
+                },
+            ]
+        }
+
+        career_rank_data = career_rank(
+            [2535429473929971, 2533274798041992, 2535405290989773]
+        )
+        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+            "https://economy.svc.halowaypoint.com:443/hi/careerranks/careerRank1"
+            "?players=xuid(2535429473929971),xuid(2533274798041992),xuid(2535405290989773)",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+                "x-343-authorization-spartan": self.spartan_token.token,
+                "343-clearance": self.clearance_token.flight_configuration_id,
+            },
+        )
+        self.assertIn(
+            "2535429473929971", career_rank_data.get("RewardTracks")[0].get("Id")
+        )
+        self.assertIn(
+            "2533274798041992", career_rank_data.get("RewardTracks")[1].get("Id")
+        )
+        self.assertIn(
+            "2535405290989773", career_rank_data.get("RewardTracks")[2].get("Id")
+        )
+        mock_Session.reset_mock()
+
+        # Failed call returns empty values
+        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
+            404
+        )
+        self.assertDictEqual({"RewardTracks": []}, career_rank([2533274870001169]))
+        self.assertDictEqual(
+            {"RewardTracks": []},
+            career_rank([2535429473929971, 2533274798041992, 2535405290989773]),
         )
 
     @patch("apps.halo_infinite.api.csr.requests.Session")

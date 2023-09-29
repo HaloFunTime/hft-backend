@@ -39,6 +39,7 @@ from apps.halo_infinite.utils import (
     get_authored_maps,
     get_authored_modes,
     get_authored_prefabs,
+    get_career_ranks,
     get_csr_after_match,
     get_csrs,
     get_current_season_id,
@@ -889,6 +890,50 @@ class HaloInfiniteUtilsTestCase(TestCase):
                 {"AssetKind": SEARCH_ASSET_KIND_PREFAB},
             ],
         )
+
+    @patch("apps.halo_infinite.utils.career_rank")
+    def test_get_career_ranks(self, mock_career_rank):
+        mock_career_rank.return_value = {
+            "RewardTracks": [
+                {
+                    "Id": "xuid(2533274870001169)",
+                    "ResultCode": "Success",
+                    "Result": {
+                        "RewardTrackPath": "RewardTracks/CareerRanks/careerRank1.json",
+                        "TrackType": "CareerRank",
+                        "CurrentProgress": {"Rank": 159, "PartialProgress": 25805},
+                    },
+                },
+            ]
+        }
+        data = get_career_ranks([2533274870001169])
+        self.assertEqual(
+            data.get("career_ranks").get(2533274870001169).get("current_rank_number"),
+            159,
+        )
+        self.assertEqual(
+            data.get("career_ranks").get(2533274870001169).get("current_rank_name"),
+            "Master Sergeant Platinum (Tier 3)",
+        )
+        self.assertEqual(
+            data.get("career_ranks").get(2533274870001169).get("current_rank_score"),
+            25805,
+        )
+        self.assertEqual(
+            data.get("career_ranks")
+            .get(2533274870001169)
+            .get("current_rank_score_max"),
+            27500,
+        )
+        self.assertEqual(
+            data.get("career_ranks").get(2533274870001169).get("cumulative_score"),
+            1272655,
+        )
+        self.assertEqual(
+            data.get("career_ranks").get(2533274870001169).get("cumulative_score_max"),
+            9319350,
+        )
+        mock_career_rank.assert_called_once_with([2533274870001169])
 
     @patch("apps.halo_infinite.utils.csr")
     def test_get_csrs(self, mock_csr):

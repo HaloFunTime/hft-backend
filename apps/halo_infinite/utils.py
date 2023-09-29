@@ -1,6 +1,7 @@
 import datetime
 import logging
 
+from apps.halo_infinite.api.career_rank import career_rank
 from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.match import match_count, match_skill, matches_between
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
@@ -8,6 +9,7 @@ from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.search import search_by_author
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
+    CAREER_RANKS,
     SEARCH_ASSET_KIND_MAP,
     SEARCH_ASSET_KIND_MODE,
     SEARCH_ASSET_KIND_PREFAB,
@@ -158,6 +160,35 @@ def get_authored_prefabs(xuid: int) -> list[dict]:
         for file in search_by_author(xuid)
         if file.get("AssetKind") == SEARCH_ASSET_KIND_PREFAB
     ]
+
+
+def get_career_ranks(xuids: list[int]):
+    return_dict = {
+        "career_ranks": {},
+    }
+    career_rank_data = career_rank(xuids)
+    logger.info(career_rank_data)
+    for reward_track in career_rank_data.get("RewardTracks"):
+        xuid = int(reward_track.get("Id").lstrip("xuid(").rstrip(")"))
+        rank_number = reward_track.get("Result").get("CurrentProgress").get("Rank")
+        rank_score = (
+            reward_track.get("Result").get("CurrentProgress").get("PartialProgress")
+        )
+        return_dict["career_ranks"][xuid] = {
+            "current_rank_number": rank_number,
+            "current_rank_name": CAREER_RANKS.get(rank_number).get("name"),
+            "current_rank_score": rank_score,
+            "current_rank_score_max": CAREER_RANKS.get(rank_number).get(
+                "cumulative_score"
+            )
+            - CAREER_RANKS.get(rank_number - 1).get("cumulative_score"),
+            "cumulative_score": CAREER_RANKS.get(rank_number - 1).get(
+                "cumulative_score"
+            )
+            + rank_score,
+            "cumulative_score_max": CAREER_RANKS.get(272).get("cumulative_score"),
+        }
+    return return_dict
 
 
 def get_csr_after_match(xuid: int, match_id: str) -> int:

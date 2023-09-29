@@ -22,6 +22,89 @@ class HaloInfiniteTestCase(APITestCase):
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
 
+    @patch("apps.halo_infinite.views.get_career_ranks")
+    @patch("apps.halo_infinite.views.get_xuid_and_exact_gamertag")
+    def test_career_rank_view(
+        self, mock_get_xuid_and_exact_gamertag, mock_get_career_ranks
+    ):
+        # Missing `gamertag` throws error
+        response = self.client.get("/halo-infinite/career-rank")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(string=ERROR_GAMERTAG_MISSING, code="parse_error"),
+        )
+
+        # Invalid `gamertag` throws error
+        response = self.client.get("/halo-infinite/career-rank?gamertag=2fast")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(string=ERROR_GAMERTAG_INVALID, code="parse_error"),
+        )
+
+        # Inability to retrieve gamertag/xuid throws error
+        mock_get_xuid_and_exact_gamertag.return_value = (None, None)
+        response = self.client.get("/halo-infinite/career-rank?gamertag=Intern")
+        self.assertEqual(response.status_code, 404)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(string=ERROR_GAMERTAG_NOT_FOUND, code="not_found"),
+        )
+        mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
+        mock_get_xuid_and_exact_gamertag.reset_mock()
+
+        # Exception in get_career_ranks throws error
+        mock_get_xuid_and_exact_gamertag.return_value = (0, "InternActualGT")
+        mock_get_career_ranks.side_effect = Exception()
+        response = self.client.get("/halo-infinite/career-rank?gamertag=Intern")
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Could not get Career Rank for gamertag InternActualGT.",
+                code="error",
+            ),
+        )
+        mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
+        mock_get_career_ranks.assert_called_once_with([0])
+        mock_get_xuid_and_exact_gamertag.reset_mock()
+        mock_get_career_ranks.reset_mock()
+
+        # Success returns 200
+        mock_get_xuid_and_exact_gamertag.return_value = (0, "InternActualGT")
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {
+                0: {
+                    "current_rank_number": 272,
+                    "current_rank_name": "Hero",
+                    "current_rank_score": 0,
+                    "current_rank_score_max": 0,
+                    "cumulative_score": 9319350,
+                    "cumulative_score_max": 9319350,
+                }
+            }
+        }
+        mock_get_career_ranks.side_effect = None
+        response = self.client.get("/halo-infinite/career-rank?gamertag=Intern")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("gamertag"), "InternActualGT")
+        self.assertEqual(response.data.get("xuid"), "0")
+        self.assertEqual(response.data.get("currentRankNumber"), 272)
+        self.assertEqual(response.data.get("currentRankName"), "Hero")
+        self.assertEqual(response.data.get("currentRankScore"), 0)
+        self.assertEqual(response.data.get("currentRankScoreMax"), 0)
+        self.assertEqual(response.data.get("cumulativeScore"), 9319350)
+        self.assertEqual(response.data.get("cumulativeScoreMax"), 9319350)
+        mock_get_xuid_and_exact_gamertag.assert_called_once_with("Intern")
+        mock_get_career_ranks.assert_called_once_with([0])
+        mock_get_xuid_and_exact_gamertag.reset_mock()
+        mock_get_career_ranks.reset_mock()
+
     @patch("apps.halo_infinite.views.get_csrs")
     @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
     @patch("apps.halo_infinite.views.get_xuid_and_exact_gamertag")
