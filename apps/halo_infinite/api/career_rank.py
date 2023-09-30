@@ -41,5 +41,4 @@ def career_rank(xuids: list[int], **kwargs) -> dict:
                 return_dict.get("RewardTracks").extend(
                     response_dict.get("RewardTracks")
                 )
-    logger.info(return_dict)
     return return_dict

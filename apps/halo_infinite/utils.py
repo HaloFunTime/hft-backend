@@ -104,9 +104,6 @@ def get_343_recommended_contributors() -> list[int, int]:
         "prefab": {},
     }
     recommended_data = recommended()
-    import json
-
-    logger.info(json.dumps(recommended_data))
     for map in recommended_data.get("MapLinks"):
         for contributor in map.get("Contributors"):
             xuid = int(contributor.lstrip("xuid(").rstrip(")"))
@@ -167,7 +164,6 @@ def get_career_ranks(xuids: list[int]):
         "career_ranks": {},
     }
     career_rank_data = career_rank(xuids)
-    logger.info(career_rank_data)
     for reward_track in career_rank_data.get("RewardTracks"):
         xuid = int(reward_track.get("Id").lstrip("xuid(").rstrip(")"))
         rank_number = reward_track.get("Result").get("CurrentProgress").get("Rank")

@@ -17,10 +17,6 @@ logger = logging.getLogger(__name__)
 def get_voice_connection_report(
     time_start: datetime.datetime, time_end: datetime.datetime
 ) -> dict | None:
-    import json
-
-    logger.warn(time_start)
-    logger.warn(time_end)
     connects = list(
         FunTimeFridayVoiceConnect.objects.filter(
             Q(connected_at__gte=time_start) & Q(connected_at__lte=time_end)
@@ -59,10 +55,6 @@ def get_voice_connection_report(
             ]
         total_connection_time += user_connection_time
 
-    logger.warn(unique_channel_ids)
-    logger.warn(total_connection_time)
-    logger.warn(json.dumps(discord_ids_by_seconds_connected))
-
     if discord_ids_by_seconds_connected == {}:
         return None
 
@@ -93,17 +85,6 @@ def get_voice_connection_report(
             {"discord_id": discord_id, "seconds": least_seconds_connected}
         )
 
-    logger.warn(
-        {
-            "total_players": len(unique_discord_accounts),
-            "total_hours": round(
-                Decimal(total_connection_time.total_seconds() / 3600), 3
-            ),
-            "total_channels": len(unique_channel_ids),
-            "party_animals": party_animals,
-            "party_poopers": party_poopers,
-        }
-    )
     return {
         "total_players": len(unique_discord_accounts),
         "total_hours": round(Decimal(total_connection_time.total_seconds() / 3600), 3),
