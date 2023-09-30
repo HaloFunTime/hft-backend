@@ -16,8 +16,10 @@ from apps.trailblazer.models import (
 from apps.trailblazer.utils import (
     get_s3_discord_earn_dict,
     get_s4_discord_earn_dict,
+    get_s5_discord_earn_dict,
     is_s3_scout_qualified,
     is_s4_scout_qualified,
+    is_s5_scout_qualified,
     is_scout_qualified,
     is_sherpa_qualified,
 )
@@ -512,6 +514,160 @@ class TrailblazerUtilsTestCase(TestCase):
             result = is_s4_scout_qualified(discord_id, xuid)
             self.assertEqual(result, discord_id in scout_qualified_discord_ids)
 
+    def test_get_s5_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_s5_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # Max Points - exactly
+        cotcs = []
+        for i in range(5):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 10, 24),
+                )
+            )
+        earn_dict = get_s5_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 250
+        )
+
+        # Max points - overages
+        for i in range(2):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 7, 6),
+                )
+            )
+        earn_dict = get_s5_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 250
+        )
+
+        # Deletion of all records eliminates points
+        for cotc in cotcs:
+            cotc.delete()
+        earn_dict = get_s5_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 0
+        )
+
+        # Addition of records outside the date range still results in no points
+        cotcs = []
+        for i in range(5):
+            cotcs.append(
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_accounts[0],
+                    attendance_date=datetime.date(2023, 7, 11),
+                )
+            )
+        earn_dict = get_s5_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 0
+        )
+
+    @patch("apps.trailblazer.utils.get_s5_xbox_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_is_s5_scout_qualified(
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s5_xbox_earn_dict,
+    ):
+        # Null value provided to method returns False
+        mock_get_s5_xbox_earn_dict.return_value = {}
+        result = is_s5_scout_qualified(None, None)
+        self.assertEqual(result, False)
+
+        # Create some test data
+        discord_accounts = []
+        link_for_discord_account = {}
+        xbox_earn_dict = {}
+        for i in range(30):
+            discord_account = DiscordAccount.objects.create(
+                creator=self.user,
+                discord_id=str(i),
+                discord_username=f"TestUsername{i}",
+            )
+            discord_accounts.append(discord_account)
+            # Half of all accounts should get linked gamertags
+            if i % 2 == 0:
+                mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
+                xbox_live_account = XboxLiveAccount.objects.create(
+                    creator=self.user, gamertag=f"testGT{i}"
+                )
+                link_for_discord_account[str(i)] = DiscordXboxLiveLink.objects.create(
+                    creator=self.user,
+                    discord_account=discord_account,
+                    xbox_live_account=xbox_live_account,
+                    verified=True,
+                )
+                xbox_earn_dict[i] = {
+                    "online_warrior": 0,
+                    "heads_or_tails": 0,
+                    "high_voltage": 0,
+                    "exterminator": 0,
+                }
+            # Every second account gets an attendance
+            if i % 2 == 1:
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_account,
+                    attendance_date=SEASON_4_START_TIME,
+                )
+            # Every third account gets an attendance
+            if i % 3 == 0:
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_account,
+                    attendance_date=SEASON_4_START_TIME,
+                )
+            # Every fourth account gets an attendance
+            if i % 4 == 0:
+                TrailblazerTuesdayAttendance.objects.create(
+                    creator=self.user,
+                    attendee_discord=discord_account,
+                    attendance_date=SEASON_4_START_TIME,
+                )
+            # Every second account earns Online Warrior
+            if i % 2 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["online_warrior"] = 200
+            # Every third account earns Heads or Tails
+            if i % 3 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["heads_or_tails"] = 150
+            # Every fifth account earns High Voltage
+            if i % 6 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["high_voltage"] = 100
+            # Every sixth account earns Exterminator
+            if i % 6 == 0 and i in xbox_earn_dict:
+                xbox_earn_dict[i]["exterminator"] = 100
+        mock_get_s5_xbox_earn_dict.return_value = xbox_earn_dict
+
+        # The test data above results in every sixth account clearing the 500 point threshold
+        scout_qualified_discord_ids = {"0", "6", "12", "18", "24"}
+        for i in range(30):
+            discord_id = str(i)
+            link = link_for_discord_account.get(discord_id)
+            xuid = None if link is None else link.xbox_live_account_id
+            result = is_s5_scout_qualified(discord_id, xuid)
+            self.assertEqual(result, discord_id in scout_qualified_discord_ids)
+
+    @patch("apps.trailblazer.utils.is_s5_scout_qualified")
     @patch("apps.trailblazer.utils.is_s4_scout_qualified")
     @patch("apps.trailblazer.utils.is_s3_scout_qualified")
     @patch("apps.trailblazer.utils.get_current_season_id")
@@ -520,11 +676,13 @@ class TrailblazerUtilsTestCase(TestCase):
         mock_get_current_season_id,
         mock_is_s3_scout_qualified,
         mock_is_s4_scout_qualified,
+        mock_is_s5_scout_qualified,
     ):
         def reset_all_mocks():
             mock_get_current_season_id.reset_mock()
             mock_is_s3_scout_qualified.reset_mock()
             mock_is_s4_scout_qualified.reset_mock()
+            mock_is_s5_scout_qualified.reset_mock()
 
         # Season 3
         mock_get_current_season_id.return_value = "3"
@@ -544,6 +702,17 @@ class TrailblazerUtilsTestCase(TestCase):
         mock_get_current_season_id.assert_called_once_with()
         mock_is_s3_scout_qualified.assert_not_called()
         mock_is_s4_scout_qualified.assert_called_once_with("123", 123)
+        reset_all_mocks()
+
+        # Season 5
+        mock_get_current_season_id.return_value = "5"
+        mock_is_s5_scout_qualified.return_value = True
+        result = is_scout_qualified("123", 123)
+        self.assertEqual(result, True)
+        mock_get_current_season_id.assert_called_once_with()
+        mock_is_s3_scout_qualified.assert_not_called()
+        mock_is_s4_scout_qualified.assert_not_called()
+        mock_is_s5_scout_qualified.assert_called_once_with("123", 123)
         reset_all_mocks()
 
     @patch("apps.trailblazer.utils.get_csrs")

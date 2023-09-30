@@ -14,6 +14,7 @@ from apps.trailblazer.serializers import (
     TrailblazerScoutProgressResponseSerializer,
     TrailblazerScoutSeason3ProgressResponseSerializer,
     TrailblazerScoutSeason4ProgressResponseSerializer,
+    TrailblazerScoutSeason5ProgressResponseSerializer,
     TrailblazerSeasonalRoleCheckRequestSerializer,
     TrailblazerSeasonalRoleCheckResponseSerializer,
 )
@@ -22,6 +23,8 @@ from apps.trailblazer.utils import (
     get_s3_xbox_earn_dict,
     get_s4_discord_earn_dict,
     get_s4_xbox_earn_dict,
+    get_s5_discord_earn_dict,
+    get_s5_xbox_earn_dict,
     is_scout_qualified,
     is_sherpa_qualified,
 )
@@ -196,6 +199,33 @@ class TrailblazerScoutProgressView(APIView):
                     )
                     serializable_dict["pointsThemTharHills"] = xbox_earns.get(
                         "them_thar_hills", 0
+                    )
+                elif season_id == "5":
+                    serializer_class = TrailblazerScoutSeason5ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s5_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsChurchOfTheCrab"] = discord_earns.get(
+                        "church_of_the_crab", 0
+                    )
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s5_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsOnlineWarrior"] = xbox_earns.get(
+                        "online_warrior", 0
+                    )
+                    serializable_dict["pointsHeadsOrTails"] = xbox_earns.get(
+                        "heads_or_tails", 0
+                    )
+                    serializable_dict["pointsHighVoltage"] = xbox_earns.get(
+                        "high_voltage", 0
+                    )
+                    serializable_dict["pointsExterminator"] = xbox_earns.get(
+                        "exterminator", 0
                     )
             except Exception as ex:
                 raise_exception(ex)

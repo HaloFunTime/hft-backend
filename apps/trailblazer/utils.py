@@ -4,12 +4,19 @@ import logging
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG,
     GAME_VARIANT_CATEGORY_KING_OF_THE_HILL,
     GAME_VARIANT_CATEGORY_ODDBALL,
     GAME_VARIANT_CATEGORY_SLAYER,
     GAME_VARIANT_CATEGORY_STRONGHOLDS,
+    MAP_ID_RECHARGE,
+    MEDAL_ID_EXTERMINATION,
+    SEASON_3_RANKED_ARENA_PLAYLIST_ID,
+    SEASON_4_RANKED_ARENA_PLAYLIST_ID,
+    SEASON_5_API_ID,
+    SEASON_5_RANKED_ARENA_PLAYLIST_ID,
 )
 from apps.halo_infinite.utils import (
     get_csr_after_match,
@@ -72,7 +79,7 @@ def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
 
 def get_s3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     # Get current CSRs for each XUID (needed for calculations)
-    csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
+    csr_by_xuid = get_csrs(xuids, SEASON_3_RANKED_ARENA_PLAYLIST_ID).get("csrs")
 
     earn_dict = {}
     for xuid in xuids:
@@ -228,7 +235,7 @@ def get_s4_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]
 
 def get_s4_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
     # Get current CSRs for each XUID (needed for calculations)
-    csr_by_xuid = get_csrs(xuids, "edfef3ac-9cbe-4fa2-b949-8f29deafd483").get("csrs")
+    csr_by_xuid = get_csrs(xuids, SEASON_4_RANKED_ARENA_PLAYLIST_ID).get("csrs")
 
     earn_dict = {}
     for xuid in xuids:
@@ -368,12 +375,139 @@ def is_s4_scout_qualified(discord_id: str, xuid: int | None) -> bool:
     return points >= 500
 
 
+def get_s5_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    first_day, last_day = get_first_and_last_days_for_season("5")
+    annotated_discord_accounts = DiscordAccount.objects.annotate(
+        attendances=Count(
+            "trailblazer_tuesday_attendees",
+            distinct=True,
+            filter=Q(
+                trailblazer_tuesday_attendees__attendee_discord_id__in=discord_ids,
+                trailblazer_tuesday_attendees__attendance_date__range=[
+                    first_day,
+                    last_day,
+                ],
+            ),
+        ),
+    ).filter(discord_id__in=discord_ids)
+
+    earn_dict = {}
+    for account in annotated_discord_accounts:
+        earn_dict[account.discord_id] = {
+            "church_of_the_crab": min(account.attendances, 5) * 50,  # Max 5 per account
+        }
+    return earn_dict
+
+
+def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    # Get current CSRs for each XUID (needed for calculations)
+    csr_by_xuid = get_csrs(xuids, SEASON_5_RANKED_ARENA_PLAYLIST_ID).get("csrs")
+
+    earn_dict = {}
+    for xuid in xuids:
+        unlocked_online_warrior = False
+        headshot_kills = 0
+        recharge_wins = 0
+        unlocked_exterminator = False
+
+        # Get matches for this XUID
+        matches = get_season_ranked_arena_matches_for_xuid(xuid, "5")
+        matches_sorted = sorted(
+            matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("StartTime")
+            ),
+        )
+
+        # Get Ranked Arena seasonal Service Record for this XUID
+        ranked_arena_season_sr = service_record(
+            xuid, SEASON_5_API_ID, SEASON_5_RANKED_ARENA_PLAYLIST_ID
+        )
+
+        # Online Warrior: Beat your placement CSR by 200 or more
+        # Validate player has placed and we have at least 5 matches of data for them
+        if csr_by_xuid[xuid]["current_csr"] != -1 and len(matches_sorted) >= 5:
+            placement_match_index = 4
+            placement_csr = None
+            while placement_csr is None:
+                placement_match = matches_sorted[placement_match_index]
+                possible_placement_csr = get_csr_after_match(
+                    xuid, placement_match.get("MatchId")
+                )
+                placement_csr = (
+                    possible_placement_csr if possible_placement_csr != -1 else None
+                )
+                placement_match_index += 1
+            if csr_by_xuid[xuid]["current_reset_max_csr"] >= placement_csr + 200:
+                unlocked_online_warrior = True
+
+        # Heads or Tails: Get headshot kills in Ranked Arena. 1 point for every 5 headshot kills.
+        headshot_kills = ranked_arena_season_sr.get("CoreStats", {}).get(
+            "HeadshotKills", 0
+        )
+
+        # High Voltage: Win games on the map Recharge in Ranked Arena. 5 points per win.
+        for match in matches:
+            if (
+                match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
+                == MAP_ID_RECHARGE
+            ):
+                if match.get("Outcome") == 2:
+                    recharge_wins += 1
+
+        # Exterminator: Achieve an Extermination in Ranked Arena. Earnable once.
+        medals = ranked_arena_season_sr.get("CoreStats", {}).get("Medals", [])
+        medals_list = list(
+            filter(lambda x: x.get("NameId") == MEDAL_ID_EXTERMINATION, medals)
+        )
+        unlocked_exterminator = len(medals_list) > 0
+
+        earn_dict[xuid] = {
+            "online_warrior": 200 if unlocked_online_warrior else 0,
+            "heads_or_tails": int(min(headshot_kills, 750) / 5),
+            "high_voltage": min(recharge_wins, 20) * 5,
+            "exterminator": 100 if unlocked_exterminator else 0,
+        }
+    return earn_dict
+
+
+def is_s5_scout_qualified(discord_id: str, xuid: int | None) -> bool:
+    points = 0
+
+    # DISCORD CHALLENGES
+    if discord_id is not None:
+        discord_earn_dict = get_s5_discord_earn_dict([discord_id])
+        earns = discord_earn_dict.get(discord_id)
+
+        # Church of the Crab
+        points += earns.get("church_of_the_crab")
+
+    # XBOX LIVE CHALLENGES
+    if xuid is not None:
+        xbox_earn_dict = get_s5_xbox_earn_dict([xuid])
+        earns = xbox_earn_dict.get(xuid)
+
+        # Online Warrior
+        points += earns.get("online_warrior")
+        # Heads or Tails
+        points += earns.get("heads_or_tails")
+        # High Voltage
+        points += earns.get("high_voltage")
+        # Exterminator
+        points += earns.get("exterminator")
+
+    logger.info(f"Scout Points for {discord_id}: {points}")
+    return points >= 500
+
+
 def is_scout_qualified(discord_id: str, xuid: int | None) -> bool:
     season_id = get_current_season_id()
     if season_id == "3":
         return is_s3_scout_qualified(discord_id, xuid)
     elif season_id == "4":
         return is_s4_scout_qualified(discord_id, xuid)
+    elif season_id == "5":
+        return is_s5_scout_qualified(discord_id, xuid)
     return False
 
 

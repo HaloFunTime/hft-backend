@@ -532,3 +532,151 @@ class TrailblazerTestCase(APITestCase):
         mock_get_s4_xbox_earn_dict.assert_not_called()
         mock_get_s4_discord_earn_dict.reset_mock()
         mock_get_s4_xbox_earn_dict.reset_mock()
+
+    @patch("apps.trailblazer.views.get_s5_xbox_earn_dict")
+    @patch("apps.trailblazer.views.get_s5_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.trailblazer.views.get_current_season_id")
+    def test_trailblazer_scout_progress_view_s5(
+        self,
+        mock_get_current_season_id,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_s5_discord_earn_dict,
+        mock_get_s5_xbox_earn_dict,
+    ):
+        mock_get_current_season_id.return_value = "5"
+
+        # Create test data
+        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
+        )
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="testGT1234"
+        )
+        link = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            verified=True,
+        )
+
+        # Exception in get_s5_discord_earn_dict throws error
+        mock_get_s5_discord_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Trailblazer Scout progress check.",
+                code="error",
+            ),
+        )
+        mock_get_s5_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s5_discord_earn_dict.side_effect = None
+        mock_get_s5_discord_earn_dict.reset_mock()
+
+        # Exception in get_s5_xbox_earn_dict throws error
+        mock_get_s5_xbox_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Trailblazer Scout progress check.",
+                code="error",
+            ),
+        )
+        mock_get_s5_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s5_xbox_earn_dict.side_effect = None
+        mock_get_s5_discord_earn_dict.reset_mock()
+        mock_get_s5_xbox_earn_dict.reset_mock()
+
+        # Success - point totals come through for all values
+        mock_get_s5_discord_earn_dict.return_value = {
+            link.discord_account_id: {
+                "church_of_the_crab": 250,
+            }
+        }
+        mock_get_s5_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "online_warrior": 200,
+                "heads_or_tails": 150,
+                "high_voltage": 100,
+                "exterminator": 100,
+            }
+        }
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), True)
+        self.assertEqual(response.data.get("totalPoints"), 800)
+        self.assertEqual(response.data.get("pointsChurchOfTheCrab"), 250)
+        self.assertEqual(response.data.get("pointsOnlineWarrior"), 200)
+        self.assertEqual(response.data.get("pointsHeadsOrTails"), 150)
+        self.assertEqual(response.data.get("pointsHighVoltage"), 100)
+        self.assertEqual(response.data.get("pointsExterminator"), 100)
+        mock_get_s5_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_s5_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_s5_discord_earn_dict.reset_mock()
+        mock_get_s5_xbox_earn_dict.reset_mock()
+
+        # Success - no linked gamertag
+        link.delete()
+        mock_get_s5_discord_earn_dict.return_value = {
+            discord_account.discord_id: {
+                "church_of_the_crab": 150,
+            }
+        }
+        mock_get_s5_xbox_earn_dict.return_value = {
+            xbox_live_account.xuid: {
+                "online_warrior": 200,
+                "heads_or_tails": 150,
+                "high_voltage": 100,
+                "exterminator": 100,
+            }
+        }
+        response = self.client.post(
+            "/trailblazer/scout-progress",
+            {
+                "discordUserId": discord_account.discord_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), False)
+        self.assertEqual(response.data.get("totalPoints"), 150)
+        self.assertEqual(response.data.get("pointsChurchOfTheCrab"), 150)
+        self.assertEqual(response.data.get("pointsOnlineWarrior"), 0)
+        self.assertEqual(response.data.get("pointsHeadsOrTails"), 0)
+        self.assertEqual(response.data.get("pointsHighVoltage"), 0)
+        self.assertEqual(response.data.get("pointsExterminator"), 0)
+        mock_get_s5_discord_earn_dict.assert_called_once_with(
+            [discord_account.discord_id]
+        )
+        mock_get_s5_xbox_earn_dict.assert_not_called()
+        mock_get_s5_discord_earn_dict.reset_mock()
+        mock_get_s5_xbox_earn_dict.reset_mock()
