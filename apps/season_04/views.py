@@ -245,7 +245,7 @@ class CheckStampsView(APIView):
                         stamps_completed += 1
                     # CHALLENGE #15: Epidemic
                     score_epidemic = infection_games_finished
-                    if score_epidemic >= 25:
+                    if score_epidemic >= 50:
                         stamps_completed += 1
 
                     # HALOFUNTIME BTB CHALLENGES
