@@ -18,6 +18,25 @@ class JoinChallengeResponseSerializer(serializers.Serializer):
     newJoiner = serializers.BooleanField()
 
 
+class ProcessedReassignmentSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    team = serializers.CharField()
+    reason = serializers.CharField()
+
+
+class ProcessReassignmentsRequestSerializer(serializers.Serializer):
+    date = serializers.DateField()
+
+
+class ProcessReassignmentsResponseSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    processedReassignments = serializers.ListField(
+        child=ProcessedReassignmentSerializer()
+    )
+
+
 class SaveMasterRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]

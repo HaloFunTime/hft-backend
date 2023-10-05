@@ -4,5 +4,10 @@ from apps.season_05 import views
 
 urlpatterns = [
     path("join-challenge", views.JoinChallengeView.as_view(), name="join-challenge"),
+    path(
+        "process-reassignments",
+        views.ProcessReassignmentsView.as_view(),
+        name="process-reassignments",
+    ),
     path("save-master", views.SaveMasterView.as_view(), name="save-master"),
 ]

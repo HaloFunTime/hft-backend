@@ -2,6 +2,7 @@ import datetime
 import logging
 import random
 
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -9,10 +10,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
-from apps.season_05.models import DomainChallengeTeamAssignment, DomainMaster
+from apps.season_05.models import (
+    DomainChallengeTeamAssignment,
+    DomainChallengeTeamReassignment,
+    DomainMaster,
+)
 from apps.season_05.serializers import (
     JoinChallengeRequestSerializer,
     JoinChallengeResponseSerializer,
+    ProcessedReassignmentSerializer,
+    ProcessReassignmentsRequestSerializer,
+    ProcessReassignmentsResponseSerializer,
     SaveMasterRequestSerializer,
     SaveMasterResponseSerializer,
 )
@@ -77,6 +85,64 @@ class JoinChallengeView(APIView):
                     "assignedTeam": assignment.team,
                     "discordUserId": assignment.assignee_id,
                     "newJoiner": new_joiner,
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProcessReassignmentsView(APIView):
+    @extend_schema(
+        request=ProcessReassignmentsRequestSerializer,
+        responses={
+            200: ProcessReassignmentsResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Query all DomainChallengeTeamReassignments for the specified date, update DomainChallengeTeamAssignments as
+        requested, and return a payload describing all reassignments that happened.
+        """
+        validation_serializer = ProcessReassignmentsRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            date = validation_serializer.data.get("date")
+
+            try:
+                reassignments = DomainChallengeTeamReassignment.objects.filter(
+                    reassignment_date=date
+                )
+                processed_reassignments = []
+                with transaction.atomic():
+                    for reassignment in reassignments:
+                        assignment = DomainChallengeTeamAssignment.objects.filter(
+                            assignee_id=reassignment.reassignee_id
+                        ).first()
+                        if assignment is not None:
+                            assignment.team = reassignment.next_team
+                            assignment.save()
+                            processed_reassignments.append(
+                                ProcessedReassignmentSerializer(
+                                    {
+                                        "discordUserId": reassignment.reassignee_id,
+                                        "team": reassignment.next_team,
+                                        "reason": reassignment.reason,
+                                    }
+                                ).data
+                            )
+                        reassignment.delete()
+            except Exception as ex:
+                logger.error(
+                    "Error attempting to process Domain Challenge Team Reassignments."
+                )
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to process Domain Challenge Team Reassignments."
+                )
+            serializer = ProcessReassignmentsResponseSerializer(
+                {
+                    "date": date,
+                    "processedReassignments": processed_reassignments,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
