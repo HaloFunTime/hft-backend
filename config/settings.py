@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "apps.ping",
     "apps.reputation",
     "apps.season_04",
+    "apps.season_05",
     "apps.series",
     "apps.showcase",
     "apps.trailblazer",

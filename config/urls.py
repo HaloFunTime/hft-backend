@@ -80,6 +80,7 @@ urlpatterns = [
     path("ping/", include("apps.ping.urls")),
     path("reputation/", include("apps.reputation.urls")),
     path("season-04/", include("apps.season_04.urls")),
+    path("season-05/", include("apps.season_05.urls")),
     path("series/", include("apps.series.urls")),
     path("showcase/", include("apps.showcase.urls")),
     path("trailblazer/", include("apps.trailblazer.urls")),
