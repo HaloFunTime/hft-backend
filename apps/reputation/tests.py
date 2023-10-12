@@ -679,17 +679,17 @@ class UtilsTestCase(TestCase):
     def test_get_current_week_start_time(self, mock_get_current_time):
         expected_tuples = [
             # Basic example
-            ("2023-01-04T10:34:27-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-04T10:34:27-07:00", "2023-01-02T11:00:00-07:00"),
             # Week starts in previous month
-            ("2023-02-02T02:34:27-07:00", "2023-01-31T11:00:00-07:00"),
+            ("2023-02-02T02:34:27-07:00", "2023-01-30T11:00:00-07:00"),
             # Week starts in previous year
-            ("2023-01-01T10:00:00-07:00", "2022-12-27T11:00:00-07:00"),
+            ("2023-01-01T10:00:00-07:00", "2022-12-26T11:00:00-07:00"),
             # Week starts this instant
-            ("2023-01-03T11:00:00-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-02T11:00:00-07:00", "2023-01-02T11:00:00-07:00"),
             # Week starts one microsecond ago
-            ("2023-01-03T11:00:00.000001-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-02T11:00:00.000001-07:00", "2023-01-02T11:00:00-07:00"),
             # Last microsecond of week
-            ("2023-01-03T10:59:59.999999-07:00", "2022-12-27T11:00:00-07:00"),
+            ("2023-01-02T10:59:59.999999-07:00", "2022-12-26T11:00:00-07:00"),
         ]
         for expected_tuple in expected_tuples:
             mock_get_current_time.return_value = datetime.datetime.fromisoformat(
@@ -706,31 +706,31 @@ class UtilsTestCase(TestCase):
             # Basic example
             (
                 "2023-01-04T10:34:27-07:00",
-                datetime.timedelta(days=6, seconds=1533, microseconds=0),
+                datetime.timedelta(days=5, seconds=1533, microseconds=0),
             ),
             # Reset in next month
             (
                 "2023-03-29T02:34:27-06:00",
-                datetime.timedelta(days=6, seconds=30333, microseconds=0),
+                datetime.timedelta(days=5, seconds=30333, microseconds=0),
             ),
             # Reset in next year
             (
                 "2022-12-28T10:00:00-07:00",
-                datetime.timedelta(days=6, seconds=3600, microseconds=0),
+                datetime.timedelta(days=5, seconds=3600, microseconds=0),
             ),
             # Reset just refreshed
             (
-                "2023-01-03T11:00:00-07:00",
+                "2023-01-02T11:00:00-07:00",
                 datetime.timedelta(days=7, seconds=0, microseconds=0),
             ),
             # Reset just refreshed and one microsecond passed
             (
-                "2023-01-03T11:00:00.000001-07:00",
+                "2023-01-02T11:00:00.000001-07:00",
                 datetime.timedelta(days=6, seconds=86399, microseconds=999999),
             ),
             # Reset one microsecond from refreshing
             (
-                "2023-01-03T10:59:59.999999-07:00",
+                "2023-01-02T10:59:59.999999-07:00",
                 datetime.timedelta(days=0, seconds=0, microseconds=1),
             ),
         ]
@@ -909,17 +909,17 @@ class UtilsTestCase(TestCase):
     def test_get_week_start_time(self):
         expected_tuples = [
             # Basic example
-            ("2023-01-04T10:34:27-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-04T10:34:27-07:00", "2023-01-02T11:00:00-07:00"),
             # Week starts in previous month
-            ("2023-02-02T02:34:27-07:00", "2023-01-31T11:00:00-07:00"),
+            ("2023-02-02T02:34:27-07:00", "2023-01-30T11:00:00-07:00"),
             # Week starts in previous year
-            ("2023-01-01T10:00:00-07:00", "2022-12-27T11:00:00-07:00"),
+            ("2023-01-01T10:00:00-07:00", "2022-12-26T11:00:00-07:00"),
             # Week starts this instant
-            ("2023-01-03T11:00:00-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-02T11:00:00-07:00", "2023-01-02T11:00:00-07:00"),
             # Week starts one microsecond ago
-            ("2023-01-03T11:00:00.000001-07:00", "2023-01-03T11:00:00-07:00"),
+            ("2023-01-02T11:00:00.000001-07:00", "2023-01-02T11:00:00-07:00"),
             # Last microsecond of week
-            ("2023-01-03T10:59:59.999999-07:00", "2022-12-27T11:00:00-07:00"),
+            ("2023-01-02T10:59:59.999999-07:00", "2022-12-26T11:00:00-07:00"),
         ]
         for expected_tuple in expected_tuples:
             self.assertEqual(

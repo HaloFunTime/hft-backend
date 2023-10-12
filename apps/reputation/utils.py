@@ -1,5 +1,5 @@
 import datetime
-from calendar import TUESDAY
+from calendar import MONDAY
 
 import pytz
 from django.contrib.auth.models import User
@@ -14,23 +14,23 @@ def get_current_time() -> datetime.datetime:
 
 
 def get_week_start_time(timestamp: datetime.datetime) -> datetime.datetime:
-    # Return the Tuesday at 11AM Denver time nearest to the timestamp and before it
-    prior_tuesday = None
-    if timestamp.weekday() == TUESDAY:
+    # Return the Monday at 11AM Denver time nearest to the timestamp and before it
+    prior_monday = None
+    if timestamp.weekday() == MONDAY:
         if timestamp.hour >= 11:
-            # After cutoff time, today is the most recent Tuesday
-            prior_tuesday = timestamp.date()
+            # After cutoff time, today is the most recent Monday
+            prior_monday = timestamp.date()
         else:
-            # Before cutoff time, seven days ago is the most recent Tuesday
-            prior_tuesday = timestamp.date() - datetime.timedelta(days=7)
+            # Before cutoff time, seven days ago is the most recent Monday
+            prior_monday = timestamp.date() - datetime.timedelta(days=7)
     else:
-        offset = (timestamp.weekday() - TUESDAY) % 7
-        prior_tuesday = timestamp - datetime.timedelta(days=offset)
+        offset = (timestamp.weekday() - MONDAY) % 7
+        prior_monday = timestamp - datetime.timedelta(days=offset)
     return pytz.timezone("America/Denver").localize(
         datetime.datetime(
-            prior_tuesday.year,
-            prior_tuesday.month,
-            prior_tuesday.day,
+            prior_monday.year,
+            prior_monday.month,
+            prior_monday.day,
             11,
             0,
             0,
@@ -40,7 +40,7 @@ def get_week_start_time(timestamp: datetime.datetime) -> datetime.datetime:
 
 
 def get_current_week_start_time() -> datetime.datetime:
-    # Return 11AM Denver time on the most recent Tuesday
+    # Return 11AM Denver time on the most recent Monday
     return get_week_start_time(get_current_time())
 
 
