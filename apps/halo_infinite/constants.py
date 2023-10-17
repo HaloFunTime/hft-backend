@@ -387,11 +387,19 @@ SEASON_4_DEV_MAP_IDS = {
     MAP_ID_SOLITUDE,
     MAP_ID_STREETS,
 }
-SEASON_5_API_ID = None  # TODO
-SEASON_5_FIRST_DAY = datetime.date(year=2023, month=10, day=18)
-SEASON_5_LAST_DAY = datetime.date(year=2024, month=2, day=14)  # TODO
-SEASON_5_START_TIME = datetime.datetime.fromisoformat("2023-10-17T17:00:00Z")
-SEASON_5_END_TIME = datetime.datetime.fromisoformat("2024-02-14T17:00:00Z")  # TODO
+SEASON_5_PART_1_API_ID = "Csr/Seasons/CsrSeason5-1.json"
+SEASON_5_PART_2_API_ID = "Csr/Seasons/CsrSeason5-2.json"
+SEASON_5_PART_3_API_ID = "Csr/Seasons/CsrSeason5-3.json"
+SEASON_5_FIRST_DAY = datetime.date(year=2023, month=10, day=17)
+SEASON_5_LAST_DAY = datetime.date(year=2024, month=1, day=31)
+SEASON_5_PART_1_START_TIME = datetime.datetime.fromisoformat("2023-10-17T17:00:00Z")
+SEASON_5_PART_1_END_TIME = datetime.datetime.fromisoformat("2023-11-14T17:00:00Z")
+SEASON_5_PART_2_START_TIME = SEASON_5_PART_1_END_TIME
+SEASON_5_PART_2_END_TIME = datetime.datetime.fromisoformat("2023-12-19T17:00:00Z")
+SEASON_5_PART_3_START_TIME = SEASON_5_PART_2_END_TIME
+SEASON_5_PART_3_END_TIME = datetime.datetime.fromisoformat("2024-01-31T17:00:00Z")
+SEASON_5_START_TIME = SEASON_5_PART_1_START_TIME
+SEASON_5_END_TIME = SEASON_5_PART_3_END_TIME
 SEASON_5_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEASON_5_DEV_MAP_IDS = {
     MAP_ID_AQUARIUS,
@@ -436,7 +444,11 @@ SEASON_DATA_DICT = {
         "dev_map_ids": SEASON_4_DEV_MAP_IDS,
     },
     "5": {
-        "api_id": SEASON_5_API_ID,
+        "api_ids": [
+            SEASON_5_PART_1_API_ID,
+            SEASON_5_PART_2_API_ID,
+            SEASON_5_PART_3_API_ID,
+        ],
         "first_day": SEASON_5_FIRST_DAY,
         "last_day": SEASON_5_LAST_DAY,
         "start_time": SEASON_5_START_TIME,

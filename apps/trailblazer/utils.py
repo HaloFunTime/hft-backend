@@ -4,7 +4,6 @@ import logging
 from django.db.models import Count, Q
 
 from apps.discord.models import DiscordAccount
-from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG,
     GAME_VARIANT_CATEGORY_KING_OF_THE_HILL,
@@ -15,15 +14,16 @@ from apps.halo_infinite.constants import (
     MEDAL_ID_EXTERMINATION,
     SEASON_3_RANKED_ARENA_PLAYLIST_ID,
     SEASON_4_RANKED_ARENA_PLAYLIST_ID,
-    SEASON_5_API_ID,
     SEASON_5_RANKED_ARENA_PLAYLIST_ID,
 )
 from apps.halo_infinite.utils import (
+    get_api_ids_for_season,
     get_csr_after_match,
     get_csrs,
     get_current_season_id,
     get_first_and_last_days_for_season,
     get_season_ranked_arena_matches_for_xuid,
+    get_service_record_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -420,8 +420,9 @@ def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         )
 
         # Get Ranked Arena seasonal Service Record for this XUID
-        ranked_arena_season_sr = service_record(
-            xuid, SEASON_5_API_ID, SEASON_5_RANKED_ARENA_PLAYLIST_ID
+        season_api_ids = get_api_ids_for_season("5")
+        ranked_arena_season_srs = get_service_record_data(
+            xuid, "5", SEASON_5_RANKED_ARENA_PLAYLIST_ID
         )
 
         # Online Warrior: Beat your placement CSR by 200 or more
@@ -442,9 +443,13 @@ def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                 unlocked_online_warrior = True
 
         # Heads or Tails: Get headshot kills in Ranked Arena. 1 point for every 5 headshot kills.
-        headshot_kills = ranked_arena_season_sr.get("CoreStats", {}).get(
-            "HeadshotKills", 0
-        )
+        for season_api_id in season_api_ids:
+            if season_api_id in ranked_arena_season_srs:
+                headshot_kills += (
+                    ranked_arena_season_srs.get(season_api_id, {})
+                    .get("CoreStats", {})
+                    .get("HeadshotKills", 0)
+                )
 
         # High Voltage: Win games on the map Recharge in Ranked Arena. 5 points per win.
         for match in matches:
@@ -456,11 +461,17 @@ def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                     recharge_wins += 1
 
         # Exterminator: Achieve an Extermination in Ranked Arena. Earnable once.
-        medals = ranked_arena_season_sr.get("CoreStats", {}).get("Medals", [])
-        medals_list = list(
-            filter(lambda x: x.get("NameId") == MEDAL_ID_EXTERMINATION, medals)
-        )
-        unlocked_exterminator = len(medals_list) > 0
+        for season_api_id in season_api_ids:
+            if season_api_id in ranked_arena_season_srs:
+                medals = (
+                    ranked_arena_season_srs.get(season_api_id, {})
+                    .get("CoreStats", {})
+                    .get("Medals", [])
+                )
+                medals_list = list(
+                    filter(lambda x: x.get("NameId") == MEDAL_ID_EXTERMINATION, medals)
+                )
+                unlocked_exterminator = unlocked_exterminator or len(medals_list) > 0
 
         earn_dict[xuid] = {
             "online_warrior": 200 if unlocked_online_warrior else 0,
