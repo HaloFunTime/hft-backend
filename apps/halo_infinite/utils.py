@@ -21,6 +21,15 @@ from apps.halo_infinite.models import HaloInfinitePlaylist
 logger = logging.getLogger(__name__)
 
 
+def get_api_ids_for_season(season_id):
+    season_dict = SEASON_DATA_DICT.get(season_id, {})
+    if "api_id" in season_dict:
+        return [season_dict.get("api_id")]
+    elif "api_ids" in season_dict:
+        return season_dict.get("api_ids")
+    raise Exception(f"Could not find API IDs for Season '{season_id}'")
+
+
 def get_current_season_id() -> str:
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     for season_id in SEASON_DATA_DICT.keys():
@@ -257,6 +266,18 @@ def get_season_ranked_arena_matches_for_xuid(xuid: int, season_id: str) -> list[
         if match.get("MatchInfo", {}).get("Playlist", {}).get("AssetId")
         == get_ranked_arena_playlist_id_for_season(season_id)
     ]
+
+
+def get_service_record_data(
+    xuid: int, season_id: str | None, playlist_id: str | None
+) -> dict:
+    combined_service_record = {}
+    season_api_ids = get_api_ids_for_season(season_id)
+    for season_api_id in season_api_ids:
+        combined_service_record[season_api_id] = service_record(
+            xuid, season_api_id, playlist_id
+        )
+    return combined_service_record
 
 
 def get_summary_stats(xuid: int):
