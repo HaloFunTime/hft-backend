@@ -63,7 +63,6 @@ class Domain(Base):
         verbose_name_plural = "Domains"
 
     class Stats(models.TextChoices):
-        TimePlayed = "TimePlayed", _("TimePlayed")
         MatchesCompleted = "MatchesCompleted", _("MatchesCompleted")
         Wins = "Wins", _("Wins")
         Losses = "Losses", _("Losses")
@@ -76,7 +75,6 @@ class Domain(Base):
         CoreStats_Kills = "CoreStats_Kills", _("Kills")
         CoreStats_Deaths = "CoreStats_Deaths", _("Deaths")
         CoreStats_Assists = "CoreStats_Assists", _("Assists")
-        CoreStats_AverageKDA = "CoreStats_AverageKDA", _("AverageKDA")
         CoreStats_Suicides = "CoreStats_Suicides", _("Suicides")
         CoreStats_Betrayals = "CoreStats_Betrayals", _("Betrayals")
         CoreStats_GrenadeKills = "CoreStats_GrenadeKills", _("GrenadeKills")
@@ -85,7 +83,6 @@ class Domain(Base):
         CoreStats_PowerWeaponKills = "CoreStats_PowerWeaponKills", _("PowerWeaponKills")
         CoreStats_ShotsFired = "CoreStats_ShotsFired", _("ShotsFired")
         CoreStats_ShotsHit = "CoreStats_ShotsHit", _("ShotsHit")
-        CoreStats_Accuracy = "CoreStats_Accuracy", _("Accuracy")
         CoreStats_DamageDealt = "CoreStats_DamageDealt", _("DamageDealt")
         CoreStats_DamageTaken = "CoreStats_DamageTaken", _("DamageTaken")
         CoreStats_CalloutAssists = "CoreStats_CalloutAssists", _("CalloutAssists")
@@ -130,10 +127,6 @@ class Domain(Base):
             "CaptureTheFlagStats_KillsAsFlagReturner",
             _("CTF: KillsAsFlagReturner"),
         )
-        CaptureTheFlagStats_TimeAsFlagCarrier = (
-            "CaptureTheFlagStats_TimeAsFlagCarrier",
-            _("CTF: TimeAsFlagCarrier"),
-        )
         EliminationStats_AlliesRevived = "EliminationStats_AlliesRevived", _(
             "Elimination: AlliesRevived"
         )
@@ -162,6 +155,26 @@ class Domain(Base):
         )
         EliminationStats_TimesRevivedByAlly = "EliminationStats_TimesRevivedByAlly", _(
             "Elimination: TimesRevivedByAlly"
+        )
+        ExtractionStats_SuccessfulExtractions = (
+            "ExtractionStats_SuccessfulExtractions",
+            _("Extraction: SuccessfulExtractions"),
+        )
+        ExtractionStats_ExtractionConversionsDenied = (
+            "ExtractionStats_ExtractionConversionsDenied",
+            _("Extraction: ExtractionConversionsDenied"),
+        )
+        ExtractionStats_ExtractionConversionsCompleted = (
+            "ExtractionStats_ExtractionConversionsCompleted",
+            _("Extraction: ExtractionConversionsCompleted"),
+        )
+        ExtractionStats_ExtractionInitiationsDenied = (
+            "ExtractionStats_ExtractionInitiationsDenied",
+            _("Extraction: ExtractionInitiationsDenied"),
+        )
+        ExtractionStats_ExtractionInitiationsCompleted = (
+            "ExtractionStats_ExtractionInitiationsCompleted",
+            _("Extraction: ExtractionInitiationsCompleted"),
         )
         InfectionStats_AlphasKilled = "InfectionStats_AlphasKilled", _(
             "Infection: AlphasKilled"
@@ -200,27 +213,16 @@ class Domain(Base):
             "InfectionStats_RoundsSurvivedAsLastSpartanStanding",
             _("Infection: RoundsSurvivedAsLastSpartanStanding"),
         )
-        InfectionStats_TimeAsLastSpartanStanding = (
-            "InfectionStats_TimeAsLastSpartanStanding",
-            _("Infection: TimeAsLastSpartanStanding"),
-        )
         InfectionStats_InfectedKilled = "InfectionStats_InfectedKilled", _(
             "Infection: InfectedKilled"
         )
         OddballStats_KillsAsSkullCarrier = "OddballStats_KillsAsSkullCarrier", _(
             "Oddball: KillsAsSkullCarrier"
         )
-        OddballStats_LongestTimeAsSkullCarrier = (
-            "OddballStats_LongestTimeAsSkullCarrier",
-            _("Oddball: LongestTimeAsSkullCarrier"),
-        )
         OddballStats_SkullCarriersKilled = "OddballStats_SkullCarriersKilled", _(
             "Oddball: SkullCarriersKilled"
         )
         OddballStats_SkullGrabs = "OddballStats_SkullGrabs", _("Oddball: SkullGrabs")
-        OddballStats_TimeAsSkullCarrier = "OddballStats_TimeAsSkullCarrier", _(
-            "Oddball: TimeAsSkullCarrier"
-        )
         OddballStats_SkullScoringTicks = "OddballStats_SkullScoringTicks", _(
             "Oddball: SkullScoringTicks"
         )
@@ -232,9 +234,6 @@ class Domain(Base):
             "Zones: ZoneOffensiveKills"
         )
         ZonesStats_ZoneSecures = "ZonesStats_ZoneSecures", _("Zones: ZoneSecures")
-        ZonesStats_TotalZoneOccupationTime = "ZonesStats_TotalZoneOccupationTime", _(
-            "Zones: TotalZoneOccupationTime"
-        )
         ZonesStats_ZoneScoringTicks = "ZonesStats_ZoneScoringTicks", _(
             "Zones: ZoneScoringTicks"
         )
@@ -251,14 +250,6 @@ class Domain(Base):
         )
         StockpileStats_PowerSeedsStolen = "StockpileStats_PowerSeedsStolen", _(
             "Stockpile: PowerSeedsStolen"
-        )
-        StockpileStats_TimeAsPowerSeedCarrier = (
-            "StockpileStats_TimeAsPowerSeedCarrier",
-            _("Stockpile: TimeAsPowerSeedCarrier"),
-        )
-        StockpileStats_TimeAsPowerSeedDriver = (
-            "StockpileStats_TimeAsPowerSeedDriver",
-            _("Stockpile: TimeAsPowerSeedDriver"),
         )
 
     name = models.CharField(max_length=128, verbose_name="Name")
@@ -277,7 +268,7 @@ class Domain(Base):
         blank=True,
         null=True,
     )
-    max_score = models.CharField(max_length=64, verbose_name="Max Score")
+    max_score = models.IntegerField(verbose_name="Max Score")
     effective_date = models.DateField(verbose_name="Effective Date")
 
     def __str__(self):
