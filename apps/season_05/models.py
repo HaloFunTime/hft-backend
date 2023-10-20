@@ -58,7 +58,7 @@ class DomainChallengeTeamReassignment(Base):
 class Domain(Base):
     class Meta:
         db_table = "Domain"
-        ordering = ["-effective_date"]
+        ordering = ["effective_date", "created_at"]
         verbose_name = "Domain"
         verbose_name_plural = "Domains"
 
