@@ -30,6 +30,16 @@ class CheckDomainsResponseSerializer(serializers.Serializer):
     domainScores = serializers.ListField(child=DomainScoreSerializer())
 
 
+class DomainTeamScoreSerializer(serializers.Serializer):
+    team = serializers.CharField()
+    memberCount = serializers.IntegerField()
+    domainsMastered = serializers.IntegerField()
+
+
+class CheckTeamsResponseSerializer(serializers.Serializer):
+    teamScores = serializers.ListField(child=DomainTeamScoreSerializer())
+
+
 class JoinChallengeRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]

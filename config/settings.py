@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import environ
@@ -185,3 +186,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 if ENVIRONMENT == "prod":
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+# Hack to detect testing context
+TESTING = sys.argv[1:2] == ["test"]

@@ -53,7 +53,7 @@ def score_domain(domain: Domain, service_record_data_by_playlist: dict) -> (int,
     return min(score, domain.max_score), score >= domain.max_score
 
 
-def get_domain_score_info(link: DiscordXboxLiveLink | None) -> dict:
+def get_domain_score_info(link: DiscordXboxLiveLink | None) -> list:
     domain_score_dicts = []
     if link is not None:
         domains = get_active_domains()

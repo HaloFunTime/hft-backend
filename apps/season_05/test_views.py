@@ -209,6 +209,136 @@ class Season05TestCase(APITestCase):
                 ],
             )
 
+    @patch("apps.season_05.views.sleep")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_check_teams_view(self, mock_get_xuid_and_exact_gamertag, mock_sleep):
+        # No team assignment record returns no score info
+        response = self.client.get("/season-05/check-teams")
+        self.assertEqual(response.data.get("teamScores"), [])
+
+        with patch(
+            "apps.season_05.views.get_domain_score_info"
+        ) as mock_get_domain_score_info:
+            mock_get_domain_score_info.return_value = []
+            # Create a linked team assignment record for Team FunTimeBot
+            discord_account_a = DiscordAccount.objects.create(
+                creator=self.user, discord_id="123", discord_username="ABC1234"
+            )
+            mock_get_xuid_and_exact_gamertag.return_value = (
+                0,
+                "test1234",
+            )
+            xbl_account_a = XboxLiveAccount.objects.create(
+                creator=self.user, gamertag="test1234"
+            )
+            DiscordXboxLiveLink.objects.create(
+                creator=self.user,
+                discord_account=discord_account_a,
+                xbox_live_account=xbl_account_a,
+                verified=True,
+            )
+            DomainChallengeTeamAssignment.objects.create(
+                creator=self.user,
+                assignee=discord_account_a,
+                team=DomainChallengeTeamAssignment.Teams.FunTimeBot,
+            )
+            response = self.client.get("/season-05/check-teams")
+            self.assertEqual(
+                response.data.get("teamScores"),
+                [{"team": "FunTimeBot", "memberCount": 1, "domainsMastered": 0}],
+            )
+            # Create a linked team assignment record for Team HFT Intern
+            discord_account_b = DiscordAccount.objects.create(
+                creator=self.user, discord_id="456", discord_username="DEF1234"
+            )
+            mock_get_xuid_and_exact_gamertag.return_value = (
+                1,
+                "test5678",
+            )
+            xbl_account_b = XboxLiveAccount.objects.create(
+                creator=self.user, gamertag="test5678"
+            )
+            DiscordXboxLiveLink.objects.create(
+                creator=self.user,
+                discord_account=discord_account_b,
+                xbox_live_account=xbl_account_b,
+                verified=True,
+            )
+            DomainChallengeTeamAssignment.objects.create(
+                creator=self.user,
+                assignee=discord_account_b,
+                team=DomainChallengeTeamAssignment.Teams.HFT_Intern,
+            )
+            response = self.client.get("/season-05/check-teams")
+            self.assertEqual(
+                response.data.get("teamScores"),
+                [
+                    OrderedDict(
+                        [
+                            ("team", "FunTimeBot"),
+                            ("memberCount", 1),
+                            ("domainsMastered", 0),
+                        ]
+                    ),
+                    OrderedDict(
+                        [
+                            ("team", "HFT Intern"),
+                            ("memberCount", 1),
+                            ("domainsMastered", 0),
+                        ]
+                    ),
+                ],
+            )
+
+            # Add two masteries in there
+            mock_get_domain_score_info.return_value = [
+                {
+                    "name": "Test First",
+                    "description": "This is description 1️⃣",
+                    "effective_date": datetime.date(year=2023, month=10, day=24),
+                    "current_score": 10,
+                    "max_score": 10,
+                    "is_mastered": True,
+                },
+                {
+                    "name": "Test Second",
+                    "description": "This is description 2️⃣",
+                    "effective_date": datetime.date(year=2023, month=10, day=31),
+                    "current_score": 2,
+                    "max_score": 20,
+                    "is_mastered": False,
+                },
+                {
+                    "name": "Test Third",
+                    "description": "This is description 3️⃣",
+                    "effective_date": datetime.date(year=2023, month=11, day=7),
+                    "current_score": 3,
+                    "max_score": 30,
+                    "is_mastered": True,
+                },
+            ]
+            response = self.client.get("/season-05/check-teams")
+            self.assertEqual(
+                response.data.get("teamScores"),
+                [
+                    OrderedDict(
+                        [
+                            ("team", "FunTimeBot"),
+                            ("memberCount", 1),
+                            ("domainsMastered", 2),
+                        ]
+                    ),
+                    OrderedDict(
+                        [
+                            ("team", "HFT Intern"),
+                            ("memberCount", 1),
+                            ("domainsMastered", 2),
+                        ]
+                    ),
+                ],
+            )
+        mock_sleep.assert_not_called()
+
     def test_join_challenge_view(self):
         # Missing field values throw errors
         response = self.client.post("/season-05/join-challenge", {}, format="json")

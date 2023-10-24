@@ -1,6 +1,7 @@
 import datetime
 import logging
 import random
+from time import sleep
 
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
@@ -19,7 +20,9 @@ from apps.season_05.models import (
 from apps.season_05.serializers import (
     CheckDomainsRequestSerializer,
     CheckDomainsResponseSerializer,
+    CheckTeamsResponseSerializer,
     DomainScoreSerializer,
+    DomainTeamScoreSerializer,
     JoinChallengeRequestSerializer,
     JoinChallengeResponseSerializer,
     ProcessedReassignmentSerializer,
@@ -30,6 +33,7 @@ from apps.season_05.serializers import (
 )
 from apps.season_05.utils import get_domain_score_info
 from config.serializers import StandardErrorSerializer
+from config.settings import TESTING
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +115,74 @@ class CheckDomainsView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# TODO
 class CheckTeamsView(APIView):
-    pass
+    @extend_schema(
+        responses={
+            200: CheckTeamsResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, format=None):
+        """
+        Evaluate complete Team scores for the Domain Challenge by checking every individual's score and summing the
+        total number of Domains mastered by each team so far.
+        """
+        team_scores = {}
+        assignments = DomainChallengeTeamAssignment.objects.all()
+        for assignment in assignments:
+            # Kludge to sleep for a second to avoid rate limiting in production
+            if not TESTING:
+                sleep(1)
+
+            # Increment member_count
+            if assignment.team in team_scores:
+                if "member_count" in team_scores[assignment.team]:
+                    team_scores[assignment.team]["member_count"] += 1
+                else:
+                    team_scores[assignment.team] = {
+                        "member_count": 1,
+                        "domains_mastered": 0,
+                    }
+            else:
+                team_scores[assignment.team] = {
+                    "member_count": 1,
+                    "domains_mastered": 0,
+                }
+
+            try:
+                link = DiscordXboxLiveLink.objects.filter(
+                    discord_account_id=assignment.assignee_id, verified=True
+                ).get()
+            except DiscordXboxLiveLink.DoesNotExist:
+                continue
+
+            # Increment domains_mastered
+            domains_mastered = 0
+            domain_score_info = get_domain_score_info(link)
+            for domain_dict in domain_score_info:
+                if domain_dict.get("is_mastered", False):
+                    domains_mastered += 1
+            team_scores[assignment.team]["domains_mastered"] += domains_mastered
+
+        team_scores_serialized = []
+        for key in sorted(team_scores.keys()):
+            team_scores_serialized.append(
+                DomainTeamScoreSerializer(
+                    {
+                        "team": key,
+                        "memberCount": team_scores[key]["member_count"],
+                        "domainsMastered": team_scores[key]["domains_mastered"],
+                    }
+                ).data
+            )
+
+        serializer = CheckTeamsResponseSerializer(
+            {
+                "teamScores": team_scores_serialized,
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class JoinChallengeView(APIView):
