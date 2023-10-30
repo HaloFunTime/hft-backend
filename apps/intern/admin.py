@@ -8,6 +8,7 @@ from apps.intern.models import (
     InternChatterPauseDenialQuip,
     InternChatterPauseReverenceQuip,
     InternHelpfulHint,
+    InternHikeQueueQuip,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
@@ -71,6 +72,13 @@ class InternHelpfulHintAdmin(AutofillCreatorModelAdmin):
     list_display = ("id", "short_message_text", "creator")
     list_filter = ("creator",)
     fields = ("message_text", "creator")
+
+
+@admin.register(InternHikeQueueQuip)
+class InternHikeQueueQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
 
 
 @admin.register(InternNewHereWelcomeQuip)

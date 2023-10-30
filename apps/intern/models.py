@@ -146,6 +146,27 @@ class InternHelpfulHint(Base):
         return self.short_message_text
 
 
+class InternHikeQueueQuip(Base):
+    class Meta:
+        db_table = "InternHikeQueueQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Hike Queue Quip"
+        verbose_name_plural = "Hike Queue Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
 class InternNewHereWelcomeQuip(Base):
     class Meta:
         db_table = "InternNewHereWelcomeQuip"

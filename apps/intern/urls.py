@@ -26,6 +26,11 @@ urlpatterns = [
         name="helpful-hint",
     ),
     path(
+        "random-hike-queue-quip",
+        views.RandomInternHikeQueueQuip.as_view(),
+        name="random-hike-queue-quip",
+    ),
+    path(
         "random-new-here-welcome-quip",
         views.RandomInternNewHereWelcomeQuip.as_view(),
         name="random-new-here-welcome-quip",

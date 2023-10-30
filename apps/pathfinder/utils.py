@@ -15,9 +15,43 @@ from apps.halo_infinite.utils import (
     get_start_and_end_times_for_season,
 )
 from apps.link.models import DiscordXboxLiveLink
+from apps.pathfinder.models import PathfinderBeanCount
 from apps.showcase.models import ShowcaseFile
 
 logger = logging.getLogger(__name__)
+
+BEAN_AWARD_HIKE_GAME_PARTICIPATION = 3
+BEAN_AWARD_HIKE_VOICE_PARTICIPATION = 2
+BEAN_AWARD_WAYWO_COMMENT = 1
+BEAN_COST_HIKE_SUBMISSION = 50
+PATHFINDER_WAYWO_COMMENT_MIN_LENGTH_FOR_BEAN_AWARD = 100
+
+
+def change_beans(discord_account: DiscordAccount, bean_delta: int) -> bool:
+    if check_beans(discord_account) + bean_delta >= 0:
+        pbc = PathfinderBeanCount.objects.filter(
+            bean_owner_discord=discord_account
+        ).get()
+        pbc.bean_count += bean_delta
+        pbc.save()
+        return True
+    else:
+        return False
+
+
+def check_beans(discord_account: DiscordAccount) -> int:
+    assert discord_account is not None
+    try:
+        pbc = PathfinderBeanCount.objects.filter(
+            bean_owner_discord=discord_account
+        ).get()
+    except PathfinderBeanCount.DoesNotExist:
+        pbc = PathfinderBeanCount.objects.create(
+            bean_owner_discord=discord_account,
+            bean_count=0,
+            creator=discord_account.creator,
+        )
+    return pbc.bean_count
 
 
 def get_s3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:

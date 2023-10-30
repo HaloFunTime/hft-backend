@@ -1,13 +1,12 @@
 import logging
 
 from django.contrib import admin
-from django.db.models import Q
 
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 from apps.pathfinder.models import (
-    PathfinderHikeAttendance,
+    PathfinderBeanCount,
     PathfinderHikeSubmission,
-    PathfinderTestingLFGPost,
+    PathfinderWAYWOComment,
     PathfinderWAYWOPost,
 )
 
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class IsPlaytestedFilter(admin.SimpleListFilter):
-    title = " Playtested"
+    title = "Playtested"
     parameter_name = "is_playtested"
 
     def lookups(self, request, model_admin):
@@ -27,44 +26,27 @@ class IsPlaytestedFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         value = self.value()
         if value == "Yes":
-            return queryset.filter(Q(mode_1_played=True) | Q(mode_2_played=True))
+            return queryset.filter(playtest_game_id__isnull=False)
         elif value == "No":
-            return queryset.filter(Q(mode_1_played=False) & Q(mode_2_played=False))
+            return queryset.filter(playtest_game_id__isnull=True)
         return queryset
 
 
-class IsFullyPlaytestedFilter(admin.SimpleListFilter):
-    title = "Fully Playtested"
-    parameter_name = "is_fully_playtested"
-
-    def lookups(self, request, model_admin):
-        return (
-            ("Yes", "Yes"),
-            ("No", "No"),
-        )
-
-    def queryset(self, request, queryset):
-        value = self.value()
-        if value == "Yes":
-            return queryset.filter(Q(mode_1_played=True) & Q(mode_2_played=True))
-        elif value == "No":
-            return queryset.filter(Q(mode_1_played=False) | Q(mode_2_played=False))
-        return queryset
-
-
-@admin.register(PathfinderHikeAttendance)
-class PathfinderHikeAttendanceAdmin(AutofillCreatorModelAdmin):
-    autocomplete_fields = ["attendee_discord"]
+@admin.register(PathfinderBeanCount)
+class PathfinderBeanCountAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["bean_owner_discord"]
     list_display = (
         "__str__",
-        linkify("attendee_discord"),
-        "attendance_date",
-        "creator",
+        linkify("bean_owner_discord"),
+        "bean_count",
     )
-    list_filter = ("attendee_discord", "attendance_date", "creator")
+    list_filter = (
+        "bean_count",
+        "bean_owner_discord",
+    )
     fields = (
-        "attendee_discord",
-        "attendance_date",
+        "bean_owner_discord",
+        "bean_count",
         "creator",
     )
 
@@ -76,14 +58,12 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "__str__",
         linkify("map_submitter_discord"),
         "max_player_count",
-        "mode_1",
-        "mode_2",
-        "playtested",
+        "mode",
+        "playtest_game_link",
     )
     list_filter = (
         "scheduled_playtest_date",
         IsPlaytestedFilter,
-        IsFullyPlaytestedFilter,
         "map_submitter_discord",
     )
     fields = (
@@ -93,33 +73,8 @@ class PathfinderHikeSubmissionAdmin(AutofillCreatorModelAdmin):
         "scheduled_playtest_date",
         "max_player_count",
         "map",
-        "mode_1",
-        "mode_2",
-        "mode_1_played",
-        "mode_2_played",
-        "submitter_present_for_playtest",
-        "creator",
-    )
-
-
-@admin.register(PathfinderTestingLFGPost)
-class PathfinderTestingLFGPostAdmin(AutofillCreatorModelAdmin):
-    autocomplete_fields = ["poster_discord"]
-    list_display = (
-        "__str__",
-        linkify("poster_discord"),
-        "post_title",
-        "post_id",
-        "creator",
-    )
-    list_filter = (
-        "poster_discord",
-        "creator",
-    )
-    fields = (
-        "poster_discord",
-        "post_id",
-        "post_title",
+        "mode",
+        "playtest_game_id",
         "creator",
     )
 
@@ -142,5 +97,29 @@ class PathfinderWAYWOPostAdmin(AutofillCreatorModelAdmin):
         "poster_discord",
         "post_id",
         "post_title",
+        "creator",
+    )
+
+
+@admin.register(PathfinderWAYWOComment)
+class PathfinderWAYWOCommentAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["commenter_discord"]
+    list_display = (
+        "__str__",
+        linkify("commenter_discord"),
+        "post_id",
+        "comment_id",
+        "comment_length",
+        "creator",
+    )
+    list_filter = (
+        "commenter_discord",
+        "creator",
+    )
+    fields = (
+        "commenter_discord",
+        "post_id",
+        "comment_id",
+        "comment_length",
         "creator",
     )

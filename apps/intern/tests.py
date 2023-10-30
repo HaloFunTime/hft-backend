@@ -14,6 +14,7 @@ from apps.intern.models import (
     InternChatterPauseDenialQuip,
     InternChatterPauseReverenceQuip,
     InternHelpfulHint,
+    InternHikeQueueQuip,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
@@ -31,6 +32,7 @@ from apps.intern.views import (
     INTERN_CHATTER_PAUSE_ERROR_MISSING_USERNAME,
     INTERN_CHATTER_PAUSE_REVERENCE_QUIP_DEFAULT,
     INTERN_HELPFUL_HINT_DEFAULT_MESSAGE,
+    INTERN_HIKE_QUEUE_QUIP_DEFAULT,
     INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT,
     INTERN_NEW_HERE_YEET_QUIP_DEFAULT,
     INTERN_PASSION_REPORT_QUIP_DEFAULT,
@@ -95,6 +97,15 @@ def intern_chatter_pause_reverence_quip_factory(
     creator: User, quip_text: str = None
 ) -> InternChatterPauseReverenceQuip:
     return InternChatterPauseReverenceQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_hike_queue_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternHikeQueueQuip:
+    return InternHikeQueueQuip.objects.create(
         creator=creator,
         quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
     )
@@ -343,6 +354,28 @@ class InternHelpfulHintTestCase(APITestCase):
         response = self.client.get("/intern/random-helpful-hint")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"hint": hint_message_text})
+
+
+class InternHikeQueueQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_hike_queue_quip(self):
+        # Empty InternHikeQueueQuip table returns default quip
+        response = self.client.get("/intern/random-hike-queue-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": INTERN_HIKE_QUEUE_QUIP_DEFAULT})
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_hike_queue_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-hike-queue-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
 
 
 class InternNewHereWelcomeQuipTestCase(APITestCase):

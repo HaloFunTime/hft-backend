@@ -1,10 +1,33 @@
 from django.contrib import admin
 from django.db import models
+from django.utils.html import format_html
 
 from apps.discord.models import DiscordAccount
 from apps.overrides.models import Base
 
 
+class PathfinderBeanCount(Base):
+    class Meta:
+        db_table = "PathfinderBeanCount"
+        ordering = [
+            "-bean_count",
+        ]
+        verbose_name = "Bean Count"
+        verbose_name_plural = "Bean Counts"
+
+    bean_owner_discord = models.OneToOneField(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Bean Owner Discord",
+        related_name="pathfinder_bean_owners",
+    )
+    bean_count = models.IntegerField(verbose_name="Bean Count", default=0)
+
+    def __str__(self):
+        return f"{str(self.bean_owner_discord)}: {self.bean_count} bean{'s' if self.bean_count != 1 else ''}"
+
+
+# TODO: Delete this DEPRECATED table
 class PathfinderHikeAttendance(Base):
     class Meta:
         db_table = "PathfinderHikeAttendance"
@@ -55,25 +78,35 @@ class PathfinderHikeSubmission(Base):
         verbose_name="Scheduled Playtest Date", null=True, blank=True
     )
     map = models.CharField(max_length=32, verbose_name="Map")
-    mode_1 = models.CharField(max_length=32, verbose_name="Mode 1")
-    mode_2 = models.CharField(max_length=32, verbose_name="Mode 2")
+    mode = models.CharField(max_length=32, verbose_name="Mode", default="Slayer")
+    playtest_game_id = models.UUIDField(
+        verbose_name="Playtest Game ID", null=True, blank=True
+    )
+    mode_1 = models.CharField(max_length=32, verbose_name="Mode 1")  # DEPRECATED
+    mode_2 = models.CharField(max_length=32, verbose_name="Mode 2")  # DEPRECATED
     mode_1_played = models.BooleanField(
         default=False, verbose_name="Was Mode 1 played?"
-    )
+    )  # DEPRECATED
     mode_2_played = models.BooleanField(
         default=False, verbose_name="Was Mode 2 played?"
-    )
+    )  # DEPRECATED
     submitter_present_for_playtest = models.BooleanField(
         default=False, verbose_name="Was the map submitter present for the playtest?"
-    )
+    )  # DEPRECATED
+
+    @property
+    def playtest_game_link(self):
+        return (
+            ""
+            if self.playtest_game_id is None
+            else format_html(
+                f"<a href=https://leafapp.co/game/{self.playtest_game_id}>View on LeafApp</a>"
+            )
+        )
 
     @admin.display(boolean=True)
     def playtested(self):
-        return self.mode_1_played or self.mode_2_played
-
-    @admin.display(boolean=True)
-    def fully_playtested(self):
-        return self.mode_1_played and self.mode_2_played
+        return self.playtest_game_id is not None
 
     def __str__(self):
         schedule_string = (
@@ -84,6 +117,37 @@ class PathfinderHikeSubmission(Base):
         return f"{schedule_string}: {self.map}"
 
 
+class PathfinderHikeGameParticipation(Base):
+    class Meta:
+        db_table = "PathfinderHikeGameParticipation"
+        ordering = ["-created_at"]
+        verbose_name = "Pathfinder Hike Game Participation"
+        verbose_name_plural = "Pathfinder Hike Game Participations"
+
+    hike_submission = models.ForeignKey(
+        PathfinderHikeSubmission, on_delete=models.CASCADE
+    )
+    xuid = models.PositiveBigIntegerField(verbose_name="Xbox Live ID")
+
+
+class PathfinderHikeVoiceParticipation(Base):
+    class Meta:
+        db_table = "PathfinderHikeVoiceParticipation"
+        ordering = ["-created_at"]
+        verbose_name = "Pathfinder Hike Voice Participation"
+        verbose_name_plural = "Pathfinder Hike Voice Participations"
+
+    hike_submission = models.ForeignKey(
+        PathfinderHikeSubmission, on_delete=models.CASCADE
+    )
+    discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        related_name="pathfinder_hike_voice_participants",
+    )
+
+
+# TODO: Delete this DEPRECATED table
 class PathfinderTestingLFGPost(Base):
     class Meta:
         db_table = "PathfinderTestingLFGPost"
@@ -106,6 +170,29 @@ class PathfinderTestingLFGPost(Base):
 
     def __str__(self):
         return self.post_title
+
+
+class PathfinderWAYWOComment(Base):
+    class Meta:
+        db_table = "PathfinderWAYWOComment"
+        ordering = [
+            "-created_at",
+        ]
+        verbose_name = "WAYWO Comment"
+        verbose_name_plural = "WAYWO Comments"
+
+    post_id = models.CharField(max_length=20, blank=False, verbose_name="Post ID")
+    comment_id = models.CharField(max_length=20, blank=False, verbose_name="Comment ID")
+    commenter_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Commenter Discord",
+        related_name="pathfinder_waywo_commenters",
+    )
+    comment_length = models.IntegerField(verbose_name="Comment Length")
+
+    def __str__(self):
+        return self.comment_id
 
 
 class PathfinderWAYWOPost(Base):

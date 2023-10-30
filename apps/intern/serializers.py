@@ -54,6 +54,14 @@ class InternHelpfulHintErrorSerializer(serializers.Serializer):
     error = serializers.CharField()
 
 
+class InternHikeQueueQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternHikeQueueQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
 class InternNewHereWelcomeQuipSerializer(serializers.Serializer):
     quip = serializers.CharField()
 

@@ -1,6 +1,42 @@
 from rest_framework import serializers
 
-from apps.discord.serializers import validate_discord_id
+from apps.discord.serializers import DiscordUserInfoSerializer, validate_discord_id
+
+
+class ChangeBeansRequestSerializer(serializers.Serializer):
+    discordId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+    beanDelta = serializers.IntegerField()
+
+
+class ChangeBeansResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+
+
+class CheckBeansRequestSerializer(DiscordUserInfoSerializer):
+    pass
+
+
+class CheckBeansResponseSerializer(serializers.Serializer):
+    beanCount = serializers.IntegerField()
+
+
+class DiscordUserAwardedBeansSerializer(serializers.Serializer):
+    discordId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    awardedBeans = serializers.IntegerField()
+
+
+class HikeCompletePostRequestSerializer(serializers.Serializer):
+    playtestGameId = serializers.UUIDField()
+    discordUsersInVoice = serializers.ListField(
+        allow_empty=True, child=DiscordUserInfoSerializer()
+    )
+    waywoPostId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+
+
+class HikeCompletePostResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    awardedUsers = serializers.ListField(child=DiscordUserAwardedBeansSerializer())
 
 
 class HikeSubmissionSerializer(serializers.Serializer):
@@ -11,8 +47,7 @@ class HikeSubmissionSerializer(serializers.Serializer):
     scheduledPlaytestDate = serializers.DateField(allow_null=True)
     maxPlayerCount = serializers.CharField()
     map = serializers.CharField()
-    mode1 = serializers.CharField()
-    mode2 = serializers.CharField()
+    mode = serializers.CharField()
 
 
 class HikeQueueResponseSerializer(serializers.Serializer):
@@ -29,8 +64,7 @@ class HikeSubmissionPostRequestSerializer(serializers.Serializer):
     mapSubmitterDiscordUsername = serializers.CharField(min_length=2, max_length=32)
     maxPlayerCount = serializers.CharField()
     map = serializers.CharField()
-    mode1 = serializers.CharField()
-    mode2 = serializers.CharField()
+    mode = serializers.CharField()
 
 
 class HikeSubmissionPostResponseSerializer(serializers.Serializer):
@@ -104,6 +138,21 @@ class TestingLFGPostRequestSerializer(serializers.Serializer):
 
 class TestingLFGPostResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
+
+
+class WAYWOCommentRequestSerializer(serializers.Serializer):
+    commenterDiscordId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    commenterDiscordUsername = serializers.CharField(min_length=2, max_length=32)
+    commentId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    commentLength = serializers.IntegerField()
+    postId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+
+
+class WAYWOCommentResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    awardedBean = serializers.BooleanField()
 
 
 class WAYWOPostRequestSerializer(serializers.Serializer):

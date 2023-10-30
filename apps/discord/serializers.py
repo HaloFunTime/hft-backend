@@ -40,6 +40,11 @@ class DiscordAccountSerializer(serializers.ModelSerializer):
         fields = ["discord_id", "discord_username"]
 
 
+class DiscordUserInfoSerializer(serializers.Serializer):
+    discordId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+
+
 class RankedRoleCheckRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,

@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from collections import OrderedDict
 from unittest.mock import patch
 
@@ -10,9 +11,19 @@ from rest_framework.test import APIClient, APITestCase
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
+    PathfinderBeanCount,
+    PathfinderHikeGameParticipation,
     PathfinderHikeSubmission,
+    PathfinderHikeVoiceParticipation,
     PathfinderTestingLFGPost,
+    PathfinderWAYWOComment,
     PathfinderWAYWOPost,
+)
+from apps.pathfinder.utils import (
+    BEAN_AWARD_HIKE_GAME_PARTICIPATION,
+    BEAN_AWARD_HIKE_VOICE_PARTICIPATION,
+    BEAN_AWARD_WAYWO_COMMENT,
+    BEAN_COST_HIKE_SUBMISSION,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -24,6 +35,403 @@ class PathfinderTestCase(APITestCase):
         )
         token, _created = Token.objects.get_or_create(user=self.user)
         self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_change_beans_view_post(self):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/change-beans", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordId", details)
+        self.assertEqual(
+            details.get("discordId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("beanDelta", details)
+        self.assertEqual(
+            details.get("beanDelta"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted value throws errors
+        response = self.client.post(
+            "/pathfinder/change-beans",
+            {"discordId": "abc", "discordUsername": "f", "beanDelta": "abc"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordId", details)
+        self.assertEqual(
+            details.get("discordId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
+            ),
+        )
+        self.assertIn("beanDelta", details)
+        self.assertEqual(
+            details.get("beanDelta")[0],
+            ErrorDetail(
+                string="A valid integer is required.",
+                code="invalid",
+            ),
+        )
+
+        # Successful change (give beans) creates DiscordAccount and PathfinderBeanCount record
+        response = self.client.post(
+            "/pathfinder/change-beans",
+            {"discordId": "123", "discordUsername": "Test123", "beanDelta": 5},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get("success"))
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test123")
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        pf_bean_count = PathfinderBeanCount.objects.first()
+        self.assertEqual(pf_bean_count.bean_owner_discord, discord_account)
+        self.assertEqual(pf_bean_count.bean_count, 5)
+
+        # Successful change (take beans)
+        response = self.client.post(
+            "/pathfinder/change-beans",
+            {"discordId": "123", "discordUsername": "Test123", "beanDelta": -4},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get("success"))
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test123")
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        pf_bean_count = PathfinderBeanCount.objects.first()
+        self.assertEqual(pf_bean_count.bean_owner_discord, discord_account)
+        self.assertEqual(pf_bean_count.bean_count, 1)
+
+    def test_check_beans_view_post(self):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/check-beans", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordId", details)
+        self.assertEqual(
+            details.get("discordId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted value throws errors
+        response = self.client.post(
+            "/pathfinder/check-beans",
+            {"discordId": "abc", "discordUsername": "f"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordId", details)
+        self.assertEqual(
+            details.get("discordId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
+            ),
+        )
+
+        # Check (existing Account & PBC)
+        discord_account = DiscordAccount.objects.create(
+            discord_id="123", discord_username="Test123", creator=self.user
+        )
+        pbc = PathfinderBeanCount.objects.create(
+            bean_owner_discord=discord_account, bean_count=10, creator=self.user
+        )
+        response = self.client.post(
+            "/pathfinder/check-beans",
+            {"discordId": "123", "discordUsername": "Test123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("beanCount"), 10)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+
+        # Check (existing Account, nonexistent PBC)
+        pbc.delete()
+        response = self.client.post(
+            "/pathfinder/check-beans",
+            {"discordId": "123", "discordUsername": "Test123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("beanCount"), 0)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test123")
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        pbc = PathfinderBeanCount.objects.first()
+        self.assertEqual(pbc.bean_owner_discord, discord_account)
+        self.assertEqual(pbc.bean_count, 0)
+
+        # Check (nonexistent Account & PBC)
+        pbc.delete()
+        discord_account.delete()
+        response = self.client.post(
+            "/pathfinder/check-beans",
+            {"discordId": "123", "discordUsername": "Test123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("beanCount"), 0)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test123")
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        pbc = PathfinderBeanCount.objects.first()
+        self.assertEqual(pbc.bean_owner_discord, discord_account)
+        self.assertEqual(pbc.bean_count, 0)
+
+    @patch("apps.pathfinder.signals.match_stats")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_hike_complete_view_post(
+        self, mock_get_xuid_and_exact_gamertag, mock_match_stats
+    ):
+        mock_match_stats.return_value = {}
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/hike-complete", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for field in ["playtestGameId", "discordUsersInVoice", "waywoPostId"]:
+            self.assertIn(field, details)
+            self.assertEqual(
+                details.get(field),
+                [ErrorDetail(string="This field is required.", code="required")],
+            )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/hike-complete",
+            {
+                "playtestGameId": "abc",
+                "discordUsersInVoice": "foo",
+                "waywoPostId": "abc",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("playtestGameId", details)
+        self.assertEqual(
+            details.get("playtestGameId")[0],
+            ErrorDetail(string="Must be a valid UUID.", code="invalid"),
+        )
+        self.assertIn("discordUsersInVoice", details)
+        self.assertEqual(
+            details.get("discordUsersInVoice")[0],
+            ErrorDetail(
+                string='Expected a list of items but got type "str".', code="not_a_list"
+            ),
+        )
+        self.assertIn("waywoPostId", details)
+        self.assertEqual(
+            details.get("waywoPostId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+
+        # 403 if no Hike Submission exists for WAYWO post
+        response = self.client.post(
+            "/pathfinder/hike-complete",
+            {
+                "playtestGameId": "2028bf2d-a2c6-440b-9fe6-71e7f69376f8",
+                "discordUsersInVoice": [],
+                "waywoPostId": "123",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+        details = response.data.get("error").get("details")
+        self.assertIn("detail", details)
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Could not find an incomplete Pathfinder Hike Submission associated with this WAYWO Post.",
+                code="permission_denied",
+            ),
+        )
+
+        # 403 if Hike Submission exists for WAYWO post but is already complete
+        submitter_discord = DiscordAccount.objects.create(
+            creator=self.user, discord_id="123", discord_username="Test123"
+        )
+        PathfinderHikeSubmission.objects.create(
+            creator=self.user,
+            map_submitter_discord=submitter_discord,
+            playtest_game_id=uuid.uuid4(),
+            waywo_post_id="123",
+        )
+        response = self.client.post(
+            "/pathfinder/hike-complete",
+            {
+                "playtestGameId": uuid.uuid4(),
+                "discordUsersInVoice": [],
+                "waywoPostId": "123",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+        details = response.data.get("error").get("details")
+        self.assertIn("detail", details)
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Could not find an incomplete Pathfinder Hike Submission associated with this WAYWO Post.",
+                code="permission_denied",
+            ),
+        )
+
+        # Happy path - three users in voice, four from game, one overlapping
+        discord_accounts = []
+        for i in range(6):
+            mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
+            discord_account = DiscordAccount.objects.create(
+                creator=self.user, discord_id=str(i), discord_username=f"Test{i}"
+            )
+            xbox_live_account = XboxLiveAccount.objects.create(
+                creator=self.user, gamertag=f"testGT{i}"
+            )
+            DiscordXboxLiveLink.objects.create(
+                creator=self.user,
+                discord_account=discord_account,
+                xbox_live_account=xbox_live_account,
+                verified=True,
+            )
+            discord_accounts.append(discord_account)
+        hike_submission = PathfinderHikeSubmission.objects.create(
+            creator=self.user,
+            map_submitter_discord=submitter_discord,
+            waywo_post_id="456",
+        )
+        mock_match_stats.return_value = {
+            "Players": [
+                {
+                    "PlayerId": "xuid(0)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(1)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(3)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(5)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+            ]
+        }
+        response = self.client.post(
+            "/pathfinder/hike-complete",
+            {
+                "playtestGameId": uuid.uuid4(),
+                "discordUsersInVoice": [
+                    {"discordId": "0", "discordUsername": "Test0"},
+                    {"discordId": "2", "discordUsername": "Test2"},
+                    {"discordId": "4", "discordUsername": "Test4"},
+                ],
+                "waywoPostId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PathfinderHikeGameParticipation.objects.count(), 4)
+        for game_participation in PathfinderHikeGameParticipation.objects.all():
+            self.assertEqual(game_participation.hike_submission_id, hike_submission.id)
+        self.assertEqual(PathfinderHikeVoiceParticipation.objects.count(), 3)
+        for voice_participation in PathfinderHikeVoiceParticipation.objects.all():
+            self.assertEqual(voice_participation.hike_submission_id, hike_submission.id)
+        self.assertTrue(response.data.get("success"))
+        self.assertEqual(
+            response.data.get("awardedUsers"),
+            [
+                OrderedDict(
+                    [
+                        ("discordId", "0"),
+                        (
+                            "awardedBeans",
+                            BEAN_AWARD_HIKE_GAME_PARTICIPATION
+                            + BEAN_AWARD_HIKE_VOICE_PARTICIPATION,
+                        ),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "5"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "3"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "1"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "4"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "2"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
+                    ]
+                ),
+            ],
+        )
+        for discord_account in discord_accounts:
+            pbc = PathfinderBeanCount.objects.filter(
+                bean_owner_discord=discord_account
+            ).get()
+            self.assertNotEqual(pbc.bean_count, 0)
 
     def test_hike_queue_view_get(self):
         # Success - nothing in queue
@@ -56,8 +464,7 @@ class PathfinderTestCase(APITestCase):
                     ),
                     max_player_count=f"max_player_count_{i}",
                     map=f"map{i}",
-                    mode_1=f"mode_1_{i}",
-                    mode_2=f"mode_2_{i}",
+                    mode=f"mode{i}",
                 )
             )
 
@@ -74,8 +481,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": "2023-07-01",
                         "maxPlayerCount": "max_player_count_1",
                         "map": "map1",
-                        "mode1": "mode_1_1",
-                        "mode2": "mode_2_1",
+                        "mode": "mode1",
                     }
                 ),
                 OrderedDict(
@@ -85,8 +491,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": "2023-07-03",
                         "maxPlayerCount": "max_player_count_3",
                         "map": "map3",
-                        "mode1": "mode_1_3",
-                        "mode2": "mode_2_3",
+                        "mode": "mode3",
                     }
                 ),
                 OrderedDict(
@@ -96,8 +501,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": "2023-07-05",
                         "maxPlayerCount": "max_player_count_5",
                         "map": "map5",
-                        "mode1": "mode_1_5",
-                        "mode2": "mode_2_5",
+                        "mode": "mode5",
                     }
                 ),
             ],
@@ -112,8 +516,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": None,
                         "maxPlayerCount": "max_player_count_0",
                         "map": "map0",
-                        "mode1": "mode_1_0",
-                        "mode2": "mode_2_0",
+                        "mode": "mode0",
                     }
                 ),
                 OrderedDict(
@@ -123,8 +526,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": None,
                         "maxPlayerCount": "max_player_count_2",
                         "map": "map2",
-                        "mode1": "mode_1_2",
-                        "mode2": "mode_2_2",
+                        "mode": "mode2",
                     }
                 ),
                 OrderedDict(
@@ -134,8 +536,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": None,
                         "maxPlayerCount": "max_player_count_4",
                         "map": "map4",
-                        "mode1": "mode_1_4",
-                        "mode2": "mode_2_4",
+                        "mode": "mode4",
                     }
                 ),
                 OrderedDict(
@@ -145,8 +546,7 @@ class PathfinderTestCase(APITestCase):
                         "scheduledPlaytestDate": None,
                         "maxPlayerCount": "max_player_count_6",
                         "map": "map6",
-                        "mode1": "mode_1_6",
-                        "mode2": "mode_2_6",
+                        "mode": "mode6",
                     }
                 ),
             ],
@@ -164,8 +564,7 @@ class PathfinderTestCase(APITestCase):
             "mapSubmitterDiscordUsername",
             "maxPlayerCount",
             "map",
-            "mode1",
-            "mode2",
+            "mode",
         ]:
             self.assertIn(field, details)
             self.assertEqual(
@@ -184,8 +583,7 @@ class PathfinderTestCase(APITestCase):
                 "mapSubmitterDiscordUsername": "a",
                 "maxPlayerCount": "abc",
                 "map": "abc",
-                "mode1": "abc",
-                "mode2": "abc",
+                "mode": "abc",
             },
             format="json",
         )
@@ -216,7 +614,7 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-        # Successful submission creates PathfinderHikeSubmission, DiscordAccount
+        # Submission fails if DiscordAccount doesn't have enough beans
         response = self.client.post(
             "/pathfinder/hike-submission",
             {
@@ -226,15 +624,46 @@ class PathfinderTestCase(APITestCase):
                 "mapSubmitterDiscordUsername": "Test1234",
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
-                "mode1": "TestMode1",
-                "mode2": "TestMode2",
+                "mode": "TestMode",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
+        self.assertEqual(PathfinderHikeSubmission.objects.count(), 0)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        details = response.data.get("error").get("details")
+        self.assertIn("detail", details)
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="This Discord user does not have enough Pathfinder Beans for a Hike submission.",
+                code="permission_denied",
+            ),
+        )
+
+        # Successful submission creates PathfinderHikeSubmission, DiscordAccount and subtracts Beans
+        pbc = PathfinderBeanCount.objects.first()
+        pbc.bean_count = BEAN_COST_HIKE_SUBMISSION
+        pbc.save()
+        response = self.client.post(
+            "/pathfinder/hike-submission",
+            {
+                "waywoPostTitle": "Test Title",
+                "waywoPostId": "7890",
+                "mapSubmitterDiscordId": "1234",
+                "mapSubmitterDiscordUsername": "Test1234",
+                "maxPlayerCount": "8 players",
+                "map": "TestMap",
+                "mode": "TestMode",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data.get("success"))
-        self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 1)
+        self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
         pf_hike_submission = PathfinderHikeSubmission.objects.first()
         self.assertEqual(pf_hike_submission.waywo_post_title, "Test Title")
         self.assertEqual(pf_hike_submission.waywo_post_id, "7890")
@@ -244,27 +673,30 @@ class PathfinderTestCase(APITestCase):
         )
         self.assertEqual(pf_hike_submission.max_player_count, "8 players")
         self.assertEqual(pf_hike_submission.map, "TestMap")
-        self.assertEqual(pf_hike_submission.mode_1, "TestMode1")
-        self.assertEqual(pf_hike_submission.mode_2, "TestMode2")
+        self.assertEqual(pf_hike_submission.mode, "TestMode")
 
         # Multiple submissions of same WAYWO post are forbidden if previous submission hasn't been playtested yet
+        pbc = PathfinderBeanCount.objects.first()
+        pbc.bean_count = BEAN_COST_HIKE_SUBMISSION
+        pbc.save()
         response = self.client.post(
             "/pathfinder/hike-submission",
             {
                 "waywoPostTitle": "Test Title",
                 "waywoPostId": "7890",
-                "mapSubmitterDiscordId": "3456",
-                "mapSubmitterDiscordUsername": "Test3456",
+                "mapSubmitterDiscordId": "1234",
+                "mapSubmitterDiscordUsername": "Test1234",
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
-                "mode1": "TestModeA",
-                "mode2": "TestModeB",
+                "mode": "TestModeA",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 403)
+        self.assertEqual(DiscordAccount.objects.count(), 1)
         self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
-        self.assertEqual(DiscordAccount.objects.count(), 2)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        self.assertEqual(PathfinderBeanCount.objects.first().bean_count, 50)
         details = response.data.get("error").get("details")
         self.assertIn("detail", details)
         self.assertEqual(
@@ -275,30 +707,38 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-        # Multiple submissions from the same submitter are forbidden if previous submission hasn't been playtested yet
+        # Different submitter still blocked from submitting same WAYWO post if previous submission unplaytested
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="3456", discord_username="Test3456"
+        )
+        pbc = PathfinderBeanCount.objects.create(
+            bean_owner_discord=discord_account,
+            bean_count=BEAN_COST_HIKE_SUBMISSION,
+            creator=self.user,
+        )
         response = self.client.post(
             "/pathfinder/hike-submission",
             {
                 "waywoPostTitle": "Test Title",
-                "waywoPostId": "0987",
-                "mapSubmitterDiscordId": "1234",
-                "mapSubmitterDiscordUsername": "Test1234",
+                "waywoPostId": "7890",
+                "mapSubmitterDiscordId": discord_account.discord_id,
+                "mapSubmitterDiscordUsername": discord_account.discord_username,
                 "maxPlayerCount": "8 players",
                 "map": "TestMap",
-                "mode1": "TestModeA",
-                "mode2": "TestModeB",
+                "mode": "TestModeA",
             },
             format="json",
         )
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 2)
+        self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 2)
         details = response.data.get("error").get("details")
         self.assertIn("detail", details)
         self.assertEqual(
             details.get("detail"),
             ErrorDetail(
-                string="A Pathfinder Hike submission has already been created by this Discord user.",
+                string="A Pathfinder Hike submission already exists for this post.",
                 code="permission_denied",
             ),
         )
@@ -538,6 +978,142 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(testing_lfg_post.post_id, "456")
         self.assertEqual(testing_lfg_post.post_title, "Please Test")
         testing_lfg_post.delete()
+
+    def test_pathfinder_waywo_comment(self):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/waywo-comment", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for field in [
+            "commenterDiscordId",
+            "commenterDiscordUsername",
+            "commentId",
+            "commentLength",
+            "postId",
+        ]:
+            self.assertIn(field, details)
+            self.assertEqual(
+                details.get(field),
+                [ErrorDetail(string="This field is required.", code="required")],
+            )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/waywo-comment",
+            {
+                "commenterDiscordId": "abc",
+                "commenterDiscordUsername": "a",
+                "commentId": "abc",
+                "commentLength": "abc",
+                "postId": "abc",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        for id_field in ["commenterDiscordId", "commentId", "postId"]:
+            self.assertIn(id_field, details)
+            self.assertEqual(
+                details.get(id_field)[0],
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                ),
+            )
+        self.assertIn("commenterDiscordUsername", details)
+        self.assertEqual(
+            details.get("commenterDiscordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.",
+                code="min_length",
+            ),
+        )
+        self.assertIn("commentLength", details)
+        self.assertEqual(
+            details.get("commentLength")[0],
+            ErrorDetail(
+                string="A valid integer is required.",
+                code="invalid",
+            ),
+        )
+
+        # Success - does not award bean as comment length is less than 100
+        response = self.client.post(
+            "/pathfinder/waywo-comment",
+            {
+                "commenterDiscordId": "123",
+                "commenterDiscordUsername": "Test0123",
+                "commentId": "123",
+                "commentLength": 99,
+                "postId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
+        waywo_comment = PathfinderWAYWOComment.objects.first()
+        self.assertEqual(waywo_comment.commenter_discord.discord_id, "123")
+        self.assertEqual(waywo_comment.commenter_discord.discord_username, "Test0123")
+        self.assertEqual(waywo_comment.post_id, "456")
+        self.assertEqual(waywo_comment.comment_id, "123")
+        self.assertEqual(waywo_comment.comment_length, 99)
+        self.assertFalse(response.data.get("awardedBean"))
+        self.assertEqual(PathfinderBeanCount.objects.count(), 0)
+
+        # Success - awards bean as it's first qualifying for the commenter on that post ID
+        response = self.client.post(
+            "/pathfinder/waywo-comment",
+            {
+                "commenterDiscordId": "123",
+                "commenterDiscordUsername": "Test0123",
+                "commentId": "456",
+                "commentLength": 100,
+                "postId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
+        waywo_comment = PathfinderWAYWOComment.objects.first()
+        self.assertEqual(waywo_comment.commenter_discord.discord_id, "123")
+        self.assertEqual(waywo_comment.commenter_discord.discord_username, "Test0123")
+        self.assertEqual(waywo_comment.post_id, "456")
+        self.assertEqual(waywo_comment.comment_id, "456")
+        self.assertEqual(waywo_comment.comment_length, 100)
+        self.assertTrue(response.data.get("awardedBean"))
+        pbc = PathfinderBeanCount.objects.first()
+        self.assertEqual(pbc.bean_owner_discord, discord_account)
+        self.assertEqual(pbc.bean_count, BEAN_AWARD_WAYWO_COMMENT)
+
+        # Success - does not award bean as it's not first for the commenter on that post ID
+        response = self.client.post(
+            "/pathfinder/waywo-comment",
+            {
+                "commenterDiscordId": "123",
+                "commenterDiscordUsername": "Test0123",
+                "commentId": "789",
+                "commentLength": 106,
+                "postId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
+        waywo_comment = PathfinderWAYWOComment.objects.first()
+        self.assertEqual(waywo_comment.commenter_discord.discord_id, "123")
+        self.assertEqual(waywo_comment.commenter_discord.discord_username, "Test0123")
+        self.assertEqual(waywo_comment.post_id, "456")
+        self.assertEqual(waywo_comment.comment_id, "789")
+        self.assertEqual(waywo_comment.comment_length, 106)
+        self.assertFalse(response.data.get("awardedBean"))
+        pbc = PathfinderBeanCount.objects.first()
+        self.assertEqual(pbc.bean_owner_discord, discord_account)
+        self.assertEqual(pbc.bean_count, BEAN_AWARD_WAYWO_COMMENT)
 
     def test_pathfinder_waywo_post(self):
         # Missing field values throw errors

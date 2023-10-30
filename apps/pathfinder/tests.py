@@ -7,11 +7,14 @@ from django.test import TestCase
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
+    PathfinderBeanCount,
     PathfinderHikeAttendance,
     PathfinderHikeSubmission,
     PathfinderWAYWOPost,
 )
 from apps.pathfinder.utils import (
+    change_beans,
+    check_beans,
     get_s3_discord_earn_dict,
     get_s4_discord_earn_dict,
     is_dynamo_qualified,
@@ -27,6 +30,64 @@ class PathfinderUtilsTestCase(TestCase):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
         )
+
+    @patch("apps.pathfinder.utils.check_beans")
+    def test_change_beans(self, mock_check_beans):
+        discord_account = DiscordAccount.objects.create(
+            discord_id="123", discord_username="Test123", creator=self.user
+        )
+        pbc = PathfinderBeanCount.objects.create(
+            bean_owner_discord=discord_account, bean_count=0, creator=self.user
+        )
+
+        # Successful change (adds 10 beans)
+        mock_check_beans.return_value = 0
+        success = change_beans(discord_account, 10)
+        self.assertTrue(success)
+        mock_check_beans.assert_called_once_with(discord_account)
+        pbc.refresh_from_db()
+        self.assertEqual(pbc.bean_count, 10)
+        mock_check_beans.reset_mock()
+
+        # Successful change (removes 5 beans)
+        mock_check_beans.return_value = 10
+        success = change_beans(discord_account, -5)
+        self.assertTrue(success)
+        mock_check_beans.assert_called_once_with(discord_account)
+        pbc.refresh_from_db()
+        self.assertEqual(pbc.bean_count, 5)
+        mock_check_beans.reset_mock()
+
+        # Unsuccessful change (removes no beans)
+        mock_check_beans.return_value = 5
+        success = change_beans(discord_account, -6)
+        self.assertFalse(success)
+        mock_check_beans.assert_called_once_with(discord_account)
+        pbc.refresh_from_db()
+        self.assertEqual(pbc.bean_count, 5)
+        mock_check_beans.reset_mock()
+
+    def test_check_beans(self):
+        discord_account = DiscordAccount.objects.create(
+            discord_id="123", discord_username="Test123", creator=self.user
+        )
+
+        # Nonexistent PathfinderBeanCount record leads to creation of one
+        bean_count = check_beans(discord_account)
+        self.assertEqual(bean_count, 0)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 1)
+        pbc = PathfinderBeanCount.objects.first()
+        self.assertEqual(pbc.bean_owner_discord, discord_account)
+        self.assertEqual(pbc.bean_count, 0)
+
+        # Existing PathfinderBeanCount count is returned
+        pbc.bean_count = 50
+        pbc.save()
+        bean_count = check_beans(discord_account)
+        self.assertEqual(pbc.bean_count, 50)
+
+        # Call with None raises
+        self.assertRaises(AssertionError, check_beans, None)
 
     def test_get_s3_discord_earn_dict(self):
         # Create some test data

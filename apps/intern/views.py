@@ -14,6 +14,7 @@ from apps.intern.models import (
     InternChatterPauseDenialQuip,
     InternChatterPauseReverenceQuip,
     InternHelpfulHint,
+    InternHikeQueueQuip,
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
@@ -33,6 +34,8 @@ from apps.intern.serializers import (
     InternChatterSerializer,
     InternHelpfulHintErrorSerializer,
     InternHelpfulHintSerializer,
+    InternHikeQueueQuipErrorSerializer,
+    InternHikeQueueQuipSerializer,
     InternNewHereWelcomeQuipErrorSerializer,
     InternNewHereWelcomeQuipSerializer,
     InternNewHereYeetQuipErrorSerializer,
@@ -74,6 +77,8 @@ INTERN_HELPFUL_HINT_DEFAULT_MESSAGE = (
     "I do my best to help out by providing helpful hints!"
 )
 INTERN_HELPFUL_HINT_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_HIKE_QUEUE_QUIP_DEFAULT = "Hike."
+INTERN_HIKE_QUEUE_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT = "Glad you're here!"
 INTERN_NEW_HERE_WELCOME_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_NEW_HERE_YEET_QUIP_DEFAULT = "Bye!"
@@ -257,6 +262,35 @@ class RandomInternChatterPauseReverenceQuip(APIView):
             )
             return Response(serializer.data, status=500)
         serializer = InternChatterPauseReverenceQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternHikeQueueQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternHikeQueueQuipSerializer,
+            500: InternHikeQueueQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternHikeQueueQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_HIKE_QUEUE_QUIP_DEFAULT
+        try:
+            random_quips = InternHikeQueueQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternHikeQueueQuipErrorSerializer(
+                {"error": INTERN_HIKE_QUEUE_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternHikeQueueQuipSerializer({"quip": random_quip})
         return Response(
             serializer.data, status=200, headers={"Cache-Control": "no-cache"}
         )
