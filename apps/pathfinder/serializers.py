@@ -21,8 +21,7 @@ class CheckBeansResponseSerializer(serializers.Serializer):
     beanCount = serializers.IntegerField()
 
 
-class DiscordUserAwardedBeansSerializer(serializers.Serializer):
-    discordId = serializers.CharField(max_length=20, validators=[validate_discord_id])
+class DiscordUserAwardedBeansSerializer(DiscordUserInfoSerializer):
     awardedBeans = serializers.IntegerField()
 
 

@@ -210,7 +210,8 @@ class HikeCompleteView(APIView):
                 awarded_users.append(
                     DiscordUserAwardedBeansSerializer(
                         {
-                            "discordId": discord_id,
+                            "discordId": discord_account.discord_id,
+                            "discordUsername": discord_account.discord_username,
                             "awardedBeans": beans_to_award if success else 0,
                         }
                     ).data
@@ -506,6 +507,12 @@ class PathfinderWAYWOCommentView(APIView):
                 post_id=post_id,
                 comment_length__gte=100,
             ).count()
+            commenter_is_op = (
+                PathfinderWAYWOPost.objects.filter(
+                    poster_discord=commenter_discord, post_id=post_id
+                ).count()
+                != 0
+            )
             awarded_bean = False
             try:
                 PathfinderWAYWOComment.objects.create(
@@ -517,6 +524,7 @@ class PathfinderWAYWOCommentView(APIView):
                 )
                 if (
                     existing_qualified_comments == 0
+                    and not commenter_is_op
                     and comment_length
                     >= PATHFINDER_WAYWO_COMMENT_MIN_LENGTH_FOR_BEAN_AWARD
                 ):

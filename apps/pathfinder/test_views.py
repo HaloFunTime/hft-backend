@@ -388,6 +388,7 @@ class PathfinderTestCase(APITestCase):
                 OrderedDict(
                     [
                         ("discordId", "0"),
+                        ("discordUsername", "Test0"),
                         (
                             "awardedBeans",
                             BEAN_AWARD_HIKE_GAME_PARTICIPATION
@@ -398,30 +399,35 @@ class PathfinderTestCase(APITestCase):
                 OrderedDict(
                     [
                         ("discordId", "5"),
+                        ("discordUsername", "Test5"),
                         ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
                     ]
                 ),
                 OrderedDict(
                     [
                         ("discordId", "3"),
+                        ("discordUsername", "Test3"),
                         ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
                     ]
                 ),
                 OrderedDict(
                     [
                         ("discordId", "1"),
+                        ("discordUsername", "Test1"),
                         ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
                     ]
                 ),
                 OrderedDict(
                     [
                         ("discordId", "4"),
+                        ("discordUsername", "Test4"),
                         ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
                     ]
                 ),
                 OrderedDict(
                     [
                         ("discordId", "2"),
+                        ("discordUsername", "Test2"),
                         ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
                     ]
                 ),
@@ -1060,6 +1066,36 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(waywo_comment.comment_length, 99)
         self.assertFalse(response.data.get("awardedBean"))
         self.assertEqual(PathfinderBeanCount.objects.count(), 0)
+
+        # Success - does not award bean as commenter is also the WAYWO post's OP
+        waywo_post = PathfinderWAYWOPost.objects.create(
+            post_id="456", poster_discord=discord_account, creator=self.user
+        )
+        response = self.client.post(
+            "/pathfinder/waywo-comment",
+            {
+                "commenterDiscordId": "123",
+                "commenterDiscordUsername": "Test0123",
+                "commentId": "123",
+                "commentLength": 100,
+                "postId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        discord_account = DiscordAccount.objects.first()
+        self.assertEqual(discord_account.discord_id, "123")
+        self.assertEqual(discord_account.discord_username, "Test0123")
+        waywo_comment = PathfinderWAYWOComment.objects.first()
+        self.assertEqual(waywo_comment.commenter_discord.discord_id, "123")
+        self.assertEqual(waywo_comment.commenter_discord.discord_username, "Test0123")
+        self.assertEqual(waywo_comment.post_id, "456")
+        self.assertEqual(waywo_comment.comment_id, "123")
+        self.assertEqual(waywo_comment.comment_length, 100)
+        self.assertFalse(response.data.get("awardedBean"))
+        self.assertEqual(PathfinderBeanCount.objects.count(), 0)
+        waywo_comment.delete()
+        waywo_post.delete()
 
         # Success - awards bean as it's first qualifying for the commenter on that post ID
         response = self.client.post(
