@@ -1520,19 +1520,20 @@ class PathfinderTestCase(APITestCase):
         )
         hike_submission.save()
         for i in range(5):
-            game_participation = PathfinderHikeGameParticipation.objects.create(
-                creator=self.user, hike_submission=hike_submission, xuid=i
-            )
-            game_participation.created_at = datetime.datetime(
-                year=2023,
-                month=10,
-                day=27,
-                hour=18,
-                minute=0,
-                second=0,
-                tzinfo=datetime.timezone.utc,
-            )
-            game_participation.save()
+            for _ in range(2):
+                game_participation = PathfinderHikeGameParticipation.objects.create(
+                    creator=self.user, hike_submission=hike_submission, xuid=i
+                )
+                game_participation.created_at = datetime.datetime(
+                    year=2023,
+                    month=10,
+                    day=27,
+                    hour=18,
+                    minute=0,
+                    second=0,
+                    tzinfo=datetime.timezone.utc,
+                )
+                game_participation.save()
         for i in range(4):
             post = PathfinderWAYWOPost.objects.create(
                 creator=self.user, poster_discord=discord_account_1

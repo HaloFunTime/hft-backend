@@ -748,7 +748,10 @@ class WeeklyRecapView(APIView):
                 {
                     "hikerCount": PathfinderHikeGameParticipation.objects.filter(
                         created_at__range=[start_time, end_time]
-                    ).count(),
+                    )
+                    .values("xuid")
+                    .distinct()
+                    .count(),
                     "hikeSubmissionCount": PathfinderHikeSubmission.objects.filter(
                         created_at__range=[start_time, end_time]
                     ).count(),
