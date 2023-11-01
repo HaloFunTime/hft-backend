@@ -263,7 +263,9 @@ class Domain(Base):
         null=True,
     )
     stat = models.CharField(max_length=128, choices=Stats.choices, verbose_name="Stat")
-    medal_id = models.IntegerField(
+    medal_id = models.DecimalField(
+        decimal_places=0,
+        max_digits=15,
         verbose_name="Medal ID (only necessary if Stat is 'Medal Count')",
         blank=True,
         null=True,

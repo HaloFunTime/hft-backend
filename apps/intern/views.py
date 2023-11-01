@@ -147,7 +147,9 @@ class RandomInternChatter(APIView):
 
         # If the intern is currently paused, return an error
         try:
-            one_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=1)
+            one_hour_ago = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ) - datetime.timedelta(hours=1)
             pauses = InternChatterPause.objects.filter(created_at__gt=one_hour_ago)
         except Exception as ex:
             logger.error(ex)

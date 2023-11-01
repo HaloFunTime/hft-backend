@@ -33,4 +33,5 @@ urlpatterns = [
         views.PathfinderWAYWOPostView.as_view(),
         name="waywo-post",
     ),
+    path("weekly-recap", views.WeeklyRecapView.as_view(), name="weekly-recap"),
 ]

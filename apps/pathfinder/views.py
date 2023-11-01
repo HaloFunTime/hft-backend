@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from drf_spectacular.utils import extend_schema
@@ -41,6 +42,8 @@ from apps.pathfinder.serializers import (
     WAYWOCommentResponseSerializer,
     WAYWOPostRequestSerializer,
     WAYWOPostResponseSerializer,
+    WeeklyRecapRequestSerializer,
+    WeeklyRecapResponseSerializer,
 )
 from apps.pathfinder.utils import (
     BEAN_AWARD_HIKE_GAME_PARTICIPATION,
@@ -60,6 +63,10 @@ from apps.pathfinder.utils import (
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def now_utc():
+    return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
 class ChangeBeansView(APIView):
@@ -698,4 +705,59 @@ class PathfinderDynamoProgressView(APIView):
                 "totalPoints": sum(serializable_dict.values()),
             } | serializable_dict
             serializer = serializer_class(merged_dict)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class WeeklyRecapView(APIView):
+    @extend_schema(
+        request=WeeklyRecapRequestSerializer,
+        responses={
+            200: WeeklyRecapResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Retrieve data for the Pathfinder club weekly recap.
+        """
+        validation_serializer = WeeklyRecapRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_users_awarded_beans = validation_serializer.data.get(
+                "discordUsersAwardedBeans"
+            )
+            # Award Beans as instructed
+            for discord_user in discord_users_awarded_beans:
+                try:
+                    discord_account = update_or_create_discord_account(
+                        discord_user.get("discordId"),
+                        discord_user.get("discordUsername"),
+                        request.user,
+                    )
+                    success = change_beans(
+                        discord_account, discord_user.get("awardedBeans")
+                    )
+                    assert success
+                except Exception as ex:
+                    logger.error(ex)
+                    raise APIException("Error attempting the Pathfinder Weekly Recap.")
+            # Return weekly recap data
+            end_time = now_utc()
+            start_time = end_time + datetime.timedelta(days=-7)
+            serializer = WeeklyRecapResponseSerializer(
+                {
+                    "hikerCount": PathfinderHikeGameParticipation.objects.filter(
+                        created_at__range=[start_time, end_time]
+                    ).count(),
+                    "hikeSubmissionCount": PathfinderHikeSubmission.objects.filter(
+                        created_at__range=[start_time, end_time]
+                    ).count(),
+                    "waywoCommentCount": PathfinderWAYWOComment.objects.filter(
+                        created_at__range=[start_time, end_time]
+                    ).count(),
+                    "waywoPostCount": PathfinderWAYWOPost.objects.filter(
+                        created_at__range=[start_time, end_time]
+                    ).count(),
+                }
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)

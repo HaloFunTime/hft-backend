@@ -138,7 +138,9 @@ class PathfinderUtilsTestCase(TestCase):
                 post_id=f"{i}",
                 poster_discord=discord_accounts[0],
             )
-            waywo_post.created_at = datetime.datetime(2023, 4, 6)
+            waywo_post.created_at = datetime.datetime(
+                2023, 4, 6, tzinfo=datetime.timezone.utc
+            )
             waywo_post.save()
             sats.append(waywo_post)
         earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
@@ -176,7 +178,9 @@ class PathfinderUtilsTestCase(TestCase):
                 post_id=f"{i}",
                 poster_discord=discord_accounts[0],
             )
-            waywo_post.created_at = datetime.datetime(2023, 4, 6)
+            waywo_post.created_at = datetime.datetime(
+                2023, 4, 6, tzinfo=datetime.timezone.utc
+            )
             waywo_post.save()
             sats.append(waywo_post)
         earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])
@@ -231,7 +235,9 @@ class PathfinderUtilsTestCase(TestCase):
                 post_id=f"{i}",
                 poster_discord=discord_accounts[0],
             )
-            waywo_post.created_at = datetime.datetime(2023, 7, 6)
+            waywo_post.created_at = datetime.datetime(
+                2023, 7, 6, tzinfo=datetime.timezone.utc
+            )
             waywo_post.save()
             sats.append(waywo_post)
         earn_dict = get_s3_discord_earn_dict([discord_accounts[0].discord_id])

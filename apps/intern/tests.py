@@ -197,7 +197,9 @@ class InternChatterTestCase(APITestCase):
         self.assertEqual(response.data, {"error": INTERN_CHATTER_ERROR_PAUSED})
 
         # Pause record created an hour ago does not throw error (default chatter returned)
-        chatter_pause.created_at = datetime.datetime.now() - datetime.timedelta(hours=1)
+        chatter_pause.created_at = datetime.datetime.now(
+            tz=datetime.timezone.utc
+        ) - datetime.timedelta(hours=1)
         chatter_pause.save()
         response = self.client.get(
             "/intern/random-chatter?channelId=471730128335142912"

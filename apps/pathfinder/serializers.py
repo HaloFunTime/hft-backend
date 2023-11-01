@@ -165,3 +165,16 @@ class WAYWOPostRequestSerializer(serializers.Serializer):
 
 class WAYWOPostResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
+
+
+class WeeklyRecapRequestSerializer(serializers.Serializer):
+    discordUsersAwardedBeans = serializers.ListField(
+        allow_empty=True, child=DiscordUserAwardedBeansSerializer()
+    )
+
+
+class WeeklyRecapResponseSerializer(serializers.Serializer):
+    hikerCount = serializers.IntegerField()
+    hikeSubmissionCount = serializers.IntegerField()
+    waywoCommentCount = serializers.IntegerField()
+    waywoPostCount = serializers.IntegerField()

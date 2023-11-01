@@ -1428,3 +1428,170 @@ class PathfinderTestCase(APITestCase):
         mock_get_current_season_id.return_value = "4"
 
         # TODO: Complete this test.
+
+    @patch("apps.pathfinder.views.now_utc")
+    def test_weekly_recap_view(self, mock_now_utc):
+        mock_now_utc.return_value = datetime.datetime(
+            year=2023,
+            month=11,
+            day=2,
+            hour=18,
+            minute=0,
+            second=0,
+            tzinfo=datetime.timezone.utc,
+        )
+
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/weekly-recap", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUsersAwardedBeans", details)
+        self.assertEqual(
+            details.get("discordUsersAwardedBeans"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/weekly-recap",
+            {
+                "discordUsersAwardedBeans": [
+                    {
+                        "discordId": "",
+                        "discordUsername": "",
+                        "awardedBeans": "",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUsersAwardedBeans", details)
+        self.assertEqual(
+            details.get("discordUsersAwardedBeans"),
+            {
+                0: {
+                    "discordId": [
+                        ErrorDetail(string="This field may not be blank.", code="blank")
+                    ],
+                    "discordUsername": [
+                        ErrorDetail(string="This field may not be blank.", code="blank")
+                    ],
+                    "awardedBeans": [
+                        ErrorDetail(
+                            string="A valid integer is required.", code="invalid"
+                        )
+                    ],
+                }
+            },
+        )
+
+        # Success - returns empty data
+        response = self.client.post(
+            "/pathfinder/weekly-recap",
+            {"discordUsersAwardedBeans": []},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("hikerCount"), 0)
+        self.assertEqual(response.data.get("hikeSubmissionCount"), 0)
+        self.assertEqual(response.data.get("waywoCommentCount"), 0)
+        self.assertEqual(response.data.get("waywoPostCount"), 0)
+
+        # Success - changes bean totals and returns non-empty data
+        discord_account_1 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="123", discord_username="Test123"
+        )
+        discord_account_2 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="456", discord_username="Test456"
+        )
+        hike_submission = PathfinderHikeSubmission.objects.create(
+            creator=self.user, map_submitter_discord=discord_account_1
+        )
+        hike_submission.created_at = datetime.datetime(
+            year=2023,
+            month=10,
+            day=26,
+            hour=18,
+            minute=0,
+            second=0,
+            tzinfo=datetime.timezone.utc,
+        )
+        hike_submission.save()
+        for i in range(5):
+            game_participation = PathfinderHikeGameParticipation.objects.create(
+                creator=self.user, hike_submission=hike_submission, xuid=i
+            )
+            game_participation.created_at = datetime.datetime(
+                year=2023,
+                month=10,
+                day=27,
+                hour=18,
+                minute=0,
+                second=0,
+                tzinfo=datetime.timezone.utc,
+            )
+            game_participation.save()
+        for i in range(4):
+            post = PathfinderWAYWOPost.objects.create(
+                creator=self.user, poster_discord=discord_account_1
+            )
+            post.created_at = datetime.datetime(
+                year=2023,
+                month=10,
+                day=28,
+                hour=18,
+                minute=0,
+                second=0,
+                tzinfo=datetime.timezone.utc,
+            )
+            post.save()
+        for i in range(3):
+            comment = PathfinderWAYWOComment.objects.create(
+                creator=self.user,
+                comment_length=i,
+                commenter_discord=discord_account_1,
+            )
+            comment.created_at = datetime.datetime(
+                year=2023,
+                month=10,
+                day=29,
+                hour=18,
+                minute=0,
+                second=0,
+                tzinfo=datetime.timezone.utc,
+            )
+            comment.save()
+        response = self.client.post(
+            "/pathfinder/weekly-recap",
+            {
+                "discordUsersAwardedBeans": [
+                    {
+                        "discordId": discord_account_1.discord_id,
+                        "discordUsername": discord_account_1.discord_username,
+                        "awardedBeans": 15,
+                    },
+                    {
+                        "discordId": discord_account_2.discord_id,
+                        "discordUsername": discord_account_2.discord_username,
+                        "awardedBeans": 25,
+                    },
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("hikerCount"), 5)
+        self.assertEqual(response.data.get("hikeSubmissionCount"), 1)
+        self.assertEqual(response.data.get("waywoCommentCount"), 3)
+        self.assertEqual(response.data.get("waywoPostCount"), 4)
+        self.assertEqual(PathfinderBeanCount.objects.count(), 2)
+        self.assertEqual(PathfinderBeanCount.objects.all()[0].bean_count, 25)
+        self.assertEqual(
+            PathfinderBeanCount.objects.all()[0].bean_owner_discord, discord_account_2
+        )
+        self.assertEqual(PathfinderBeanCount.objects.all()[1].bean_count, 15)
+        self.assertEqual(
+            PathfinderBeanCount.objects.all()[1].bean_owner_discord, discord_account_1
+        )
