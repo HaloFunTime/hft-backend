@@ -14,12 +14,19 @@ from apps.halo_infinite.serializers import (
     CSRDataSerializer,
     CSRPlaylistSerializer,
     CSRResponseSerializer,
+    RecentGameSerializer,
+    RecentGamesResponseSerializer,
     SummaryCustomSerializer,
     SummaryLocalSerializer,
     SummaryMatchmakingSerializer,
     SummaryStatsResponseSerializer,
 )
-from apps.halo_infinite.utils import get_career_ranks, get_csrs, get_summary_stats
+from apps.halo_infinite.utils import (
+    get_career_ranks,
+    get_csrs,
+    get_recent_games,
+    get_summary_stats,
+)
 from apps.xbox_live.utils import get_xuid_and_exact_gamertag
 from config.serializers import StandardErrorSerializer
 
@@ -28,6 +35,8 @@ logger = logging.getLogger(__name__)
 ERROR_GAMERTAG_MISSING = "Missing 'gamertag' query parameter."
 ERROR_GAMERTAG_INVALID = "The gamertag you specified has invalid characters."
 ERROR_GAMERTAG_NOT_FOUND = "The gamertag you specified was not found on Xbox Live."
+ERROR_MATCH_TYPE_MISSING = "Missing 'matchType' query parameter."
+ERROR_MATCH_TYPE_INVALID = "The match type you specified is invalid. Valid match types are 'Custom' and 'Matchmaking'."
 
 
 class CareerRankView(APIView):
@@ -190,6 +199,92 @@ class CSRView(APIView):
                 "playlists": playlists,
             }
         )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class RecentGamesView(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="gamertag",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
+            OpenApiParameter(
+                name="matchType",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
+        ],
+        responses={
+            200: SummaryStatsResponseSerializer,
+            400: StandardErrorSerializer,
+            403: StandardErrorSerializer,
+            404: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the summary stats for a given gamertag.
+        """
+        # Validate that there is a passed-in gamertag
+        gamertag_param = request.query_params.get("gamertag")
+        if gamertag_param is None:
+            raise ParseError(detail=ERROR_GAMERTAG_MISSING)
+        gamertag = gamertag_param.replace("#", "", 1)
+        if not re.match(r"[ a-zA-Z][ a-zA-Z0-9]{0,14}", gamertag):
+            raise ParseError(detail=ERROR_GAMERTAG_INVALID)
+        # Validate that there is a passed-in type
+        match_type_param = request.query_params.get("matchType")
+        if match_type_param is None:
+            raise ParseError(detail=ERROR_MATCH_TYPE_MISSING)
+        match_type = match_type_param.title()
+        if (
+            match_type_param != "Custom"
+            and match_type_param != "Matchmaking"
+            and match_type_param != "Local"
+        ):
+            raise ParseError(detail=ERROR_MATCH_TYPE_INVALID)
+
+        gamertag_info = get_xuid_and_exact_gamertag(gamertag)
+        xuid = gamertag_info[0]
+        gamertag = gamertag_info[1]
+        if xuid is None or gamertag is None:
+            raise NotFound(ERROR_GAMERTAG_NOT_FOUND)
+        try:
+            games = get_recent_games(xuid, match_type)
+        except Exception as ex:
+            logger.error(ex)
+            raise APIException(f"Could not get summary stats for gamertag {gamertag}.")
+
+        serialized_games = []
+        for game in games:
+            serialized_games.append(
+                RecentGameSerializer(
+                    {
+                        "matchId": game.get("match_id"),
+                        "outcome": game.get("outcome"),
+                        "finished": game.get("finished"),
+                        "modeName": game.get("mode_name"),
+                        "modeAssetId": game.get("mode_asset_id"),
+                        "modeVersionId": game.get("mode_version_id"),
+                        "mapName": game.get("map_name"),
+                        "mapAssetId": game.get("map_asset_id"),
+                        "mapVersionId": game.get("map_version_id"),
+                        "playlistName": game.get("playlist_name"),
+                        "playlistAssetId": game.get("playlist_asset_id"),
+                        "playlistVersionId": game.get("playlist_version_id"),
+                    }
+                ).data
+            )
+
+        serializer = RecentGamesResponseSerializer({"games": serialized_games})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

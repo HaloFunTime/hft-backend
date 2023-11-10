@@ -3,7 +3,13 @@ import logging
 
 from apps.halo_infinite.api.career_rank import career_rank
 from apps.halo_infinite.api.csr import csr
-from apps.halo_infinite.api.match import match_count, match_skill, matches_between
+from apps.halo_infinite.api.files import get_map, get_mode, get_playlist
+from apps.halo_infinite.api.match import (
+    last_25_matches,
+    match_count,
+    match_skill,
+    matches_between,
+)
 from apps.halo_infinite.api.playlist import playlist_info, playlist_version
 from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.search import search_by_author
@@ -250,6 +256,58 @@ def get_playlist_latest_version_info(playlist_id: str):
         "name": version_dict.get("PublicName"),
         "description": version_dict.get("Description"),
     }
+
+
+def get_recent_games(xuid: int, match_type: str):
+    last_10_games = last_25_matches(xuid, match_type)[:10]
+    recent_games = []
+    for game in last_10_games:
+        match_id = game["MatchId"]
+        map_asset_id = game["MatchInfo"]["MapVariant"]["AssetId"]
+        map_version_id = game["MatchInfo"]["MapVariant"]["VersionId"]
+        map_name = None
+        if map_asset_id is not None:
+            map_data = get_map(map_asset_id, map_version_id)
+            map_name = map_data["PublicName"]
+        mode_asset_id = game["MatchInfo"]["UgcGameVariant"]["AssetId"]
+        mode_version_id = game["MatchInfo"]["UgcGameVariant"]["VersionId"]
+        mode_name = None
+        if mode_asset_id is not None:
+            mode_data = get_mode(mode_asset_id, mode_version_id)
+            mode_name = mode_data["PublicName"]
+        playlist_asset_id = None
+        playlist_version_id = None
+        playlist_name = None
+        if game["MatchInfo"].get("Playlist", None) is not None:
+            playlist_asset_id = game["MatchInfo"]["Playlist"]["AssetId"]
+            playlist_version_id = game["MatchInfo"]["Playlist"]["VersionId"]
+            playlist_data = get_playlist(playlist_asset_id, playlist_version_id)
+            playlist_name = playlist_data["PublicName"]
+        finished = game["PresentAtEndOfMatch"]
+        outcome = (
+            "Tied"
+            if game["Outcome"] == 1
+            else "Won"
+            if game["Outcome"] == 2
+            else "Lost"
+        )
+        recent_games.append(
+            {
+                "match_id": match_id,
+                "outcome": outcome,
+                "finished": finished,
+                "mode_name": mode_name,
+                "mode_asset_id": mode_asset_id,
+                "mode_version_id": mode_version_id,
+                "map_name": map_name,
+                "map_asset_id": map_asset_id,
+                "map_version_id": map_version_id,
+                "playlist_name": playlist_name,
+                "playlist_asset_id": playlist_asset_id,
+                "playlist_version_id": playlist_version_id,
+            }
+        )
+    return recent_games
 
 
 def get_season_custom_matches_for_xuid(xuid: int, season_id: str) -> list[dict]:

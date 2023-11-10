@@ -139,3 +139,30 @@ def matches_between(
             else:
                 break
     return match_list
+
+
+@spartan_token
+def last_25_matches(xuid: int, type: str = None, **kwargs) -> list[dict]:
+    spartan_token = kwargs.get("HaloInfiniteSpartanToken")
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
+        "x-343-authorization-spartan": spartan_token.token,
+    }
+    match_list = []
+    with requests.Session() as s:
+        query_string = "?count=25&start=0"
+        if type is not None:
+            query_string += f"&type={type}"
+            # Grab matches in 25-match chunks
+        response = s.get(
+            f"https://halostats.svc.halowaypoint.com/hi/players/xuid({xuid})/matches{query_string}",
+            headers=headers,
+        )
+        if response.status_code == 200:
+            response_dict = response.json()
+            # Return empty list if no results were returned
+            if len(response_dict.get("Results")) != 0:
+                for match in response_dict.get("Results"):
+                    match_list.append(match)
+    return match_list
