@@ -266,9 +266,20 @@ def get_recent_games(xuid: int, match_type: str):
         map_asset_id = game["MatchInfo"]["MapVariant"]["AssetId"]
         map_version_id = game["MatchInfo"]["MapVariant"]["VersionId"]
         map_name = None
+        map_thumbnail_url = None
         if map_asset_id is not None:
             map_data = get_map(map_asset_id, map_version_id)
             map_name = map_data["PublicName"]
+            thumbnail_filepaths = list(
+                filter(
+                    lambda x: "thumbnail" in x,
+                    map_data.get("Files", {}).get("FileRelativePaths", []),
+                )
+            )
+            if len(thumbnail_filepaths) > 0:
+                map_thumbnail_url = (
+                    map_data.get("Files", {}).get("Prefix") + thumbnail_filepaths[0]
+                )
         mode_asset_id = game["MatchInfo"]["UgcGameVariant"]["AssetId"]
         mode_version_id = game["MatchInfo"]["UgcGameVariant"]["VersionId"]
         mode_name = None
@@ -302,6 +313,7 @@ def get_recent_games(xuid: int, match_type: str):
                 "map_name": map_name,
                 "map_asset_id": map_asset_id,
                 "map_version_id": map_version_id,
+                "map_thumbnail_url": map_thumbnail_url,
                 "playlist_name": playlist_name,
                 "playlist_asset_id": playlist_asset_id,
                 "playlist_version_id": playlist_version_id,

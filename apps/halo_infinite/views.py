@@ -277,6 +277,7 @@ class RecentGamesView(APIView):
                         "mapName": game.get("map_name"),
                         "mapAssetId": game.get("map_asset_id"),
                         "mapVersionId": game.get("map_version_id"),
+                        "mapThumbnailURL": game.get("map_thumbnail_url"),
                         "playlistName": game.get("playlist_name"),
                         "playlistAssetId": game.get("playlist_asset_id"),
                         "playlistVersionId": game.get("playlist_version_id"),

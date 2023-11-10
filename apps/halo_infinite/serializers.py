@@ -38,32 +38,6 @@ class CSRResponseSerializer(serializers.Serializer):
     playlists = CSRPlaylistSerializer(many=True)
 
 
-class VariantSerializer(serializers.Serializer):
-    AssetKind = serializers.IntegerField()
-    AssetId = serializers.UUIDField()
-    VersionId = serializers.UUIDField()
-
-
-class MatchInfoSerializer(serializers.Serializer):
-    StartTime = serializers.CharField()
-    EndTime = serializers.CharField()
-    Duration = serializers.CharField()
-    LifecycleMode = serializers.IntegerField()
-    GameVariantCategory = serializers.IntegerField()
-    LevelId = serializers.UUIDField()
-    MapVariant = VariantSerializer()
-    UgcGameVariant = VariantSerializer()
-    ClearanceId = serializers.UUIDField()
-    Playlist = VariantSerializer()
-    PlaylistExperience = serializers.IntegerField()
-    PlaylistMapModePair = VariantSerializer()
-    SeasonId = serializers.CharField()
-    PlayableDuration = serializers.CharField()
-    TeamsEnabled = serializers.BooleanField()
-    TeamScoringEnabled = serializers.BooleanField()
-    GameplayInteraction = serializers.IntegerField()
-
-
 class RecentGameSerializer(serializers.Serializer):
     matchId = serializers.CharField()
     outcome = serializers.CharField()
@@ -74,6 +48,7 @@ class RecentGameSerializer(serializers.Serializer):
     mapName = serializers.CharField()
     mapAssetId = serializers.CharField()
     mapVersionId = serializers.CharField()
+    mapThumbnailURL = serializers.CharField()
     playlistName = serializers.CharField()
     playlistAssetId = serializers.CharField()
     playlistVersionId = serializers.CharField()
