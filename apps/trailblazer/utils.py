@@ -10,7 +10,7 @@ from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_ODDBALL,
     GAME_VARIANT_CATEGORY_SLAYER,
     GAME_VARIANT_CATEGORY_STRONGHOLDS,
-    MAP_ID_RECHARGE,
+    LEVEL_ID_RECHARGE,
     MEDAL_ID_EXTERMINATION,
     SEASON_3_RANKED_ARENA_PLAYLIST_ID,
     SEASON_4_RANKED_ARENA_PLAYLIST_ID,
@@ -453,10 +453,7 @@ def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
 
         # High Voltage: Win games on the map Recharge in Ranked Arena. 5 points per win.
         for match in matches:
-            if (
-                match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
-                == MAP_ID_RECHARGE
-            ):
+            if match.get("MatchInfo", {}).get("LevelId", {}) == LEVEL_ID_RECHARGE:
                 if match.get("Outcome") == 2:
                     recharge_wins += 1
 
