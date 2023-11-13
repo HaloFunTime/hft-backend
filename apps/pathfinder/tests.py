@@ -17,10 +17,12 @@ from apps.pathfinder.utils import (
     check_beans,
     get_s3_discord_earn_dict,
     get_s4_discord_earn_dict,
+    get_s5_discord_earn_dict,
     is_dynamo_qualified,
     is_illuminated_qualified,
     is_s3_dynamo_qualified,
     is_s4_dynamo_qualified,
+    is_s5_dynamo_qualified,
 )
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -377,6 +379,38 @@ class PathfinderUtilsTestCase(TestCase):
         # Null value provided to method returns False
         mock_get_s4_xbox_earn_dict.return_value = {}
         result = is_s4_dynamo_qualified(None, None)
+        self.assertEqual(result, False)
+
+        # TODO: Complete this test.
+
+    def test_get_s5_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_s5_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # TODO: Complete this test.
+
+    @patch("apps.pathfinder.utils.get_s5_xbox_earn_dict")
+    @patch("apps.pathfinder.utils.get_s5_discord_earn_dict")
+    def test_is_s5_dynamo_qualified(
+        self,
+        mock_get_s5_discord_earn_dict,
+        mock_get_s5_xbox_earn_dict,
+    ):
+        # Null value provided to method returns False
+        mock_get_s5_xbox_earn_dict.return_value = {}
+        result = is_s5_dynamo_qualified(None, None)
         self.assertEqual(result, False)
 
         # TODO: Complete this test.

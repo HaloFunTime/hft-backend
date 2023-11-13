@@ -15,7 +15,7 @@ from apps.halo_infinite.utils import (
     get_start_and_end_times_for_season,
 )
 from apps.link.models import DiscordXboxLiveLink
-from apps.pathfinder.models import PathfinderBeanCount
+from apps.pathfinder.models import PathfinderBeanCount, PathfinderHikeGameParticipation
 from apps.showcase.models import ShowcaseFile
 
 logger = logging.getLogger(__name__)
@@ -372,12 +372,142 @@ def is_s4_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
     return points >= 500
 
 
+def get_s5_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    start_time, end_time = get_start_and_end_times_for_season("5")
+    annotated_discord_accounts = DiscordAccount.objects.annotate(
+        hike_submissions=Count(
+            "pathfinder_hike_submitters",
+            distinct=True,
+            filter=Q(
+                pathfinder_hike_submitters__map_submitter_discord_id__in=discord_ids,
+                pathfinder_hike_submitters__created_at__range=[
+                    start_time,
+                    end_time,
+                ],
+            ),
+        ),
+        waywo_posts=Count(
+            "pathfinder_waywo_posters",
+            distinct=True,
+            filter=Q(
+                pathfinder_waywo_posters__poster_discord_id__in=discord_ids,
+                pathfinder_waywo_posters__created_at__range=[
+                    start_time,
+                    end_time,
+                ],
+            ),
+        ),
+        waywo_comments=Count(
+            "pathfinder_waywo_commenters",
+            distinct=True,
+            filter=Q(
+                pathfinder_waywo_commenters__commenter_discord_id__in=discord_ids,
+                pathfinder_waywo_commenters__created_at__range=[
+                    start_time,
+                    end_time,
+                ],
+            ),
+        ),
+    ).filter(discord_id__in=discord_ids)
+
+    earn_dict = {}
+    for account in annotated_discord_accounts:
+        earn_dict[account.discord_id] = {
+            "bean_spender": min(account.hike_submissions, 1) * 200,  # Max 1 per account
+            "what_are_you_working_on": min(account.waywo_posts, 3)
+            * 50,  # Max 3 per account
+            "feedback_fiend": min(account.waywo_comments, 100),  # Max 100 per account
+        }
+    return earn_dict
+
+
+def get_s5_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    dev_map_ids = get_dev_map_ids_for_season("5")
+    start_time, end_time = get_start_and_end_times_for_season("5")
+    earn_dict = {}
+    for xuid in xuids:
+        # Get custom matches for this XUID
+        custom_matches = get_season_custom_matches_for_xuid(xuid, "5")
+        custom_matches_sorted = sorted(
+            custom_matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("StartTime")
+            ),
+        )
+
+        # Gone Hiking: Participate in Pathfinder Hikes playtesting in-game
+        hike_game_participations = PathfinderHikeGameParticipation.objects.filter(
+            xuid=xuid, created_at__range=[start_time, end_time]
+        ).count()
+
+        # Forged in Fire: Play hours of custom games on Forge maps
+        custom_seconds_played = 0
+        for match in custom_matches_sorted:
+            if (
+                match.get("MatchInfo", {}).get("MapVariant", {}).get("AssetId", {})
+                not in dev_map_ids
+            ):
+                match_start = datetime.datetime.strptime(
+                    match.get("MatchInfo", {})
+                    .get("StartTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                match_end = datetime.datetime.strptime(
+                    match.get("MatchInfo", {})
+                    .get("EndTime", None)
+                    .rstrip("Z")
+                    .split(".")[0],
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=datetime.timezone.utc)
+                custom_seconds_played += (match_end - match_start).total_seconds()
+        forge_custom_game_hours = int(custom_seconds_played / 3600)
+
+        earn_dict[xuid] = {
+            "gone_hiking": min(hike_game_participations, 25) * 10,  # Max 25 per account
+            "forged_in_fire": min(forge_custom_game_hours, 200),
+        }
+    return earn_dict
+
+
+def is_s5_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
+    points = 0
+
+    # DISCORD CHALLENGES
+    if discord_id is not None:
+        discord_earn_dict = get_s5_discord_earn_dict([discord_id])
+        earns = discord_earn_dict.get(discord_id)
+
+        # Bean Spender
+        points += earns.get("bean_spender")
+        # What Are You Working On?
+        points += earns.get("what_are_you_working_on")
+        # Feedback Fiend
+        points += earns.get("feedback_fiend")
+
+    # XBOX LIVE CHALLENGES
+    if xuid is not None:
+        xbox_earn_dict = get_s5_xbox_earn_dict([xuid])
+        earns = xbox_earn_dict.get(xuid)
+
+        # Gone Hiking
+        points += earns.get("gone_hiking")
+        # Forged in Fire
+        points += earns.get("forged_in_fire")
+
+    logger.info(f"Dynamo Points for {discord_id}: {points}")
+    return points >= 500
+
+
 def is_dynamo_qualified(discord_id: str, xuid: int | None) -> bool:
     season_id = get_current_season_id()
     if season_id == "3":
         return is_s3_dynamo_qualified(discord_id, xuid)
     elif season_id == "4":
         return is_s4_dynamo_qualified(discord_id, xuid)
+    elif season_id == "5":
+        return is_s5_dynamo_qualified(discord_id, xuid)
     return False
 
 

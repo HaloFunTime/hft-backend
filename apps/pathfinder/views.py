@@ -34,6 +34,7 @@ from apps.pathfinder.serializers import (
     PathfinderDynamoProgressResponseSerializer,
     PathfinderDynamoSeason3ProgressResponseSerializer,
     PathfinderDynamoSeason4ProgressResponseSerializer,
+    PathfinderDynamoSeason5ProgressResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
     TestingLFGPostRequestSerializer,
@@ -57,6 +58,8 @@ from apps.pathfinder.utils import (
     get_s3_xbox_earn_dict,
     get_s4_discord_earn_dict,
     get_s4_xbox_earn_dict,
+    get_s5_discord_earn_dict,
+    get_s5_xbox_earn_dict,
     is_dynamo_qualified,
     is_illuminated_qualified,
 )
@@ -695,6 +698,34 @@ class PathfinderDynamoProgressView(APIView):
                         "showing_off", 0
                     )
                     serializable_dict["pointsPlayOn"] = xbox_earns.get("play_on", 0)
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
+                elif season_id == "5":
+                    serializer_class = PathfinderDynamoSeason5ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_s5_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsBeanSpender"] = discord_earns.get(
+                        "bean_spender", 0
+                    )
+                    serializable_dict["pointsWhatAreYouWorkingOn"] = discord_earns.get(
+                        "what_are_you_working_on", 0
+                    )
+                    serializable_dict["pointsFeedbackFiend"] = discord_earns.get(
+                        "feedback_fiend", 0
+                    )
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_s5_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsGoneHiking"] = xbox_earns.get(
+                        "gone_hiking", 0
+                    )
                     serializable_dict["pointsForgedInFire"] = xbox_earns.get(
                         "forged_in_fire", 0
                     )
