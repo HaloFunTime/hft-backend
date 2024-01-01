@@ -50,4 +50,4 @@ class DiscordLFGThreadHelpPrompt(Base):
     )
 
     def __str__(self):
-        return str(self.help_receiver_discord)
+        return f"{self.help_receiver_discord} in {self.lfg_thread_name}"
