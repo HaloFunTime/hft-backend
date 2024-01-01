@@ -6,13 +6,17 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.discord.models import DiscordLFGThreadHelpPrompt
 from apps.discord.serializers import (
     CSRSnapshot,
     CSRSnapshotRequestSerializer,
     CSRSnapshotResponseSerializer,
+    LFGThreadHelpPromptRequestSerializer,
+    LFGThreadHelpPromptResponseSerializer,
     RankedRoleCheckRequestSerializer,
     RankedRoleCheckResponseSerializer,
 )
+from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.utils import get_csrs
 from apps.link.models import DiscordXboxLiveLink
 from config.serializers import StandardErrorSerializer
@@ -77,6 +81,54 @@ class CSRSnapshotView(APIView):
                 logger.error(ex)
                 raise APIException("Error attempting the CSR snapshot.")
             serializer = CSRSnapshotResponseSerializer({"players": players})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LFGThreadHelpPromptView(APIView):
+    @extend_schema(
+        request=LFGThreadHelpPromptRequestSerializer,
+        responses={
+            200: LFGThreadHelpPromptResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Returns a boolean indicating whether or not a given Discord User has been shown the LFG Help message for the
+        LFG thread they're posting in previously. Creates an LFGThreadHelpPrompt record if not.
+        """
+        validation_serializer = LFGThreadHelpPromptRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            lfg_thread_id = validation_serializer.data.get("lfgThreadId")
+            lfg_thread_name = validation_serializer.data.get("lfgThreadName")
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+                new = (
+                    DiscordLFGThreadHelpPrompt.objects.filter(
+                        help_receiver_discord_id=discord_account.discord_id,
+                        lfg_thread_id=lfg_thread_id,
+                    ).count()
+                    == 0
+                )
+                if new:
+                    DiscordLFGThreadHelpPrompt.objects.create(
+                        creator=request.user,
+                        help_receiver_discord=discord_account,
+                        lfg_thread_id=lfg_thread_id,
+                        lfg_thread_name=lfg_thread_name,
+                    )
+            except Exception as ex:
+                logger.error("Error attempting LFG Thread Help.")
+                logger.error(ex)
+                raise APIException("Error attempting LFG Thread Help.")
+            serializer = LFGThreadHelpPromptResponseSerializer(
+                {"success": True, "new": new}
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
