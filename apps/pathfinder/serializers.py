@@ -154,6 +154,7 @@ class PopularFileSerializer(serializers.Serializer):
     contributorDiscordIds = serializers.ListField(
         child=serializers.CharField(max_length=20, validators=[validate_discord_id])
     )
+    tags = serializers.ListField(child=serializers.CharField())
     averageRating = serializers.DecimalField(max_digits=16, decimal_places=15)
     numberOfRatings = serializers.IntegerField()
 

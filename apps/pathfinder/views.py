@@ -796,6 +796,7 @@ class PopularFilesView(APIView):
                             "waypointUrl": get_waypoint_file_url(file),
                             "bookmarks": file.get("Likes"),
                             "contributorDiscordIds": contributor_discord_ids,
+                            "tags": file.get("Tags", []),
                             "averageRating": file.get("AverageRating"),
                             "numberOfRatings": file.get("NumberOfRatings"),
                         }
