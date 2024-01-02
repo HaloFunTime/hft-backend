@@ -11,7 +11,7 @@ from apps.discord.models import DiscordAccount
 from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.api.search import search_halofuntime_popular
 from apps.halo_infinite.constants import SEARCH_ASSET_KINDS
-from apps.halo_infinite.utils import get_current_season_id
+from apps.halo_infinite.utils import get_current_season_id, get_waypoint_file_url
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
     PathfinderHikeGameParticipation,
@@ -793,6 +793,7 @@ class PopularFilesView(APIView):
                             "playsRecent": file.get("PlaysRecent"),
                             "playsAllTime": file.get("PlaysAllTime"),
                             "thumbnailUrl": file.get("ThumbnailUrl"),
+                            "waypointUrl": get_waypoint_file_url(file),
                             "bookmarks": file.get("Likes"),
                             "contributorDiscordIds": contributor_discord_ids,
                             "averageRating": file.get("AverageRating"),

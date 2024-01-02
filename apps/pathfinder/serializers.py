@@ -149,6 +149,7 @@ class PopularFileSerializer(serializers.Serializer):
     playsRecent = serializers.IntegerField()
     playsAllTime = serializers.IntegerField()
     thumbnailUrl = serializers.CharField(required=True)
+    waypointUrl = serializers.CharField()
     bookmarks = serializers.IntegerField()
     contributorDiscordIds = serializers.ListField(
         child=serializers.CharField(max_length=20, validators=[validate_discord_id])

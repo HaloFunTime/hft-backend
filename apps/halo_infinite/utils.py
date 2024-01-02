@@ -19,6 +19,7 @@ from apps.halo_infinite.constants import (
     SEARCH_ASSET_KIND_MAP,
     SEARCH_ASSET_KIND_MODE,
     SEARCH_ASSET_KIND_PREFAB,
+    SEARCH_ASSET_KINDS,
     SEASON_DATA_DICT,
 )
 from apps.halo_infinite.exceptions import MissingSeasonDataException
@@ -172,6 +173,19 @@ def get_authored_prefabs(xuid: int) -> list[dict]:
         for file in search_by_author(xuid)
         if file.get("AssetKind") == SEARCH_ASSET_KIND_PREFAB
     ]
+
+
+def get_waypoint_file_url(file: dict) -> str | None:
+    asset_kind = SEARCH_ASSET_KINDS.get(file.get("AssetKind"), 0)
+    if asset_kind == "Map":
+        return (
+            f"https://www.halowaypoint.com/halo-infinite/ugc/maps/{file.get('AssetId')}"
+        )
+    elif asset_kind == "UgcGameVariant":
+        return f"https://www.halowaypoint.com/halo-infinite/ugc/modes/{file.get('AssetId')}"
+    elif asset_kind == "Prefab":
+        return f"https://www.halowaypoint.com/halo-infinite/ugc/prefabs/{file.get('AssetId')}"
+    return None
 
 
 def get_career_ranks(xuids: list[int]):
