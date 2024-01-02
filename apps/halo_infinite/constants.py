@@ -330,6 +330,19 @@ PLAYLIST_ID_RANKED_ARENA = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
 SEARCH_ASSET_KIND_MAP = 2
 SEARCH_ASSET_KIND_MODE = 6
 SEARCH_ASSET_KIND_PREFAB = 4
+SEARCH_ASSET_KINDS = {
+    0: "Unknown",
+    1: "Film",
+    2: "Map",
+    3: "Playlist",
+    4: "Prefab",
+    5: "TestAsset",
+    6: "UgcGameVariant",
+    7: "MapModePair",
+    8: "Project",
+    9: "Manifest",
+    10: "EngineGameVariant",
+}
 
 SEASON_1_API_ID = "Seasons/Season6.json"
 SEASON_1_RESET_API_ID = "Seasons/Season6-2.json"

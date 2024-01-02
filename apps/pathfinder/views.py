@@ -9,6 +9,8 @@ from rest_framework.views import APIView
 
 from apps.discord.models import DiscordAccount
 from apps.discord.utils import update_or_create_discord_account
+from apps.halo_infinite.api.search import search_halofuntime_popular
+from apps.halo_infinite.constants import SEARCH_ASSET_KINDS
 from apps.halo_infinite.utils import get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
@@ -37,6 +39,8 @@ from apps.pathfinder.serializers import (
     PathfinderDynamoSeason5ProgressResponseSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
+    PopularFileSerializer,
+    PopularFilesResponseSerializer,
     TestingLFGPostRequestSerializer,
     TestingLFGPostResponseSerializer,
     WAYWOCommentRequestSerializer,
@@ -737,6 +741,71 @@ class PathfinderDynamoProgressView(APIView):
             } | serializable_dict
             serializer = serializer_class(merged_dict)
             return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PopularFilesView(APIView):
+    @extend_schema(
+        responses={
+            200: PopularFilesResponseSerializer,
+            400: StandardErrorSerializer,
+            403: StandardErrorSerializer,
+            404: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the 10 files tagged with 'HaloFunTime' with the most recent plays.
+        """
+        try:
+            import json
+
+            hft_popular_files = search_halofuntime_popular()
+            xuids = set()
+            for file in hft_popular_files:
+                file_contributors = file.get("Contributors")
+                for contributor in file_contributors:
+                    xuids.add(int(contributor.lstrip("xuid(").rstrip(")")))
+            links = DiscordXboxLiveLink.objects.filter(xbox_live_account_id__in=xuids)
+            xuid_to_discord_id = {
+                link.xbox_live_account_id: link.discord_account_id for link in links
+            }
+            logger.info(json.dumps(hft_popular_files))
+            files = []
+            for file in hft_popular_files:
+                file_contributors = file.get("Contributors")
+                contributor_discord_ids = []
+                for contributor in file_contributors:
+                    contributor_discord_id = xuid_to_discord_id.get(
+                        int(contributor.lstrip("xuid(").rstrip(")"))
+                    )
+                    if contributor_discord_id is not None:
+                        contributor_discord_ids.append(contributor_discord_id)
+                files.append(
+                    PopularFileSerializer(
+                        {
+                            "assetId": file.get("AssetId"),
+                            "versionId": file.get("AssetVersionId"),
+                            "fileType": SEARCH_ASSET_KINDS.get(
+                                file.get("AssetKind", 0)
+                            ),
+                            "name": file.get("Name"),
+                            "description": file.get("Description"),
+                            "playsRecent": file.get("PlaysRecent"),
+                            "playsAllTime": file.get("PlaysAllTime"),
+                            "thumbnailUrl": file.get("ThumbnailUrl"),
+                            "bookmarks": file.get("Likes"),
+                            "contributorDiscordIds": contributor_discord_ids,
+                            "averageRating": file.get("AverageRating"),
+                            "numberOfRatings": file.get("NumberOfRatings"),
+                        }
+                    ).data
+                )
+        except Exception as ex:
+            logger.error(ex)
+            raise APIException("Could not get popular files.")
+
+        serializer = PopularFilesResponseSerializer({"files": files})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class WeeklyRecapView(APIView):

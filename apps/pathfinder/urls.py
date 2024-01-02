@@ -13,6 +13,7 @@ urlpatterns = [
     path("hike-complete", views.HikeCompleteView.as_view(), name="hike-complete"),
     path("hike-queue", views.HikeQueueView.as_view(), name="hike-queue"),
     path("hike-submission", views.HikeSubmissionView.as_view(), name="hike-submission"),
+    path("popular-files", views.PopularFilesView.as_view(), name="popular-files"),
     path(
         "seasonal-role-check",
         views.PathfinderSeasonalRoleCheckView.as_view(),

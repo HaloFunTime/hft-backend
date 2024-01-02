@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
-from apps.discord.serializers import DiscordUserInfoSerializer, validate_discord_id
+from apps.discord.serializers import (
+    DiscordUserInfoSerializer,
+    validate_discord_id,
+    validate_uuid,
+)
 
 
 class ChangeBeansRequestSerializer(serializers.Serializer):
@@ -134,6 +138,27 @@ class PathfinderSeasonalRoleCheckResponseSerializer(serializers.Serializer):
     )
     illuminated = serializers.BooleanField()
     dynamo = serializers.BooleanField()
+
+
+class PopularFileSerializer(serializers.Serializer):
+    assetId = serializers.CharField(required=True, validators=[validate_uuid])
+    versionId = serializers.CharField(required=True, validators=[validate_uuid])
+    fileType = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    description = serializers.CharField()
+    playsRecent = serializers.IntegerField()
+    playsAllTime = serializers.IntegerField()
+    thumbnailUrl = serializers.CharField(required=True)
+    bookmarks = serializers.IntegerField()
+    contributorDiscordIds = serializers.ListField(
+        child=serializers.CharField(max_length=20, validators=[validate_discord_id])
+    )
+    averageRating = serializers.DecimalField(max_digits=16, decimal_places=15)
+    numberOfRatings = serializers.IntegerField()
+
+
+class PopularFilesResponseSerializer(serializers.Serializer):
+    files = PopularFileSerializer(many=True, read_only=True)
 
 
 class TestingLFGPostRequestSerializer(serializers.Serializer):
