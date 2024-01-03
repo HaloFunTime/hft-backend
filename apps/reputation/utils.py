@@ -143,3 +143,45 @@ def get_top_rep_past_year(
         top_rep[i].rank = int(rep_ranks[i])
 
     return top_rep
+
+
+def get_partytimers_past_year(
+    cap: int, total_rep_min: int, unique_rep_min: int, exclude_ids: list[str] = []
+) -> list[DiscordAccount]:
+    # Returns a list of up to `cap` DiscordAccounts, ordered by total rep and unique rep in the last year, descending,
+    # excluding all DiscordAccounts with less than `total_rep_min` total rep and `unique_rep_min` unique rep,
+    # as well as all DiscordAccounts specifically excluded in `exclude_ids`.
+    end = get_current_time()
+    start = end.replace(year=end.year - 1)
+    receivers = (
+        DiscordAccount.objects.annotate(
+            total_rep=Count(
+                "receivers", filter=Q(receivers__created_at__range=(start, end))
+            ),
+            unique_rep=Count(
+                "receivers__giver__discord_id",
+                distinct=True,
+                filter=Q(receivers__created_at__range=(start, end)),
+            ),
+        )
+        .filter(total_rep__gte=total_rep_min, unique_rep__gte=unique_rep_min)
+        .exclude(discord_id__in=exclude_ids)
+        .order_by("-total_rep", "-unique_rep", "created_at")[:cap]
+    )
+
+    # Evaluate the queryset at this stage
+    partytimers = []
+    for receiver in receivers:
+        partytimers.append(receiver)
+
+    # Rank every DiscordAccount in the list by `total_rep`
+    sorted_rep = [account.total_rep for account in partytimers]
+    sorted_rep.sort()
+    sorted_rep.reverse()
+    rep_ranks = [sorted_rep.index(account.total_rep) + 1 for account in partytimers]
+
+    # Tack the rank data on too
+    for i in range(len(partytimers)):
+        partytimers[i].rank = int(rep_ranks[i])
+
+    return partytimers

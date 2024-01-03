@@ -11,6 +11,9 @@ from apps.discord.utils import (
 from apps.reputation.serializers import (
     CheckRepErrorSerializer,
     CheckRepResponseSerializer,
+    PartyTimerRequestSerializer,
+    PartyTimerResponseSerializer,
+    PartyTimerSerializer,
     PlusRepErrorSerializer,
     PlusRepRequestSerializer,
     PlusRepResponseSerializer,
@@ -22,9 +25,11 @@ from apps.reputation.utils import (
     check_past_year_rep,
     count_plus_rep_given_in_current_week,
     create_new_plus_rep,
+    get_partytimers_past_year,
     get_time_until_reset,
     get_top_rep_past_year,
 )
+from config.serializers import StandardErrorSerializer
 
 REPUTATION_ERROR_FORBIDDEN = "This reputation transaction is not allowed."
 REPUTATION_ERROR_GIVER_ID = "A valid giverDiscordId (numeric string) must be provided."
@@ -209,6 +214,89 @@ class NewPlusRep(APIView):
             logger.error(ex)
             serializer = PlusRepErrorSerializer({"error": REPUTATION_ERROR_UNKNOWN})
             return Response(serializer.data, status=500)
+
+
+class PartyTimers(APIView):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="cap",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
+            OpenApiParameter(
+                name="totalRepMin",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
+            OpenApiParameter(
+                name="uniqueRepMin",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=True,
+                style="form",
+                explode=False,
+            ),
+            OpenApiParameter(
+                name="excludeIds",
+                type={"type": "string"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                style="form",
+                explode=False,
+            ),
+        ],
+        responses={
+            200: PartyTimerResponseSerializer,
+            400: StandardErrorSerializer,
+            404: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the top `cap` DiscordAccounts that have a minimum of `totalRepMin` total rep and `uniqueRepMin`
+        unique rep received in the past year.
+        """
+        validation_serializer = PartyTimerRequestSerializer(data=request.query_params)
+        if validation_serializer.is_valid(raise_exception=True):
+            cap = validation_serializer.data.get("cap")
+            total_rep_min = validation_serializer.data.get("totalRepMin")
+            unique_rep_min = validation_serializer.data.get("uniqueRepMin")
+            exclude_ids = []
+            if validation_serializer.data.get("excludeIds") is not None:
+                exclude_ids = eval(validation_serializer.data.get("excludeIds"))
+
+            # Retrieve the top `cap` DiscordAccounts, ordered by total and unique rep, while excluding `excludeIds`
+            partytimer_accounts = get_partytimers_past_year(
+                cap, total_rep_min, unique_rep_min, exclude_ids
+            )
+
+            # Build the serialized result
+            partytimers = []
+            for account in partytimer_accounts:
+                partytimers.append(
+                    PartyTimerSerializer(
+                        {
+                            "rank": account.rank,
+                            "discordId": account.discord_id,
+                            "pastYearTotalRep": account.total_rep,
+                            "pastYearUniqueRep": account.unique_rep,
+                        }
+                    )
+                )
+            serializer = PartyTimerResponseSerializer(
+                {"partyTimers": [partytimer.data for partytimer in partytimers]}
+            )
+            return Response(
+                serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+            )
 
 
 class TopRep(APIView):

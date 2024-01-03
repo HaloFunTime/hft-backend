@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
@@ -16,6 +17,7 @@ from apps.reputation.utils import (
     check_past_year_rep,
     count_plus_rep_given_in_current_week,
     get_current_week_start_time,
+    get_partytimers_past_year,
     get_time_until_reset,
     get_top_rep_past_year,
     get_week_start_time,
@@ -122,6 +124,261 @@ class CheckRepTestCase(APITestCase):
             response.data.get("thisWeekRepReset"),
             "",
         )
+
+
+class PartyTimersTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    @patch("apps.reputation.views.get_partytimers_past_year")
+    def test_partytimers(self, mock_get_partytimers_past_year):
+        # Missing querystring values throw errors
+        response = self.client.get("/reputation/partytimers")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("cap", details)
+        self.assertEqual(
+            details.get("cap"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("totalRepMin", details)
+        self.assertEqual(
+            details.get("totalRepMin"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("uniqueRepMin", details)
+        self.assertEqual(
+            details.get("uniqueRepMin"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Invalid querystrings throw errors
+        response = self.client.get(
+            "/reputation/partytimers?cap=abc&totalRepMin=abc&uniqueRepMin=abc&excludeIds=a,b,c"
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("cap", details)
+        self.assertEqual(
+            details.get("cap"),
+            [ErrorDetail(string="A valid integer is required.", code="invalid")],
+        )
+        self.assertIn("totalRepMin", details)
+        self.assertEqual(
+            details.get("totalRepMin"),
+            [ErrorDetail(string="A valid integer is required.", code="invalid")],
+        )
+        self.assertIn("uniqueRepMin", details)
+        self.assertEqual(
+            details.get("uniqueRepMin"),
+            [ErrorDetail(string="A valid integer is required.", code="invalid")],
+        )
+        self.assertIn("excludeIds", details)
+        self.assertEqual(
+            details.get("excludeIds"),
+            [
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                )
+            ],
+        )
+
+        # Interior function gets called with values provided to cap, totalRepMin, uniqueRepMin, & excludeIds
+        for i in range(1, 20):
+            mock_get_partytimers_past_year.return_value = []
+            exclude_ids_string = ",".join(map(str, [*range(i)]))
+            response = self.client.get(
+                f"/reputation/partytimers?cap={i}&totalRepMin={i}&uniqueRepMin={i}&excludeIds={exclude_ids_string}"
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, {"partyTimers": []})
+            mock_get_partytimers_past_year.assert_called_once_with(
+                i, i, i, list(map(str, [*range(i)]))
+            )
+            mock_get_partytimers_past_year.reset_mock()
+
+        # Test output of nested serializers
+        accounts = []
+        for i in range(10):
+            account = update_or_create_discord_account(f"{i}", f"giver{i}", self.user)
+            account.rank = 10 - i
+            account.total_rep = i * 10
+            account.unique_rep = i * 2
+            accounts.append(account)
+        accounts.reverse()
+
+        # No excludeIds specified
+        mock_get_partytimers_past_year.return_value = accounts
+        response = self.client.get(
+            "/reputation/partytimers?cap=10&totalRepMin=1&uniqueRepMin=1"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "partyTimers": [
+                        {
+                            "rank": 1,
+                            "discordId": accounts[0].discord_id,
+                            "pastYearTotalRep": 90,
+                            "pastYearUniqueRep": 18,
+                        },
+                        {
+                            "rank": 2,
+                            "discordId": accounts[1].discord_id,
+                            "pastYearTotalRep": 80,
+                            "pastYearUniqueRep": 16,
+                        },
+                        {
+                            "rank": 3,
+                            "discordId": accounts[2].discord_id,
+                            "pastYearTotalRep": 70,
+                            "pastYearUniqueRep": 14,
+                        },
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                        {
+                            "rank": 6,
+                            "discordId": accounts[5].discord_id,
+                            "pastYearTotalRep": 40,
+                            "pastYearUniqueRep": 8,
+                        },
+                        {
+                            "rank": 7,
+                            "discordId": accounts[6].discord_id,
+                            "pastYearTotalRep": 30,
+                            "pastYearUniqueRep": 6,
+                        },
+                        {
+                            "rank": 8,
+                            "discordId": accounts[7].discord_id,
+                            "pastYearTotalRep": 20,
+                            "pastYearUniqueRep": 4,
+                        },
+                        {
+                            "rank": 9,
+                            "discordId": accounts[8].discord_id,
+                            "pastYearTotalRep": 10,
+                            "pastYearUniqueRep": 2,
+                        },
+                        {
+                            "rank": 10,
+                            "discordId": accounts[9].discord_id,
+                            "pastYearTotalRep": 0,
+                            "pastYearUniqueRep": 0,
+                        },
+                    ]
+                }
+            ),
+        )
+        mock_get_partytimers_past_year.assert_called_once_with(10, 1, 1, [])
+        mock_get_partytimers_past_year.reset_mock()
+
+        # Cap of 5 returns top 5, no excludeIds
+        mock_get_partytimers_past_year.return_value = accounts[:5]
+        response = self.client.get(
+            "/reputation/partytimers?cap=5&totalRepMin=50&uniqueRepMin=10"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "partyTimers": [
+                        {
+                            "rank": 1,
+                            "discordId": accounts[0].discord_id,
+                            "pastYearTotalRep": 90,
+                            "pastYearUniqueRep": 18,
+                        },
+                        {
+                            "rank": 2,
+                            "discordId": accounts[1].discord_id,
+                            "pastYearTotalRep": 80,
+                            "pastYearUniqueRep": 16,
+                        },
+                        {
+                            "rank": 3,
+                            "discordId": accounts[2].discord_id,
+                            "pastYearTotalRep": 70,
+                            "pastYearUniqueRep": 14,
+                        },
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                    ]
+                }
+            ),
+        )
+        mock_get_partytimers_past_year.assert_called_once_with(5, 50, 10, [])
+        mock_get_partytimers_past_year.reset_mock()
+
+        # Count of 3 returns top 3, excluded IDs bundled in call to service method
+        mock_get_partytimers_past_year.return_value = accounts[3:6]
+        exclude_ids_string = f"{accounts[0].discord_id},{accounts[1].discord_id},{accounts[2].discord_id}"
+        response = self.client.get(
+            f"/reputation/partytimers?cap=3&totalRepMin=40&uniqueRepMin=8&excludeIds={exclude_ids_string}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.maxDiff = None
+        self.assertEqual(
+            json.dumps(response.data),
+            json.dumps(
+                {
+                    "partyTimers": [
+                        {
+                            "rank": 4,
+                            "discordId": accounts[3].discord_id,
+                            "pastYearTotalRep": 60,
+                            "pastYearUniqueRep": 12,
+                        },
+                        {
+                            "rank": 5,
+                            "discordId": accounts[4].discord_id,
+                            "pastYearTotalRep": 50,
+                            "pastYearUniqueRep": 10,
+                        },
+                        {
+                            "rank": 6,
+                            "discordId": accounts[5].discord_id,
+                            "pastYearTotalRep": 40,
+                            "pastYearUniqueRep": 8,
+                        },
+                    ]
+                }
+            ),
+        )
+        mock_get_partytimers_past_year.assert_called_once_with(
+            3,
+            40,
+            8,
+            [accounts[0].discord_id, accounts[1].discord_id, accounts[2].discord_id],
+        )
+        mock_get_partytimers_past_year.reset_mock()
 
 
 class PlusRepTestCase(APITestCase):
@@ -905,6 +1162,143 @@ class UtilsTestCase(TestCase):
 
         # Selecting 0 (with a bunch of rep in the DB) should still result in empty list
         self.assertEqual(get_top_rep_past_year(0), [])
+
+    @patch("apps.reputation.utils.get_current_time")
+    def test_get_partytimers_past_year(self, mock_get_current_time):
+        jan_3_2023 = datetime.datetime.fromisoformat("2023-01-03T12:00:00-07:00")
+        mock_get_current_time.return_value = jan_3_2023
+        givers = []
+        receivers = []
+        for i in range(50):
+            givers.append(
+                update_or_create_discord_account(f"{i}", f"giver{i}", self.user)
+            )
+            receivers.append(
+                update_or_create_discord_account(f"{i+50}", f"receiver{i}", self.user)
+            )
+
+        # No rep in DB should result in empty list
+        self.assertEqual(get_partytimers_past_year(5, 1, 1), [])
+
+        # Selecting 0 should result in empty list
+        self.assertEqual(get_partytimers_past_year(0, 1, 1), [])
+
+        # One receiver in DB should result in list with one element, no matter how many we request
+        plus_rep_1 = plus_rep_factory(self.user, givers[0], receivers[0])
+        plus_rep_1.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_1.save()
+        for i in range(1, 11):
+            self.assertEqual(get_partytimers_past_year(i, 1, 1), [receivers[0]])
+        # Excluding the one known receiver should result in empty list no matter how many we request
+        for i in range(1, 11):
+            self.assertEqual(
+                get_partytimers_past_year(i, 1, 1, [receivers[0].discord_id]), []
+            )
+
+        # Two receivers in DB, but tied in equal total rep & rank
+        plus_rep_2 = plus_rep_factory(self.user, givers[1], receivers[1])
+        plus_rep_2.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_2.save()
+        result = get_partytimers_past_year(10, 1, 1)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].discord_id, receivers[0].discord_id)
+        self.assertEqual(result[0].rank, 1)
+        self.assertEqual(result[0].total_rep, 1)
+        self.assertEqual(result[0].unique_rep, 1)
+        self.assertEqual(result[1].discord_id, receivers[1].discord_id)
+        self.assertEqual(result[1].rank, 1)
+        self.assertEqual(result[1].total_rep, 1)
+        self.assertEqual(result[1].unique_rep, 1)
+
+        # Five receivers in DB with first ahead of the second three, who are tied for second, and fifth place alone
+        plus_rep_3 = plus_rep_factory(self.user, givers[0], receivers[0])
+        plus_rep_3.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_3.save()
+        plus_rep_4 = plus_rep_factory(self.user, givers[0], receivers[1])
+        plus_rep_4.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_4.save()
+        plus_rep_5 = plus_rep_factory(self.user, givers[0], receivers[2])
+        plus_rep_5.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_5.save()
+        plus_rep_6 = plus_rep_factory(self.user, givers[1], receivers[2])
+        plus_rep_6.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_6.save()
+        plus_rep_7 = plus_rep_factory(self.user, givers[1], receivers[2])
+        plus_rep_7.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_7.save()
+        plus_rep_8 = plus_rep_factory(self.user, givers[0], receivers[3])
+        plus_rep_8.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_8.save()
+        plus_rep_9 = plus_rep_factory(self.user, givers[0], receivers[3])
+        plus_rep_9.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_9.save()
+        plus_rep_10 = plus_rep_factory(self.user, givers[0], receivers[4])
+        plus_rep_10.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+        plus_rep_10.save()
+        result = get_partytimers_past_year(10, 1, 1)
+        self.assertEqual(len(result), 5)
+        self.assertEqual(result[0].discord_id, receivers[2].discord_id)
+        self.assertEqual(result[0].rank, 1)
+        self.assertEqual(result[0].total_rep, 3)
+        self.assertEqual(result[0].unique_rep, 2)
+        self.assertEqual(result[1].discord_id, receivers[1].discord_id)
+        self.assertEqual(result[1].rank, 2)
+        self.assertEqual(result[1].total_rep, 2)
+        self.assertEqual(result[1].unique_rep, 2)
+        self.assertEqual(result[2].discord_id, receivers[0].discord_id)
+        self.assertEqual(result[2].rank, 2)
+        self.assertEqual(result[2].total_rep, 2)
+        self.assertEqual(result[2].unique_rep, 1)
+        self.assertEqual(result[3].discord_id, receivers[3].discord_id)
+        self.assertEqual(result[3].rank, 2)
+        self.assertEqual(result[3].total_rep, 2)
+        self.assertEqual(result[3].unique_rep, 1)
+        self.assertEqual(result[4].discord_id, receivers[4].discord_id)
+        self.assertEqual(result[4].rank, 5)
+        self.assertEqual(result[4].total_rep, 1)
+        self.assertEqual(result[4].unique_rep, 1)
+
+        # Clean up earlier test cases
+        plus_rep_1.delete()
+        plus_rep_2.delete()
+        plus_rep_3.delete()
+        plus_rep_4.delete()
+        plus_rep_5.delete()
+        plus_rep_6.delete()
+        plus_rep_7.delete()
+        plus_rep_8.delete()
+        plus_rep_9.delete()
+        plus_rep_10.delete()
+
+        # Add rep across all receivers so that the first one has most rep, second second most, etc.
+        for i in range(1, 51):
+            for j in range(i):
+                plus_rep = plus_rep_factory(self.user, givers[i - 1], receivers[j])
+                plus_rep.created_at = jan_3_2023 - datetime.timedelta(minutes=1)
+                plus_rep.save()
+        # Selecting X top receivers results in X returned elements
+        for i in range(1, 51):
+            self.assertEqual(len(get_partytimers_past_year(i, 1, 1)), i)
+        # Top 5 receivers with a total minimum of 30 and unique minimum of 25
+        result = get_partytimers_past_year(5, 30, 25)
+        self.assertEqual(
+            result,
+            [
+                receivers[0],
+                receivers[1],
+                receivers[2],
+                receivers[3],
+                receivers[4],
+            ],
+        )
+        # Top 5 receivers have appropriate rank, total, and unique data
+        for i in range(5):
+            self.assertEqual(result[i].rank, i + 1)
+            self.assertEqual(result[i].total_rep, 50 - i)
+            self.assertEqual(result[i].unique_rep, 50 - i)
+
+        # Selecting 0 (with a bunch of rep in the DB) should still result in empty list
+        self.assertEqual(get_partytimers_past_year(0, 1, 1), [])
 
     def test_get_week_start_time(self):
         expected_tuples = [

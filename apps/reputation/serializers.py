@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.discord.serializers import validate_discord_id
+
 
 class CheckRepErrorSerializer(serializers.Serializer):
     error = serializers.CharField()
@@ -10,6 +12,31 @@ class CheckRepResponseSerializer(serializers.Serializer):
     pastYearUniqueRep = serializers.IntegerField()
     thisWeekRepGiven = serializers.IntegerField()
     thisWeekRepReset = serializers.CharField()
+
+
+class PartyTimerSerializer(serializers.Serializer):
+    rank = serializers.IntegerField()
+    discordId = serializers.CharField()
+    pastYearTotalRep = serializers.IntegerField()
+    pastYearUniqueRep = serializers.IntegerField()
+
+
+class PartyTimerRequestSerializer(serializers.Serializer):
+    cap = serializers.IntegerField(min_value=1)
+    totalRepMin = serializers.IntegerField(min_value=1)
+    uniqueRepMin = serializers.IntegerField(min_value=1)
+    excludeIds = serializers.CharField(required=False)
+
+    def validate_excludeIds(self, value):
+        if value is None:
+            return []
+        arr = value.split(",")
+        arr = [validate_discord_id(x) for x in arr]
+        return arr
+
+
+class PartyTimerResponseSerializer(serializers.Serializer):
+    partyTimers = PartyTimerSerializer(many=True, read_only=True)
 
 
 class PlusRepErrorSerializer(serializers.Serializer):
