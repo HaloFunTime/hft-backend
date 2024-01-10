@@ -22,6 +22,24 @@ class HaloInfiniteBuildID(BaseWithoutPrimaryKey):
     )
 
 
+class HaloInfiniteMatch(BaseWithoutPrimaryKey):
+    class Meta:
+        db_table = "HaloInfiniteMatch"
+        ordering = [
+            "-end_time",
+        ]
+        verbose_name = "Match"
+        verbose_name_plural = "Matches"
+
+    match_id = models.UUIDField(primary_key=True, verbose_name="Match ID")
+    start_time = models.DateTimeField(blank=True, verbose_name="Start Time")
+    end_time = models.DateTimeField(blank=True, verbose_name="End Time")
+    data = models.JSONField(blank=True, default=dict, verbose_name="Raw Data")
+
+    def __str__(self):
+        return str(self.match_id)
+
+
 class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfinitePlaylist"
@@ -73,7 +91,6 @@ class HaloInfiniteXSTSToken(Base):
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 2 minutes early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > self.not_after
 
     issue_instant = models.DateTimeField()
@@ -93,9 +110,9 @@ class HaloInfiniteSpartanToken(Base):
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 2 minutes early to account for latency
+        # Expired property returns True 15 seconds early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > (
-            self.expires_utc - datetime.timedelta(minutes=2)
+            self.expires_utc - datetime.timedelta(seconds=15)
         )
 
     expires_utc = models.DateTimeField()
@@ -118,14 +135,14 @@ class HaloInfiniteClearanceToken(Base):
         # "created_at", less a small kludge factor to account for any latency
         # that occurred between generating the token and databasing it.
         return self.created_at + datetime.timedelta(
-            seconds=(CLEARANCE_EXPIRATION_SECONDS - 30)
+            seconds=(CLEARANCE_EXPIRATION_SECONDS - 15)
         )
 
     @property
     def expired(self) -> bool:
-        # Expired property returns True 2 minutes early to account for latency
+        # Expired property returns True 15 seconds early to account for latency
         return datetime.datetime.now(datetime.timezone.utc) > (
-            self.expiration_datetime - datetime.timedelta(minutes=2)
+            self.expiration_datetime - datetime.timedelta(seconds=15)
         )
 
     flight_configuration_id = models.CharField(max_length=256)

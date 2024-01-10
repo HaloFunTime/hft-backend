@@ -3,6 +3,7 @@ from django.contrib import admin
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
     HaloInfiniteClearanceToken,
+    HaloInfiniteMatch,
     HaloInfinitePlaylist,
     HaloInfiniteSeason,
     HaloInfiniteSpartanToken,
@@ -18,6 +19,23 @@ class HaloInfiniteBuildIDAdmin(AutofillCreatorModelAdmin):
     fields = (
         "build_id",
         "build_date",
+        "creator",
+    )
+
+
+@admin.register(HaloInfiniteMatch)
+class HaloInfiniteMatchAdmin(AutofillCreatorModelAdmin):
+    list_display = ("match_id", "start_time", "end_time", "creator")
+    list_filter = (
+        "start_time",
+        "end_time",
+        "creator",
+    )
+    fields = (
+        "match_id",
+        "start_time",
+        "end_time",
+        "data",
         "creator",
     )
 

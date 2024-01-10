@@ -3,6 +3,9 @@
 {% block branding %}
 <div style="display: flex; flex-direction: row; align-items: center;">
     <img src="/static/HFTLogo.png" height="32" style="padding-right: 10px;" alt="HaloFunTime">
-    {{ block.super }}
+    <div id="site-name"><a href="{% url 'admin:index' %}" style="color: white;">{{ site_header|default:_('Django administration') }}</a></div>
+    {% if user.is_anonymous %}
+      {% include "admin/color_theme_toggle.html" %}
+    {% endif %}
 </div>
 {% endblock %}

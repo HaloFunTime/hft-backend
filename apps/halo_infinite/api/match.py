@@ -27,7 +27,7 @@ def match_count(xuid: int, **kwargs) -> dict:
     return return_dict
 
 
-# TODO: Figure out why this endpoint doesn't seem to work
+# NOTE: This endpoint only works for the authenticated XUID
 @spartan_token
 def match_privacy(xuid: int, **kwargs) -> dict:
     spartan_token = kwargs.get("HaloInfiniteSpartanToken")

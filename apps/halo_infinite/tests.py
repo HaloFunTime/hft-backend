@@ -22,6 +22,7 @@ from apps.halo_infinite.exceptions import (
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
     HaloInfiniteClearanceToken,
+    HaloInfiniteMatch,
     HaloInfinitePlaylist,
     HaloInfiniteSpartanToken,
     HaloInfiniteXSTSToken,
@@ -58,6 +59,83 @@ class HaloInfinitePlaylistTestCase(TestCase):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
         )
+
+    @patch("apps.halo_infinite.signals.match_stats")
+    def test_halo_infinite_match_save(self, mock_match_stats):
+        # Creating a match should be successful if only match ID is provided (rest is hydrated by pre_save)
+        test_1_match_id = uuid.uuid4()
+        mock_match_stats.return_value = {
+            "MatchId": str(test_1_match_id),
+            "MatchInfo": {
+                "StartTime": "2024-01-09T00:00:00.00Z",
+                "EndTime": "2024-01-09T01:20:34.567Z",
+            },
+        }
+        match = HaloInfiniteMatch.objects.create(
+            creator=self.user, match_id=test_1_match_id
+        )
+        self.assertEqual(str(match.match_id), str(test_1_match_id))
+        self.assertEqual(
+            match.start_time,
+            datetime.datetime(2024, 1, 9, 0, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        )
+        self.assertEqual(
+            match.end_time,
+            datetime.datetime(
+                2024, 1, 9, 1, 20, 34, 567000, tzinfo=datetime.timezone.utc
+            ),
+        )
+        self.assertEqual(match.creator, self.user)
+
+        mock_match_stats.assert_called_once_with(test_1_match_id)
+        mock_match_stats.reset_mock()
+
+        # Match ID provided in create call should be replaced by the one retrieved in pre_save signal
+        test_2_match_id = uuid.uuid4()
+        mock_match_stats.return_value = {
+            "MatchId": str(test_2_match_id),
+            "MatchInfo": {
+                "StartTime": "2024-01-10T00:00:00.1234567Z",
+                "EndTime": "2024-01-10T01:20:34.567Z",
+            },
+        }
+        match = HaloInfiniteMatch.objects.create(
+            creator=self.user, match_id="test_wrong_match_id"
+        )
+        self.assertEqual(str(match.match_id), str(test_2_match_id))
+        self.assertEqual(
+            match.start_time,
+            datetime.datetime(
+                2024, 1, 10, 0, 0, 0, 123456, tzinfo=datetime.timezone.utc
+            ),
+        )
+        self.assertEqual(
+            match.end_time,
+            datetime.datetime(
+                2024, 1, 10, 1, 20, 34, 567000, tzinfo=datetime.timezone.utc
+            ),
+        )
+        self.assertEqual(match.creator, self.user)
+        mock_match_stats.assert_called_once_with("test_wrong_match_id")
+        mock_match_stats.reset_mock()
+
+        # Duplicate Match ID should fail to save
+        mock_match_stats.return_value = {
+            "MatchId": str(test_1_match_id),
+            "MatchInfo": {
+                "StartTime": "2024-01-09T00:00:00.00Z",
+                "EndTime": "2024-01-09T01:20:34.567Z",
+            },
+        }
+        self.assertRaisesMessage(
+            IntegrityError,
+            'duplicate key value violates unique constraint "HaloInfiniteMatch_pkey"',
+            lambda: HaloInfiniteMatch.objects.create(
+                creator=self.user, match_id=test_1_match_id
+            ),
+        )
+        mock_match_stats.assert_called_once_with(test_1_match_id)
+        mock_match_stats.reset_mock()
 
     @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
     def test_halo_infinite_playlist_save(self, mock_get_playlist_latest_version_info):
