@@ -3,6 +3,19 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
+class CheckParticipantGamesRequestSerializer(serializers.Serializer):
+    discordUserIds = serializers.ListField(
+        allow_empty=True,
+        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    )
+
+
+class CheckParticipantGamesResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    totalGameCount = serializers.IntegerField()
+    newGameCount = serializers.IntegerField()
+
+
 class JoinChallengeRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]

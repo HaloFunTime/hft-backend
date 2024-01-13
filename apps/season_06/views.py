@@ -2,6 +2,7 @@ import datetime
 import logging
 import random
 
+import requests
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -9,14 +10,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
+from apps.halo_infinite.models import HaloInfiniteMatch
+from apps.link.models import DiscordXboxLiveLink
 from apps.season_06.constants import LETTERS_25
 from apps.season_06.models import BingoBuff, BingoChallengeParticipant
 from apps.season_06.serializers import (
+    CheckParticipantGamesRequestSerializer,
+    CheckParticipantGamesResponseSerializer,
     JoinChallengeRequestSerializer,
     JoinChallengeResponseSerializer,
     SaveBuffRequestSerializer,
     SaveBuffResponseSerializer,
 )
+from apps.season_06.utils import fetch_match_ids_for_xuid, save_new_matches
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
@@ -27,7 +33,76 @@ class CheckBingoCard(APIView):
 
 
 class CheckParticipantGames(APIView):
-    pass
+    @extend_schema(
+        request=CheckParticipantGamesRequestSerializer,
+        responses={
+            200: CheckParticipantGamesResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Retrieve Halo Infinite games for each BingoChallengeParticipant's linked gamertag.
+        """
+        validation_serializer = CheckParticipantGamesRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            # Should receive Discord IDs for all active server members
+            discord_ids = validation_serializer.data.get("discordUserIds")
+            try:
+                participants = BingoChallengeParticipant.objects.filter(
+                    participant_id__in=discord_ids
+                )
+                participant_ids = [
+                    participant.participant_id for participant in participants
+                ]
+                links = DiscordXboxLiveLink.objects.filter(
+                    verified=True, discord_account_id__in=participant_ids
+                )
+                discord_ids_to_xuids = {}
+                for link in links:
+                    discord_ids_to_xuids[
+                        link.discord_account_id
+                    ] = link.xbox_live_account_id
+                with requests.Session() as s:
+                    participant_match_ids = set()
+                    for participant in participants:
+                        participant_xuid = discord_ids_to_xuids.get(
+                            participant.participant_id, None
+                        )
+                        if participant_xuid is not None:
+                            match_ids = fetch_match_ids_for_xuid(participant_xuid, s)
+                            participant.most_recent_match_id = (
+                                None if not match_ids else match_ids[0]
+                            )
+                            participant.save()
+                            participant_match_ids |= set(match_ids)
+                old_match_ids = {
+                    str(uuid)
+                    for uuid in HaloInfiniteMatch.objects.all().values_list(
+                        "match_id", flat=True
+                    )
+                }
+                new_match_ids = participant_match_ids.difference(old_match_ids)
+                new_matches_saved = save_new_matches(new_match_ids, request.user)
+            except Exception as ex:
+                logger.error(
+                    "Error attempting to check Bingo Challenge Participant games."
+                )
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to check Bingo Challenge Participant games."
+                )
+            serializer = CheckParticipantGamesResponseSerializer(
+                {
+                    "success": new_matches_saved,
+                    "totalGameCount": len(participant_match_ids),
+                    "newGameCount": len(new_match_ids),
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class JoinChallenge(APIView):

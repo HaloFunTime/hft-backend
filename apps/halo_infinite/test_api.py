@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -665,13 +665,11 @@ class HaloInfiniteAPITestCase(TestCase):
         )
         self.assertDictEqual({}, match_skill(2535405290989773, "test_id"))
 
-    @patch("apps.halo_infinite.api.match.requests.Session")
-    def test_match_stats(self, mock_Session):
+    def test_match_stats(self):
         # Successful call
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            200
-        )
-        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+        mock_Session = MagicMock()
+        mock_Session.get.return_value.status_code = 200
+        mock_Session.get.return_value.json.return_value = {
             "Value": [
                 {
                     "Id": "xuid(2535405290989773)",
@@ -684,8 +682,8 @@ class HaloInfiniteAPITestCase(TestCase):
                 }
             ]
         }
-        match_stats_data = match_stats("test_id")
-        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+        match_stats_data = match_stats("test_id", mock_Session)
+        mock_Session.get.assert_called_once_with(
             "https://halostats.svc.halowaypoint.com/hi/matches/test_id/stats",
             headers={
                 "Accept": "application/json",
@@ -703,18 +701,14 @@ class HaloInfiniteAPITestCase(TestCase):
         mock_Session.reset_mock()
 
         # Failed call
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            404
-        )
-        self.assertDictEqual({}, match_stats("test_id"))
+        mock_Session.get.return_value.status_code = 404
+        self.assertDictEqual({}, match_stats("test_id", mock_Session))
 
-    @patch("apps.halo_infinite.api.match.requests.Session")
-    def test_matches_between(self, mock_Session):
+    def test_matches_between(self):
         # Successful call
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            200
-        )
-        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+        mock_Session = MagicMock()
+        mock_Session.get.return_value.status_code = 200
+        mock_Session.get.return_value.json.return_value = {
             "Start": 0,
             "Count": 25,
             "ResultCount": 25,
@@ -798,8 +792,9 @@ class HaloInfiniteAPITestCase(TestCase):
             ),
             datetime.datetime(year=2023, month=1, day=2, tzinfo=datetime.timezone.utc),
             "Matchmaking",
+            mock_Session,
         )
-        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+        mock_Session.get.assert_called_once_with(
             "https://halostats.svc.halowaypoint.com/hi/players/xuid(2535405290989773)/matches"
             "?count=25&start=0&type=Matchmaking",
             headers={
@@ -825,9 +820,7 @@ class HaloInfiniteAPITestCase(TestCase):
         mock_Session.reset_mock()
 
         # Failed call
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            404
-        )
+        mock_Session.get.return_value.status_code = 404
         self.assertEqual(
             [],
             matches_between(
@@ -839,6 +832,7 @@ class HaloInfiniteAPITestCase(TestCase):
                     year=2023, month=1, day=2, tzinfo=datetime.timezone.utc
                 ),
                 "Matchmaking",
+                mock_Session,
             ),
         )
 

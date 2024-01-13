@@ -226,3 +226,36 @@ class Season06TestCase(APITestCase):
         self.assertEqual(response.data.get("discordUserId"), "123")
         self.assertEqual(response.data.get("newBuff"), False)
         self.assertEqual(response.data.get("blackout"), True)
+
+    def test_check_participant_games_view(self):
+        # Missing field values throw errors
+        response = self.client.post(
+            "/season-06/check-participant-games", {}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/season-06/check-participant-games",
+            {
+                "discordUserIds": "abc",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds")[0],
+            ErrorDetail(
+                string='Expected a list of items but got type "str".', code="not_a_list"
+            ),
+        )
+
+        # TODO: Test the rest... or not

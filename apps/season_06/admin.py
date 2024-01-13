@@ -38,5 +38,6 @@ class BingoChallengeParticipantAdmin(AutofillCreatorModelAdmin):
     fields = (
         "participant",
         "board_order",
+        "most_recent_match_id",
         "creator",
     )

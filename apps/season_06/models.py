@@ -39,6 +39,38 @@ class BingoChallengeParticipant(Base):
     board_order = models.CharField(
         max_length=25, validators=[MinLengthValidator(25)], verbose_name="Board Order"
     )
+    most_recent_match_id = models.UUIDField(
+        null=True, blank=True, verbose_name="Most Recent Match ID"
+    )
 
     def __str__(self):
         return f"{self.participant}"
+
+
+# class BingoChallenge(Base):
+#     class Meta:
+#         db_table = "BingoChallenge"
+#         ordering = ["-created_at"]
+#         verbose_name = "Challenge"
+#         verbose_name_plural = "Challenges"
+
+
+# class BingoChallengeCompletion(Base):
+#     class Meta:
+#         db_table = "BingoChallengeCompletion"
+#         ordering = ["-created_at"]
+#         verbose_name = "Challenge Completion"
+#         verbose_name_plural = "Challenge Completions"
+
+#     challenge = models.ForeignKey(
+#         BingoChallenge,
+#         on_delete=models.RESTRICT,
+#         related_name="completions",
+#         verbose_name="Completion",
+#     )
+#     participant = models.ForeignKey(
+#         BingoChallengeParticipant,
+#         on_delete=models.RESTRICT,
+#         related_name="completions",
+#         verbose_name="Completion",
+#     )
