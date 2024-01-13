@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.reputation",
     "apps.season_04",
     "apps.season_05",
+    "apps.season_06",
     "apps.series",
     "apps.showcase",
     "apps.trailblazer",
