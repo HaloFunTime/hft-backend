@@ -3,10 +3,11 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
-class BingoScoreSerializer(serializers.Serializer):
-    name = serializers.CharField()
+class BingoCompletionSerializer(serializers.Serializer):
+    challengeId = serializers.CharField()
+    challengeName = serializers.CharField()
     matchId = serializers.UUIDField()
-    completedAt = serializers.DateTimeField()
+    matchCompletedAt = serializers.DateTimeField()
 
 
 class CheckBingoCardRequestSerializer(serializers.Serializer):
@@ -27,7 +28,7 @@ class CheckBingoCardResponseSerializer(serializers.Serializer):
         allow_empty=True, child=serializers.CharField(min_length=1, max_length=1)
     )
     newCompletions = serializers.ListField(
-        allow_empty=True, child=BingoScoreSerializer()
+        allow_empty=True, child=BingoCompletionSerializer()
     )
 
 

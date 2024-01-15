@@ -20,7 +20,7 @@ from apps.season_06.models import (
     BingoChallengeParticipant,
 )
 from apps.season_06.serializers import (
-    BingoScoreSerializer,
+    BingoCompletionSerializer,
     CheckBingoCardRequestSerializer,
     CheckBingoCardResponseSerializer,
     CheckParticipantGamesRequestSerializer,
@@ -102,11 +102,12 @@ class CheckBingoCard(APIView):
                             )
                             letters_completed.append(challenge.id)
                             new_completions.append(
-                                BingoScoreSerializer(
+                                BingoCompletionSerializer(
                                     {
-                                        "name": str(challenge),
+                                        "challengeId": challenge.id,
+                                        "challengeName": challenge.name,
                                         "matchId": match.match_id,
-                                        "completedAt": match.end_time,
+                                        "matchCompletedAt": match.end_time,
                                     }
                                 ).data
                             )
