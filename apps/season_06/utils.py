@@ -112,7 +112,6 @@ def check_xuid_challenge(
                     actual_score = 0
                     for medal in data:
                         if medal["NameId"] == challenge.medal_id:
-                            logger.info(medal)
                             actual_score = medal["Count"]
                             break
                     challenge_score = int(challenge.score)

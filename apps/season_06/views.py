@@ -170,8 +170,8 @@ class CheckParticipantGames(APIView):
                     discord_ids_to_xuids[
                         link.discord_account_id
                     ] = link.xbox_live_account_id
+                participant_match_ids = set()
                 with requests.Session() as s:
-                    participant_match_ids = set()
                     for participant in participants:
                         participant_xuid = discord_ids_to_xuids.get(
                             participant.participant_id, None
