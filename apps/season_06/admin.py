@@ -61,6 +61,7 @@ class BingoChallengeAdmin(AutofillCreatorModelAdmin):
         "name",
         "description",
         "require_match_type",
+        "require_outcome",
         "require_level_id",
         "require_map_asset_id",
         "require_mode_asset_id",

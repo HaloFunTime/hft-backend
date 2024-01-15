@@ -72,13 +72,14 @@ def check_xuid_challenge(
         "PlayerId": f"xuid({xuid})",
         "ParticipationInfo": participation_info_dict,
     }
+    if challenge.require_outcome:
+        player_dict["Outcome"] = challenge.require_outcome
     hi_matches = HaloInfiniteMatch.objects.filter(
         start_time__gte=EARLIEST_TIME,
         end_time__lte=LATEST_TIME,
         data__MatchInfo__contains=match_info_dict,
         data__Players__contains=[player_dict],
     ).order_by("end_time")
-    logger.info(f"Found {len(hi_matches)} matches")
     for hi_match in hi_matches:
         # Get the player data for each potential challenge-completing match
         player_data = None
@@ -119,7 +120,6 @@ def check_xuid_challenge(
                     # Should work for int and decimal.Decimal
                     actual_score = stat_data_type(data)
                     challenge_score = stat_data_type(challenge.score)
-                logger.info(f"{challenge.stat}: {actual_score} of {challenge_score}")
                 if actual_score >= challenge_score:
                     logger.info(
                         f"Challenge {challenge.id} completed by xuid({xuid}) in match {hi_match.match_id}"

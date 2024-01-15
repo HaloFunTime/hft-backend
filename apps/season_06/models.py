@@ -69,6 +69,12 @@ class BingoChallenge(BaseWithoutPrimaryKey):
         CUSTOM = 1
         MATCHMADE = 3
 
+    class Outcome(models.IntegerChoices):
+        WIN = 2
+        LOSS = 3
+        TIE = 1
+        LEFT = 4
+
     id = models.CharField(primary_key=True, max_length=1, verbose_name="ID")
     name = models.CharField(max_length=128, verbose_name="Name")
     description = models.CharField(max_length=256, verbose_name="Description")
@@ -77,6 +83,12 @@ class BingoChallenge(BaseWithoutPrimaryKey):
         null=True,
         choices=LifecycleMode.choices,
         verbose_name="Match Type",
+    )
+    require_outcome = models.IntegerField(
+        blank=True,
+        null=True,
+        choices=Outcome.choices,
+        verbose_name="Outcome",
     )
     require_level_id = models.UUIDField(
         blank=True, null=True, verbose_name="Level Canvas ID"
