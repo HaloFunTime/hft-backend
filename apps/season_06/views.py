@@ -13,23 +13,126 @@ from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.link.models import DiscordXboxLiveLink
 from apps.season_06.constants import LETTERS_25
-from apps.season_06.models import BingoBuff, BingoChallengeParticipant
+from apps.season_06.models import (
+    BingoBuff,
+    BingoChallenge,
+    BingoChallengeCompletion,
+    BingoChallengeParticipant,
+)
 from apps.season_06.serializers import (
+    BingoScoreSerializer,
+    CheckBingoCardRequestSerializer,
+    CheckBingoCardResponseSerializer,
     CheckParticipantGamesRequestSerializer,
     CheckParticipantGamesResponseSerializer,
-    JoinChallengeRequestSerializer,
-    JoinChallengeResponseSerializer,
+    JoinBingoChallengeRequestSerializer,
+    JoinBingoChallengeResponseSerializer,
     SaveBuffRequestSerializer,
     SaveBuffResponseSerializer,
 )
-from apps.season_06.utils import fetch_match_ids_for_xuid, save_new_matches
+from apps.season_06.utils import (
+    check_xuid_challenge,
+    fetch_match_ids_for_xuid,
+    save_new_matches,
+)
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class CheckBingoCard(APIView):
-    pass
+    @extend_schema(
+        request=CheckBingoCardRequestSerializer,
+        responses={
+            200: CheckBingoCardResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying match stats from the
+        HFT DB, and saving/returning the progress the gamertag has made toward the Season 6 Bingo Challenge.
+        """
+        validation_serializer = CheckBingoCardRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            participant = None
+            link = None
+            letters_completed = []
+            new_completions = []
+
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+                try:
+                    link = DiscordXboxLiveLink.objects.filter(
+                        discord_account_id=discord_account.discord_id, verified=True
+                    ).get()
+                except DiscordXboxLiveLink.DoesNotExist:
+                    pass
+                participant = BingoChallengeParticipant.objects.filter(
+                    participant_id=discord_account.discord_id
+                ).get()
+
+                # Retrieve all Bingo Challenges this participant has already completed
+                letters_completed.extend(
+                    [
+                        completion.challenge_id
+                        for completion in participant.completions.all()
+                    ]
+                )
+
+                # Evaluate all Bingo Challenges this participant has not yet completed
+                if link is not None:
+                    for challenge in BingoChallenge.objects.exclude(
+                        id__in=letters_completed
+                    ):
+                        match = check_xuid_challenge(
+                            link.xbox_live_account_id, challenge
+                        )
+                        if match is not None:
+                            BingoChallengeCompletion.objects.create(
+                                challenge=challenge,
+                                participant=participant,
+                                match=match,
+                                creator=request.user,
+                            )
+                            letters_completed.append(challenge.id)
+                            new_completions.append(
+                                BingoScoreSerializer(
+                                    {
+                                        "name": str(challenge),
+                                        "matchId": match.match_id,
+                                        "completedAt": match.end_time,
+                                    }
+                                ).data
+                            )
+            except BingoChallengeParticipant.DoesNotExist:
+                logger.info(
+                    "No challenge participant exists, so the return payload will be mostly empty."
+                )
+            except Exception as ex:
+                logger.error("Error attempting to check Bingo Challenge progress.")
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to check Bingo Challenge progress."
+                )
+            serializer = CheckBingoCardResponseSerializer(
+                {
+                    "discordUserId": discord_id,
+                    "joinedChallenge": participant is not None,
+                    "linkedGamertag": link is not None,
+                    "boardOrder": participant.board_order
+                    if participant is not None
+                    else None,
+                    "lettersCompleted": letters_completed,
+                    "newCompletions": new_completions,
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CheckParticipantGames(APIView):
@@ -107,9 +210,9 @@ class CheckParticipantGames(APIView):
 
 class JoinChallenge(APIView):
     @extend_schema(
-        request=JoinChallengeRequestSerializer,
+        request=JoinBingoChallengeRequestSerializer,
         responses={
-            200: JoinChallengeResponseSerializer,
+            200: JoinBingoChallengeResponseSerializer,
             400: StandardErrorSerializer,
             500: StandardErrorSerializer,
         },
@@ -118,7 +221,7 @@ class JoinChallenge(APIView):
         """
         Create a BingoChallengeParticipant for someone who has not yet joined the Season 6 Bingo Challenge.
         """
-        validation_serializer = JoinChallengeRequestSerializer(data=request.data)
+        validation_serializer = JoinBingoChallengeRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_username = validation_serializer.data.get("discordUsername")
@@ -151,7 +254,7 @@ class JoinChallenge(APIView):
                 raise APIException(
                     "Error attempting to save a Bingo Challenge Participant."
                 )
-            serializer = JoinChallengeResponseSerializer(
+            serializer = JoinBingoChallengeResponseSerializer(
                 {
                     "boardOrder": participant.board_order,
                     "discordUserId": participant.participant_id,

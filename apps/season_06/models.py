@@ -2,7 +2,18 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 
 from apps.discord.models import DiscordAccount
-from apps.overrides.models import Base
+from apps.halo_infinite.constants import STATS
+from apps.halo_infinite.models import HaloInfiniteMatch
+from apps.overrides.models import Base, BaseWithoutPrimaryKey
+
+
+def get_stat_choices():
+    choices = []
+    for key in STATS:
+        choices.append(
+            (key, f"{key.split('_')[0].rstrip('Stats')}: {STATS.get(key)[1]}")
+        )
+    return choices
 
 
 class BingoBuff(Base):
@@ -47,30 +58,82 @@ class BingoChallengeParticipant(Base):
         return f"{self.participant}"
 
 
-# class BingoChallenge(Base):
-#     class Meta:
-#         db_table = "BingoChallenge"
-#         ordering = ["-created_at"]
-#         verbose_name = "Challenge"
-#         verbose_name_plural = "Challenges"
+class BingoChallenge(BaseWithoutPrimaryKey):
+    class Meta:
+        db_table = "BingoChallenge"
+        ordering = ["id"]
+        verbose_name = "Challenge"
+        verbose_name_plural = "Challenges"
+
+    class LifecycleMode(models.IntegerChoices):
+        CUSTOM = 1
+        MATCHMADE = 3
+
+    id = models.CharField(primary_key=True, max_length=1, verbose_name="ID")
+    name = models.CharField(max_length=128, verbose_name="Name")
+    description = models.CharField(max_length=256, verbose_name="Description")
+    require_match_type = models.IntegerField(
+        blank=True,
+        null=True,
+        choices=LifecycleMode.choices,
+        verbose_name="Match Type",
+    )
+    require_level_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Level Canvas ID"
+    )
+    require_map_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Map File ID"
+    )
+    require_mode_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Mode File ID"
+    )
+    require_playlist_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Playlist ID"
+    )
+    require_present_at_beginning = models.BooleanField(
+        blank=True, null=True, verbose_name="Present at Game Start"
+    )
+    require_present_at_completion = models.BooleanField(
+        blank=True, null=True, verbose_name="Present at Game End"
+    )
+    stat = models.CharField(
+        max_length=128, choices=get_stat_choices, verbose_name="Stat"
+    )
+    medal_id = models.DecimalField(
+        decimal_places=0,
+        max_digits=15,
+        verbose_name="Medal ID (only necessary if Stat is 'Medals')",
+        blank=True,
+        null=True,
+    )
+    score = models.CharField(max_length=128, verbose_name="Score")
+
+    def __str__(self):
+        return f"{self.id} - {self.name}"
 
 
-# class BingoChallengeCompletion(Base):
-#     class Meta:
-#         db_table = "BingoChallengeCompletion"
-#         ordering = ["-created_at"]
-#         verbose_name = "Challenge Completion"
-#         verbose_name_plural = "Challenge Completions"
+class BingoChallengeCompletion(Base):
+    class Meta:
+        db_table = "BingoChallengeCompletion"
+        ordering = ["-created_at"]
+        verbose_name = "Challenge Completion"
+        verbose_name_plural = "Challenge Completions"
 
-#     challenge = models.ForeignKey(
-#         BingoChallenge,
-#         on_delete=models.RESTRICT,
-#         related_name="completions",
-#         verbose_name="Completion",
-#     )
-#     participant = models.ForeignKey(
-#         BingoChallengeParticipant,
-#         on_delete=models.RESTRICT,
-#         related_name="completions",
-#         verbose_name="Completion",
-#     )
+    challenge = models.ForeignKey(
+        BingoChallenge,
+        on_delete=models.RESTRICT,
+        related_name="completions",
+        verbose_name="Completion",
+    )
+    participant = models.ForeignKey(
+        BingoChallengeParticipant,
+        on_delete=models.RESTRICT,
+        related_name="completions",
+        verbose_name="Completion",
+    )
+    match = models.ForeignKey(
+        HaloInfiniteMatch,
+        on_delete=models.RESTRICT,
+        related_name="completions",
+        verbose_name="Completion",
+    )

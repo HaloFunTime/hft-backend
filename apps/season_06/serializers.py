@@ -3,6 +3,34 @@ from rest_framework import serializers
 from apps.discord.serializers import validate_discord_id
 
 
+class BingoScoreSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    matchId = serializers.UUIDField()
+    completedAt = serializers.DateTimeField()
+
+
+class CheckBingoCardRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+
+
+class CheckBingoCardResponseSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    joinedChallenge = serializers.BooleanField()
+    linkedGamertag = serializers.BooleanField()
+    boardOrder = serializers.CharField(min_length=25, max_length=25)
+    lettersCompleted = serializers.ListField(
+        allow_empty=True, child=serializers.CharField(min_length=1, max_length=1)
+    )
+    newCompletions = serializers.ListField(
+        allow_empty=True, child=BingoScoreSerializer()
+    )
+
+
 class CheckParticipantGamesRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,
@@ -16,14 +44,14 @@ class CheckParticipantGamesResponseSerializer(serializers.Serializer):
     newGameCount = serializers.IntegerField()
 
 
-class JoinChallengeRequestSerializer(serializers.Serializer):
+class JoinBingoChallengeRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
     )
     discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
-class JoinChallengeResponseSerializer(serializers.Serializer):
+class JoinBingoChallengeResponseSerializer(serializers.Serializer):
     boardOrder = serializers.CharField(min_length=25, max_length=25)
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
