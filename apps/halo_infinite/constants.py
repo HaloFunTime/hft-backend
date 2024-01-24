@@ -295,12 +295,66 @@ GAME_VARIANT_CATEGORY_STRONGHOLDS = 11
 GAME_VARIANT_CATEGORY_TEAM_ESCALATION = 24
 GAME_VARIANT_CATEGORY_TOTAL_CONTROL = 14
 
+LEVEL_ID_AQUARIUS = "fc878857-e778-4daf-b0ef-5d826b922f3f"
+LEVEL_ID_ARID = "b963a5ed-a8d0-4475-a47e-67430c56b3bd"
+LEVEL_ID_BARRAGE = "4f6bf10c-7628-49ed-b3bd-ec0cefd92ac5"
+LEVEL_ID_BAZAAR = "1ddfa173-a544-46e6-9dae-671e7e369a0c"
+LEVEL_ID_BEHEMOTH = "6cb0eb90-2819-4b6f-a38a-8913a8b91c3e"
 LEVEL_ID_BREAKER = "d4d880b5-59a2-41bd-9c72-70fde4aaaf35"
+LEVEL_ID_CATALYST = "dd94dcba-08e9-477d-91b7-338e889305f3"
+LEVEL_ID_CHASM = "deac3a42-2605-47db-a7ee-06f357d24acb"
+LEVEL_ID_CLIFFHANGER = "48e4b9bd-4b17-4eed-8dee-1276294b88f1"
+LEVEL_ID_DEADLOCK = "1a8f0677-7055-4358-8c1e-934db988597d"
+LEVEL_ID_ECLIPTIC = "c7b7baf0-f206-11e4-ae9a-24be05e24f7e"
 LEVEL_ID_FORBIDDEN = "56d9c46f-3c10-4896-84c4-23f6fe54a763"
+LEVEL_ID_FOREST = "0521a65a-9f24-45ca-bf2a-2f0d24926ab6"
+LEVEL_ID_FRAGMENTATION = "bead4838-0cff-4837-bcf4-5e516d56d837"
 LEVEL_ID_HIGHPOWER = "a17d1839-cab3-4477-ac36-8cbbfaed80cb"
+LEVEL_ID_HOUSE_OF_RECKONING = "97eb0a0c-ab70-4d41-a6dc-31a9e08fd084"
+LEVEL_ID_INSTITUTE = "d3bafb98-570b-4471-8710-f4c92be23df2"
+LEVEL_ID_LAUNCH_SITE = "9755c3a8-5e3c-4352-a78e-370607db660d"
 LEVEL_ID_LIVE_FIRE = "dc3a5b2a-180a-4544-8bc1-ee4ea1338900"
+LEVEL_ID_MIRES = "a2565bc5-d4f4-466c-ac4a-024d97db267b"
+LEVEL_ID_OASIS = "4a77e01b-5653-4790-9cb6-5e0b62b87076"
+LEVEL_ID_PERMAFROST = "67490e04-926c-4e7c-a764-071f26e0c24c"
+LEVEL_ID_PRISM = "3e9e2e06-55f3-4225-a454-ff7c395beccf"
 LEVEL_ID_RECHARGE = "c0264785-90c8-4946-bf16-06dbfd056bff"
+LEVEL_ID_SCARR = "f57b313b-6312-407b-a278-67ac3ed2a013"
+LEVEL_ID_SEAFLOOR = "5875580b-14aa-4cda-bc1f-a42732585364"
 LEVEL_ID_STREETS = "19dfcede-dcd1-45a8-8a77-2b58ce65484f"
+LEVEL_ID_VOID = "1216247c-bf6d-4740-8270-e800a114f231"
+LEVEL_IDS_DEV = [
+    LEVEL_ID_AQUARIUS,
+    LEVEL_ID_BAZAAR,
+    LEVEL_ID_BEHEMOTH,
+    LEVEL_ID_BREAKER,
+    LEVEL_ID_CATALYST,
+    LEVEL_ID_CHASM,
+    LEVEL_ID_CLIFFHANGER,
+    LEVEL_ID_DEADLOCK,
+    LEVEL_ID_FORBIDDEN,
+    LEVEL_ID_FOREST,
+    LEVEL_ID_FRAGMENTATION,
+    LEVEL_ID_HIGHPOWER,
+    LEVEL_ID_HOUSE_OF_RECKONING,
+    LEVEL_ID_LAUNCH_SITE,
+    LEVEL_ID_LIVE_FIRE,
+    LEVEL_ID_OASIS,
+    LEVEL_ID_PRISM,
+    LEVEL_ID_RECHARGE,
+    LEVEL_ID_SCARR,
+    LEVEL_ID_STREETS,
+]
+LEVEL_IDS_FORGE = [
+    LEVEL_ID_ARID,
+    LEVEL_ID_BARRAGE,
+    LEVEL_ID_ECLIPTIC,
+    LEVEL_ID_INSTITUTE,
+    LEVEL_ID_MIRES,
+    LEVEL_ID_PERMAFROST,
+    LEVEL_ID_SEAFLOOR,
+    LEVEL_ID_VOID,
+]
 
 MAP_ID_AQUARIUS = "33c0766c-ef15-48f8-b298-34aba5bff3b4"
 MAP_ID_ARGYLE = "dd600260-d91c-4d77-9990-3f35873c90a1"
@@ -350,6 +404,122 @@ SEARCH_ASSET_KINDS = {
     10: "EngineGameVariant",
 }
 
+# Stored list of all major stats as keys - values are their type and a user-friendly label
+STATS = {
+    "CoreStats_Score": (int, "Score"),
+    "CoreStats_PersonalScore": (int, "PersonalScore"),
+    "CoreStats_RoundsWon": (int, "RoundsWon"),
+    "CoreStats_RoundsLost": (int, "RoundsLost"),
+    "CoreStats_RoundsTied": (int, "RoundsTied"),
+    "CoreStats_Kills": (int, "Kills"),
+    "CoreStats_Deaths": (int, "Deaths"),
+    "CoreStats_Assists": (int, "Assists"),
+    "CoreStats_AverageKDA": (decimal.Decimal, "AverageKDA"),
+    "CoreStats_Suicides": (int, "Suicides"),
+    "CoreStats_Betrayals": (int, "Betrayals"),
+    "CoreStats_GrenadeKills": (int, "GrenadeKills"),
+    "CoreStats_HeadshotKills": (int, "HeadshotKills"),
+    "CoreStats_MeleeKills": (int, "MeleeKills"),
+    "CoreStats_PowerWeaponKills": (int, "PowerWeaponKills"),
+    "CoreStats_ShotsFired": (int, "ShotsFired"),
+    "CoreStats_ShotsHit": (int, "ShotsHit"),
+    "CoreStats_Accuracy": (decimal.Decimal, "Accuracy"),
+    "CoreStats_DamageDealt": (int, "DamageDealt"),
+    "CoreStats_DamageTaken": (int, "DamageTaken"),
+    "CoreStats_CalloutAssists": (int, "CalloutAssists"),
+    "CoreStats_VehicleDestroys": (int, "VehicleDestroys"),
+    "CoreStats_DriverAssists": (int, "DriverAssists"),
+    "CoreStats_Hijacks": (int, "Hijacks"),
+    "CoreStats_EmpAssists": (int, "EmpAssists"),
+    "CoreStats_MaxKillingSpree": (int, "MaxKillingSpree"),
+    "CoreStats_Spawns": (int, "Spawns"),
+    "CoreStats_ObjectivesCompleted": (int, "ObjectivesCompleted"),
+    "CoreStats_Medals": (list, "Medals"),
+    "CaptureTheFlagStats_FlagCaptureAssists": (int, "FlagCaptureAssists"),
+    "CaptureTheFlagStats_FlagCaptures": (int, "FlagCaptures"),
+    "CaptureTheFlagStats_FlagCarriersKilled": (int, "FlagCarriersKilled"),
+    "CaptureTheFlagStats_FlagGrabs": (int, "FlagGrabs"),
+    "CaptureTheFlagStats_FlagReturnersKilled": (int, "FlagReturnersKilled"),
+    "CaptureTheFlagStats_FlagReturns": (int, "FlagReturns"),
+    "CaptureTheFlagStats_FlagSecures": (int, "FlagSecures"),
+    "CaptureTheFlagStats_FlagSteals": (int, "FlagSteals"),
+    "CaptureTheFlagStats_KillsAsFlagCarrier": (int, "KillsAsFlagCarrier"),
+    "CaptureTheFlagStats_KillsAsFlagReturner": (int, "KillsAsFlagReturner"),
+    "CaptureTheFlagStats_TimeAsFlagCarrier": (datetime.timedelta, "TimeAsFlagCarrier"),
+    "EliminationStats_AlliesRevived": (int, "AlliesRevived"),
+    "EliminationStats_EliminationAssists": (int, "EliminationAssists"),
+    "EliminationStats_Eliminations": (int, "Eliminations"),
+    "EliminationStats_EnemyRevivesDenied": (int, "EnemyRevivesDenied"),
+    "EliminationStats_Executions": (int, "Executions"),
+    "EliminationStats_KillsAsLastPlayerStanding": (int, "KillsAsLastPlayerStanding"),
+    "EliminationStats_LastPlayersStandingKilled": (int, "LastPlayersStandingKilled"),
+    "EliminationStats_RoundsSurvived": (int, "RoundsSurvived"),
+    "EliminationStats_TimesRevivedByAlly": (int, "TimesRevivedByAlly"),
+    "ExtractionStats_SuccessfulExtractions": (int, "SuccessfulExtractions"),
+    "ExtractionStats_ExtractionConversionsDenied": (int, "ExtractionConversionsDenied"),
+    "ExtractionStats_ExtractionConversionsCompleted": (
+        int,
+        "ExtractionConversionsCompleted",
+    ),
+    "ExtractionStats_ExtractionInitiationsDenied": (int, "ExtractionInitiationsDenied"),
+    "ExtractionStats_ExtractionInitiationsCompleted": (
+        int,
+        "ExtractionInitiationsCompleted",
+    ),
+    "InfectionStats_AlphasKilled": (int, "AlphasKilled"),
+    "InfectionStats_SpartansInfected": (int, "SpartansInfected"),
+    "InfectionStats_SpartansInfectedAsAlpha": (int, "SpartansInfectedAsAlpha"),
+    "InfectionStats_KillsAsLastSpartanStanding": (int, "KillsAsLastSpartanStanding"),
+    "InfectionStats_LastSpartansStandingInfected": (
+        int,
+        "LastSpartansStandingInfected",
+    ),
+    "InfectionStats_RoundsAsAlpha": (int, "RoundsAsAlpha"),
+    "InfectionStats_RoundsAsLastSpartanStanding": (int, "RoundsAsLastSpartanStanding"),
+    "InfectionStats_RoundsFinishedAsInfected": (int, "RoundsFinishedAsInfected"),
+    "InfectionStats_RoundsSurvivedAsSpartan": (int, "RoundsSurvivedAsSpartan"),
+    "InfectionStats_RoundsSurvivedAsLastSpartanStanding": (
+        int,
+        "RoundsSurvivedAsLastSpartanStanding",
+    ),
+    "InfectionStats_TimeAsLastSpartanStanding": (
+        datetime.timedelta,
+        "TimeAsLastSpartanStanding",
+    ),
+    "InfectionStats_InfectedKilled": (int, "InfectedKilled"),
+    "OddballStats_KillsAsSkullCarrier": (int, "KillsAsSkullCarrier"),
+    "OddballStats_LongestTimeAsSkullCarrier": (
+        datetime.timedelta,
+        "LongestTimeAsSkullCarrier",
+    ),
+    "OddballStats_SkullCarriersKilled": (int, "SkullCarriersKilled"),
+    "OddballStats_SkullGrabs": (int, "SkullGrabs"),
+    "OddballStats_TimeAsSkullCarrier": (datetime.timedelta, "TimeAsSkullCarrier"),
+    "OddballStats_SkullScoringTicks": (int, "SkullScoringTicks"),
+    "ZonesStats_ZoneCaptures": (int, "ZoneCaptures"),
+    "ZonesStats_ZoneDefensiveKills": (int, "ZoneDefensiveKills"),
+    "ZonesStats_ZoneOffensiveKills": (int, "ZoneOffensiveKills"),
+    "ZonesStats_ZoneSecures": (int, "ZoneSecures"),
+    "ZonesStats_TotalZoneOccupationTime": (
+        datetime.timedelta,
+        "TotalZoneOccupationTime",
+    ),
+    "ZonesStats_ZoneScoringTicks": (int, "ZoneScoringTicks"),
+    "StockpileStats_KillsAsPowerSeedCarrier": (int, "KillsAsPowerSeedCarrier"),
+    "StockpileStats_PowerSeedCarriersKilled": (int, "PowerSeedCarriersKilled"),
+    "StockpileStats_PowerSeedsDeposited": (int, "PowerSeedsDeposited"),
+    "StockpileStats_PowerSeedsStolen": (int, "PowerSeedsStolen"),
+    "StockpileStats_TimeAsPowerSeedCarrier": (
+        datetime.timedelta,
+        "TimeAsPowerSeedCarrier",
+    ),
+    "StockpileStats_TimeAsPowerSeedDriver": (
+        datetime.timedelta,
+        "TimeAsPowerSeedDriver",
+    ),
+}
+
+# Seasons (DEPRECATED)
 SEASON_1_API_ID = "Seasons/Season6.json"
 SEASON_1_RESET_API_ID = "Seasons/Season6-2.json"
 SEASON_2_API_ID = "Seasons/Season7.json"
@@ -527,117 +697,12 @@ SEASON_DATA_DICT = {
     },
 }
 
-# Stored list of all major stats as keys - values are their type and a user-friendly label
-STATS = {
-    "CoreStats_Score": (int, "Score"),
-    "CoreStats_PersonalScore": (int, "PersonalScore"),
-    "CoreStats_RoundsWon": (int, "RoundsWon"),
-    "CoreStats_RoundsLost": (int, "RoundsLost"),
-    "CoreStats_RoundsTied": (int, "RoundsTied"),
-    "CoreStats_Kills": (int, "Kills"),
-    "CoreStats_Deaths": (int, "Deaths"),
-    "CoreStats_Assists": (int, "Assists"),
-    "CoreStats_AverageKDA": (decimal.Decimal, "AverageKDA"),
-    "CoreStats_Suicides": (int, "Suicides"),
-    "CoreStats_Betrayals": (int, "Betrayals"),
-    "CoreStats_GrenadeKills": (int, "GrenadeKills"),
-    "CoreStats_HeadshotKills": (int, "HeadshotKills"),
-    "CoreStats_MeleeKills": (int, "MeleeKills"),
-    "CoreStats_PowerWeaponKills": (int, "PowerWeaponKills"),
-    "CoreStats_ShotsFired": (int, "ShotsFired"),
-    "CoreStats_ShotsHit": (int, "ShotsHit"),
-    "CoreStats_Accuracy": (decimal.Decimal, "Accuracy"),
-    "CoreStats_DamageDealt": (int, "DamageDealt"),
-    "CoreStats_DamageTaken": (int, "DamageTaken"),
-    "CoreStats_CalloutAssists": (int, "CalloutAssists"),
-    "CoreStats_VehicleDestroys": (int, "VehicleDestroys"),
-    "CoreStats_DriverAssists": (int, "DriverAssists"),
-    "CoreStats_Hijacks": (int, "Hijacks"),
-    "CoreStats_EmpAssists": (int, "EmpAssists"),
-    "CoreStats_MaxKillingSpree": (int, "MaxKillingSpree"),
-    "CoreStats_Spawns": (int, "Spawns"),
-    "CoreStats_ObjectivesCompleted": (int, "ObjectivesCompleted"),
-    "CoreStats_Medals": (list, "Medals"),
-    "CaptureTheFlagStats_FlagCaptureAssists": (int, "FlagCaptureAssists"),
-    "CaptureTheFlagStats_FlagCaptures": (int, "FlagCaptures"),
-    "CaptureTheFlagStats_FlagCarriersKilled": (int, "FlagCarriersKilled"),
-    "CaptureTheFlagStats_FlagGrabs": (int, "FlagGrabs"),
-    "CaptureTheFlagStats_FlagReturnersKilled": (int, "FlagReturnersKilled"),
-    "CaptureTheFlagStats_FlagReturns": (int, "FlagReturns"),
-    "CaptureTheFlagStats_FlagSecures": (int, "FlagSecures"),
-    "CaptureTheFlagStats_FlagSteals": (int, "FlagSteals"),
-    "CaptureTheFlagStats_KillsAsFlagCarrier": (int, "KillsAsFlagCarrier"),
-    "CaptureTheFlagStats_KillsAsFlagReturner": (int, "KillsAsFlagReturner"),
-    "CaptureTheFlagStats_TimeAsFlagCarrier": (datetime.timedelta, "TimeAsFlagCarrier"),
-    "EliminationStats_AlliesRevived": (int, "AlliesRevived"),
-    "EliminationStats_EliminationAssists": (int, "EliminationAssists"),
-    "EliminationStats_Eliminations": (int, "Eliminations"),
-    "EliminationStats_EnemyRevivesDenied": (int, "EnemyRevivesDenied"),
-    "EliminationStats_Executions": (int, "Executions"),
-    "EliminationStats_KillsAsLastPlayerStanding": (int, "KillsAsLastPlayerStanding"),
-    "EliminationStats_LastPlayersStandingKilled": (int, "LastPlayersStandingKilled"),
-    "EliminationStats_RoundsSurvived": (int, "RoundsSurvived"),
-    "EliminationStats_TimesRevivedByAlly": (int, "TimesRevivedByAlly"),
-    "ExtractionStats_SuccessfulExtractions": (int, "SuccessfulExtractions"),
-    "ExtractionStats_ExtractionConversionsDenied": (int, "ExtractionConversionsDenied"),
-    "ExtractionStats_ExtractionConversionsCompleted": (
-        int,
-        "ExtractionConversionsCompleted",
-    ),
-    "ExtractionStats_ExtractionInitiationsDenied": (int, "ExtractionInitiationsDenied"),
-    "ExtractionStats_ExtractionInitiationsCompleted": (
-        int,
-        "ExtractionInitiationsCompleted",
-    ),
-    "InfectionStats_AlphasKilled": (int, "AlphasKilled"),
-    "InfectionStats_SpartansInfected": (int, "SpartansInfected"),
-    "InfectionStats_SpartansInfectedAsAlpha": (int, "SpartansInfectedAsAlpha"),
-    "InfectionStats_KillsAsLastSpartanStanding": (int, "KillsAsLastSpartanStanding"),
-    "InfectionStats_LastSpartansStandingInfected": (
-        int,
-        "LastSpartansStandingInfected",
-    ),
-    "InfectionStats_RoundsAsAlpha": (int, "RoundsAsAlpha"),
-    "InfectionStats_RoundsAsLastSpartanStanding": (int, "RoundsAsLastSpartanStanding"),
-    "InfectionStats_RoundsFinishedAsInfected": (int, "RoundsFinishedAsInfected"),
-    "InfectionStats_RoundsSurvivedAsSpartan": (int, "RoundsSurvivedAsSpartan"),
-    "InfectionStats_RoundsSurvivedAsLastSpartanStanding": (
-        int,
-        "RoundsSurvivedAsLastSpartanStanding",
-    ),
-    "InfectionStats_TimeAsLastSpartanStanding": (
-        datetime.timedelta,
-        "TimeAsLastSpartanStanding",
-    ),
-    "InfectionStats_InfectedKilled": (int, "InfectedKilled"),
-    "OddballStats_KillsAsSkullCarrier": (int, "KillsAsSkullCarrier"),
-    "OddballStats_LongestTimeAsSkullCarrier": (
-        datetime.timedelta,
-        "LongestTimeAsSkullCarrier",
-    ),
-    "OddballStats_SkullCarriersKilled": (int, "SkullCarriersKilled"),
-    "OddballStats_SkullGrabs": (int, "SkullGrabs"),
-    "OddballStats_TimeAsSkullCarrier": (datetime.timedelta, "TimeAsSkullCarrier"),
-    "OddballStats_SkullScoringTicks": (int, "SkullScoringTicks"),
-    "ZonesStats_ZoneCaptures": (int, "ZoneCaptures"),
-    "ZonesStats_ZoneDefensiveKills": (int, "ZoneDefensiveKills"),
-    "ZonesStats_ZoneOffensiveKills": (int, "ZoneOffensiveKills"),
-    "ZonesStats_ZoneSecures": (int, "ZoneSecures"),
-    "ZonesStats_TotalZoneOccupationTime": (
-        datetime.timedelta,
-        "TotalZoneOccupationTime",
-    ),
-    "ZonesStats_ZoneScoringTicks": (int, "ZoneScoringTicks"),
-    "StockpileStats_KillsAsPowerSeedCarrier": (int, "KillsAsPowerSeedCarrier"),
-    "StockpileStats_PowerSeedCarriersKilled": (int, "PowerSeedCarriersKilled"),
-    "StockpileStats_PowerSeedsDeposited": (int, "PowerSeedsDeposited"),
-    "StockpileStats_PowerSeedsStolen": (int, "PowerSeedsStolen"),
-    "StockpileStats_TimeAsPowerSeedCarrier": (
-        datetime.timedelta,
-        "TimeAsPowerSeedCarrier",
-    ),
-    "StockpileStats_TimeAsPowerSeedDriver": (
-        datetime.timedelta,
-        "TimeAsPowerSeedDriver",
-    ),
+# HaloFunTime-defined Eras
+ERA_1_START_TIME = datetime.datetime.fromisoformat("2024-01-30T17:00:00Z")
+ERA_1_END_TIME = datetime.datetime.fromisoformat("2024-05-28T17:00:00Z")
+ERA_DATA_DICT = {
+    1: {
+        "start_time": ERA_1_START_TIME,
+        "end_time": ERA_1_END_TIME,
+    }
 }

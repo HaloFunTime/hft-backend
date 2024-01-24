@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("season_06", "0003_bingochallenge_bingochallengecompletion"),
+        ("era_01", "0003_bingochallenge_bingochallengecompletion"),
     ]
 
     operations = [

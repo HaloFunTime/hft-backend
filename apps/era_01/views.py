@@ -10,16 +10,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
-from apps.halo_infinite.models import HaloInfiniteMatch
-from apps.link.models import DiscordXboxLiveLink
-from apps.season_06.constants import LETTERS_25
-from apps.season_06.models import (
+from apps.era_01.constants import LETTERS_25
+from apps.era_01.models import (
     BingoBuff,
     BingoChallenge,
     BingoChallengeCompletion,
     BingoChallengeParticipant,
 )
-from apps.season_06.serializers import (
+from apps.era_01.serializers import (
     BingoCompletionSerializer,
     CheckBingoCardRequestSerializer,
     CheckBingoCardResponseSerializer,
@@ -30,11 +28,13 @@ from apps.season_06.serializers import (
     SaveBuffRequestSerializer,
     SaveBuffResponseSerializer,
 )
-from apps.season_06.utils import (
+from apps.era_01.utils import (
     check_xuid_challenge,
     fetch_match_ids_for_xuid,
     save_new_matches,
 )
+from apps.halo_infinite.models import HaloInfiniteMatch
+from apps.link.models import DiscordXboxLiveLink
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)

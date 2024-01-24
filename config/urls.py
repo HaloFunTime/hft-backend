@@ -72,6 +72,7 @@ urlpatterns = [
     path("get-bearer-token/", obtain_auth_token, name="bearer-token"),
     # Import urls from /apps here:
     path("discord/", include("apps.discord.urls")),
+    path("era-01/", include("apps.era_01.urls")),
     path("fun-time-friday/", include("apps.fun_time_friday.urls")),
     path("halo-infinite/", include("apps.halo_infinite.urls")),
     path("intern/", include("apps.intern.urls")),
@@ -81,7 +82,6 @@ urlpatterns = [
     path("reputation/", include("apps.reputation.urls")),
     path("season-04/", include("apps.season_04.urls")),
     path("season-05/", include("apps.season_05.urls")),
-    path("season-06/", include("apps.season_06.urls")),
     path("series/", include("apps.series.urls")),
     path("showcase/", include("apps.showcase.urls")),
     path("trailblazer/", include("apps.trailblazer.urls")),

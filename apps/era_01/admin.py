@@ -1,12 +1,12 @@
 from django.contrib import admin
 
-from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
-from apps.season_06.models import (
+from apps.era_01.models import (
     BingoBuff,
     BingoChallenge,
     BingoChallengeCompletion,
     BingoChallengeParticipant,
 )
+from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 
 
 @admin.register(BingoBuff)

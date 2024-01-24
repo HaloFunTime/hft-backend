@@ -5,10 +5,10 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
-from apps.season_06.models import BingoBuff, BingoChallengeParticipant
+from apps.era_01.models import BingoBuff, BingoChallengeParticipant
 
 
-class Season06TestCase(APITestCase):
+class Era01TestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
@@ -18,7 +18,7 @@ class Season06TestCase(APITestCase):
 
     def test_join_challenge_view(self):
         # Missing field values throw errors
-        response = self.client.post("/season-06/join-challenge", {}, format="json")
+        response = self.client.post("/era-01/join-challenge", {}, format="json")
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
         self.assertIn("discordUserId", details)
@@ -34,7 +34,7 @@ class Season06TestCase(APITestCase):
 
         # Improperly formatted values throw errors
         response = self.client.post(
-            "/season-06/join-challenge",
+            "/era-01/join-challenge",
             {
                 "discordUserId": "abc",
                 "discordUsername": "f",
@@ -59,7 +59,7 @@ class Season06TestCase(APITestCase):
 
         # New participant
         response = self.client.post(
-            "/season-06/join-challenge",
+            "/era-01/join-challenge",
             {
                 "discordUserId": "123",
                 "discordUsername": "test123",
@@ -77,7 +77,7 @@ class Season06TestCase(APITestCase):
 
         # Existing participant
         response = self.client.post(
-            "/season-06/join-challenge",
+            "/era-01/join-challenge",
             {
                 "discordUserId": "123",
                 "discordUsername": "test123",
@@ -95,7 +95,7 @@ class Season06TestCase(APITestCase):
 
     def test_save_buff_view(self):
         # Missing field values throw errors
-        response = self.client.post("/season-06/save-buff", {}, format="json")
+        response = self.client.post("/era-01/save-buff", {}, format="json")
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
         self.assertIn("discordUserId", details)
@@ -121,7 +121,7 @@ class Season06TestCase(APITestCase):
 
         # Improperly formatted values throw errors
         response = self.client.post(
-            "/season-06/save-buff",
+            "/era-01/save-buff",
             {
                 "discordUserId": "abc",
                 "discordUsername": "f",
@@ -165,7 +165,7 @@ class Season06TestCase(APITestCase):
         # New buff
         now_before_post = datetime.datetime.now(tz=datetime.timezone.utc)
         response = self.client.post(
-            "/season-06/save-buff",
+            "/era-01/save-buff",
             {
                 "discordUserId": "123",
                 "discordUsername": "test123",
@@ -187,7 +187,7 @@ class Season06TestCase(APITestCase):
 
         # Existing buff, bingo/challenge count update
         response = self.client.post(
-            "/season-06/save-buff",
+            "/era-01/save-buff",
             {
                 "discordUserId": "123",
                 "discordUsername": "test1234",
@@ -208,7 +208,7 @@ class Season06TestCase(APITestCase):
 
         # Existing buff, blackout
         response = self.client.post(
-            "/season-06/save-buff",
+            "/era-01/save-buff",
             {
                 "discordUserId": "123",
                 "discordUsername": "test1234",
@@ -230,7 +230,7 @@ class Season06TestCase(APITestCase):
     def test_check_participant_games_view(self):
         # Missing field values throw errors
         response = self.client.post(
-            "/season-06/check-participant-games", {}, format="json"
+            "/era-01/check-participant-games", {}, format="json"
         )
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
@@ -242,7 +242,7 @@ class Season06TestCase(APITestCase):
 
         # Improperly formatted values throw errors
         response = self.client.post(
-            "/season-06/check-participant-games",
+            "/era-01/check-participant-games",
             {
                 "discordUserIds": "abc",
             },

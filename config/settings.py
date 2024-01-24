@@ -34,6 +34,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 ALLOWED_HOSTS = env.str("ALLOWED_HOSTS", "*").split(" ")
 AZURE_CLIENT_ID = env.str("AZURE_CLIENT_ID", "")
 AZURE_CLIENT_SECRET = env.str("AZURE_CLIENT_SECRET", "")
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 DEBUG = env("DEBUG")
 ENVIRONMENT = env.str("ENVIRONMENT", "dev")
 INTERN_XUID = env.str("INTERN_XUID", "")
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_spectacular",
     "apps.discord",
+    "apps.era_01",
     "apps.fun_time_friday",
     "apps.halo_infinite",
     "apps.intern",
@@ -63,7 +65,6 @@ INSTALLED_APPS = [
     "apps.reputation",
     "apps.season_04",
     "apps.season_05",
-    "apps.season_06",
     "apps.series",
     "apps.showcase",
     "apps.trailblazer",

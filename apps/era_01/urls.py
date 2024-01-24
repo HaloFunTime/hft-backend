@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.season_06 import views
+from apps.era_01 import views
 
 urlpatterns = [
     path("check-bingo-card", views.CheckBingoCard.as_view(), name="check-bingo-card"),

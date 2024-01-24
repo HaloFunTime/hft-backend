@@ -6,17 +6,17 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
-from apps.halo_infinite.models import HaloInfiniteMatch
-from apps.season_06.models import BingoBuff
-from apps.season_06.utils import (
+from apps.era_01.models import BingoBuff
+from apps.era_01.utils import (
     EARLIEST_TIME,
     LATEST_TIME,
     fetch_match_ids_for_xuid,
     save_new_matches,
 )
+from apps.halo_infinite.models import HaloInfiniteMatch
 
 
-class Season06TestCase(TestCase):
+class Era01TestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
@@ -62,7 +62,7 @@ class UtilsTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
-    @patch("apps.season_06.utils.matches_between")
+    @patch("apps.era_01.utils.matches_between")
     def test_fetch_match_ids_for_xuid(self, mock_matches_between):
         # With no data
         mock_matches_between.return_value = []
@@ -161,8 +161,8 @@ class UtilsTestCase(TestCase):
             ],
         )
 
-    @patch("apps.season_06.utils.match_stats")
-    @patch("apps.season_06.utils.requests.Session")
+    @patch("apps.era_01.utils.match_stats")
+    @patch("apps.era_01.utils.requests.Session")
     def test_save_new_matches(self, mock_Session, mock_match_stats):
         mock_match_stats.side_effect = [
             {
