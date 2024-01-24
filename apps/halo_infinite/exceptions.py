@@ -10,5 +10,9 @@ class HaloInfiniteClearanceTokenMissingException(Exception):
     pass
 
 
+class MissingEraDataException(Exception):
+    pass
+
+
 class MissingSeasonDataException(Exception):
     pass

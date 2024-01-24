@@ -11,6 +11,7 @@ from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_SLAYER,
     GAME_VARIANT_CATEGORY_STRONGHOLDS,
     LEVEL_ID_RECHARGE,
+    LEVEL_ID_STREETS,
     MEDAL_ID_EXTERMINATION,
     SEASON_3_RANKED_ARENA_PLAYLIST_ID,
     SEASON_4_RANKED_ARENA_PLAYLIST_ID,
@@ -21,9 +22,11 @@ from apps.halo_infinite.utils import (
     get_csr_after_match,
     get_csrs,
     get_current_season_id,
+    get_era_ranked_arena_matches_for_xuid,
     get_first_and_last_days_for_season,
     get_season_ranked_arena_matches_for_xuid,
     get_service_record_data,
+    get_start_and_end_times_for_era,
 )
 
 logger = logging.getLogger(__name__)
@@ -528,3 +531,82 @@ def is_sherpa_qualified(xuid: int) -> bool:
         .get("current_reset_max_csr", 0)
     )
     return csr >= 1650
+
+
+def get_e1_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    start_time, end_time = get_start_and_end_times_for_era(1)
+    annotated_discord_accounts = DiscordAccount.objects.annotate(
+        attendances=Count(
+            "trailblazer_tuesday_attendees",
+            distinct=True,
+            filter=Q(
+                trailblazer_tuesday_attendees__attendee_discord_id__in=discord_ids,
+                trailblazer_tuesday_attendees__attendance_date__range=[
+                    start_time.date(),
+                    end_time.date() - datetime.timedelta(days=1),
+                ],
+            ),
+        ),
+    ).filter(discord_id__in=discord_ids)
+
+    earn_dict = {}
+    for account in annotated_discord_accounts:
+        earn_dict[account.discord_id] = {
+            "church_of_the_crab": min(account.attendances, 5) * 50,  # Max 5 per account
+        }
+    return earn_dict
+
+
+def get_e1_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    earn_dict = {}
+    for xuid in xuids:
+        wins = 0
+        slayer_wins = 0
+        streets_wins = 0
+        unlocked_hot_streak = False
+
+        # Get matches for this XUID
+        matches = get_era_ranked_arena_matches_for_xuid(xuid, 1)
+        matches_sorted = sorted(
+            matches,
+            key=lambda m: datetime.datetime.fromisoformat(
+                m.get("MatchInfo", {}).get("EndTime")
+            ),
+        )
+
+        # CSR Go Up: Win games in Ranked Arena. 1 point per win.
+        # Play to Slay: Win Slayer games in Ranked Arena. 5 points per win.
+        # Mean Streets: Win games on the map Streets in Ranked Arena. 5 points per win.
+        for match in matches:
+            if match.get("Outcome") == 2:
+                wins += 1
+            if (
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_SLAYER
+            ):
+                if match.get("Outcome") == 2:
+                    slayer_wins += 1
+            if match.get("MatchInfo", {}).get("LevelId", {}) == LEVEL_ID_STREETS:
+                if match.get("Outcome") == 2:
+                    streets_wins += 1
+
+        # Hot Streak: Finish first on the postgame scoreboard in 3 consecutive games
+        for i in range(len(matches_sorted) - 3):
+            match_a = matches[i]
+            match_b = matches[i + 1]
+            match_c = matches[i + 2]
+            if (
+                match_a.get("Rank") == 1
+                and match_b.get("Rank") == 1
+                and match_c.get("Rank") == 1
+            ):
+                unlocked_hot_streak = True
+                break
+
+        earn_dict[xuid] = {
+            "csr_go_up": min(wins, 200),
+            "play_to_slay": min(slayer_wins, 20) * 5,
+            "mean_streets": min(streets_wins, 20) * 5,
+            "hot_streak": 100 if unlocked_hot_streak else 0,
+        }
+    return earn_dict

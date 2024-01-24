@@ -11,7 +11,15 @@ from apps.discord.models import DiscordAccount
 from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.api.search import search_halofuntime_popular
 from apps.halo_infinite.constants import SEARCH_ASSET_KINDS
-from apps.halo_infinite.utils import get_current_season_id, get_waypoint_file_url
+from apps.halo_infinite.exceptions import (
+    MissingEraDataException,
+    MissingSeasonDataException,
+)
+from apps.halo_infinite.utils import (
+    get_current_era,
+    get_current_season_id,
+    get_waypoint_file_url,
+)
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
     PathfinderHikeGameParticipation,
@@ -32,6 +40,7 @@ from apps.pathfinder.serializers import (
     HikeQueueResponseSerializer,
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
+    PathfinderDynamoEra1ProgressResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
     PathfinderDynamoProgressResponseSerializer,
     PathfinderDynamoSeason3ProgressResponseSerializer,
@@ -58,6 +67,8 @@ from apps.pathfinder.utils import (
     PATHFINDER_WAYWO_COMMENT_MIN_LENGTH_FOR_BEAN_AWARD,
     change_beans,
     check_beans,
+    get_e1_discord_earn_dict,
+    get_e1_xbox_earn_dict,
     get_s3_discord_earn_dict,
     get_s3_xbox_earn_dict,
     get_s4_discord_earn_dict,
@@ -624,7 +635,21 @@ class PathfinderDynamoProgressView(APIView):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_username = validation_serializer.data.get("discordUsername")
             try:
-                season_id = get_current_season_id()
+                # Get the Season or Era
+                season_id = None
+                era = None
+                try:
+                    season_id = get_current_season_id()
+                except MissingSeasonDataException:
+                    pass
+                try:
+                    era = get_current_era()
+                except MissingEraDataException:
+                    pass
+                assert season_id is not None or era is not None
+                assert season_id is None or era is None
+
+                # Upsert the DiscordAccount & find a link record
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_username, request.user
                 )
@@ -725,6 +750,34 @@ class PathfinderDynamoProgressView(APIView):
                     xbox_earns = {}
                     if link is not None:
                         xbox_earns = get_s5_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsGoneHiking"] = xbox_earns.get(
+                        "gone_hiking", 0
+                    )
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
+                elif era == 1:
+                    serializer_class = PathfinderDynamoEra1ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_e1_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsBeanSpender"] = discord_earns.get(
+                        "bean_spender", 0
+                    )
+                    serializable_dict["pointsWhatAreYouWorkingOn"] = discord_earns.get(
+                        "what_are_you_working_on", 0
+                    )
+                    serializable_dict["pointsFeedbackFiend"] = discord_earns.get(
+                        "feedback_fiend", 0
+                    )
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_e1_xbox_earn_dict(
                             [link.xbox_live_account_id]
                         ).get(link.xbox_live_account_id)
                     serializable_dict["pointsGoneHiking"] = xbox_earns.get(

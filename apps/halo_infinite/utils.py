@@ -16,13 +16,18 @@ from apps.halo_infinite.api.search import search_by_author
 from apps.halo_infinite.api.service_record import service_record
 from apps.halo_infinite.constants import (
     CAREER_RANKS,
+    ERA_DATA_DICT,
+    PLAYLIST_ID_RANKED_ARENA,
     SEARCH_ASSET_KIND_MAP,
     SEARCH_ASSET_KIND_MODE,
     SEARCH_ASSET_KIND_PREFAB,
     SEARCH_ASSET_KINDS,
     SEASON_DATA_DICT,
 )
-from apps.halo_infinite.exceptions import MissingSeasonDataException
+from apps.halo_infinite.exceptions import (
+    MissingEraDataException,
+    MissingSeasonDataException,
+)
 from apps.halo_infinite.models import HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
@@ -44,6 +49,15 @@ def get_current_season_id() -> str:
         if start_time <= now < end_time:
             return season_id
     raise MissingSeasonDataException(f"Missing season ID for time '{now.isoformat()}'")
+
+
+def get_current_era() -> int:
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    for era in ERA_DATA_DICT.keys():
+        start_time, end_time = get_start_and_end_times_for_era(era)
+        if start_time <= now < end_time:
+            return era
+    raise MissingEraDataException(f"Missing era number for time '{now.isoformat()}'")
 
 
 def get_dev_map_ids_for_season(season_id: str) -> str:
@@ -384,3 +398,34 @@ def get_summary_stats(xuid: int):
         "local": {"games_played": match_count_dict.get("LocalMatchesPlayedCount")},
         "games_played": match_count_dict.get("MatchesPlayedCount"),
     }
+
+
+def get_start_and_end_times_for_era(
+    era: int,
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Returns a tuple with the start and end times for an integer Era.
+    """
+    start_time = ERA_DATA_DICT.get(era, {}).get("start_time", None)
+    end_time = ERA_DATA_DICT.get(era, {}).get("end_time", None)
+    if start_time is None:
+        raise MissingEraDataException(f"Missing 'start_time' for Era #{era}'")
+    if end_time is None:
+        raise MissingEraDataException(f"Missing 'end_time' for Era #{era}'")
+    return start_time, end_time
+
+
+def get_era_custom_matches_for_xuid(xuid: int, era: int) -> list[dict]:
+    start_time, end_time = get_start_and_end_times_for_era(era)
+    return matches_between(xuid, start_time, end_time, "Custom")
+
+
+def get_era_ranked_arena_matches_for_xuid(xuid: int, era: int):
+    start_time, end_time = get_start_and_end_times_for_era(era)
+    matches = matches_between(xuid, start_time, end_time, "Matchmaking")
+    return [
+        match
+        for match in matches
+        if match.get("MatchInfo", {}).get("Playlist", {}).get("AssetId")
+        == PLAYLIST_ID_RANKED_ARENA
+    ]

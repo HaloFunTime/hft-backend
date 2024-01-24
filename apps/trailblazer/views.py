@@ -7,9 +7,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
-from apps.halo_infinite.utils import get_current_season_id
+from apps.halo_infinite.exceptions import (
+    MissingEraDataException,
+    MissingSeasonDataException,
+)
+from apps.halo_infinite.utils import get_current_era, get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
 from apps.trailblazer.serializers import (
+    TrailblazerScoutEra1ProgressResponseSerializer,
     TrailblazerScoutProgressRequestSerializer,
     TrailblazerScoutProgressResponseSerializer,
     TrailblazerScoutSeason3ProgressResponseSerializer,
@@ -19,6 +24,8 @@ from apps.trailblazer.serializers import (
     TrailblazerSeasonalRoleCheckResponseSerializer,
 )
 from apps.trailblazer.utils import (
+    get_e1_discord_earn_dict,
+    get_e1_xbox_earn_dict,
     get_s3_discord_earn_dict,
     get_s3_xbox_earn_dict,
     get_s4_discord_earn_dict,
@@ -119,7 +126,21 @@ class TrailblazerScoutProgressView(APIView):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_username = validation_serializer.data.get("discordUsername")
             try:
-                season_id = get_current_season_id()
+                # Get the Season or Era
+                season_id = None
+                era = None
+                try:
+                    season_id = get_current_season_id()
+                except MissingSeasonDataException:
+                    pass
+                try:
+                    era = get_current_era()
+                except MissingEraDataException:
+                    pass
+                assert season_id is not None or era is not None
+                assert season_id is None or era is None
+
+                # Upsert the DiscordAccount & find a link record
                 discord_account = update_or_create_discord_account(
                     discord_id, discord_username, request.user
                 )
@@ -226,6 +247,31 @@ class TrailblazerScoutProgressView(APIView):
                     )
                     serializable_dict["pointsExterminator"] = xbox_earns.get(
                         "exterminator", 0
+                    )
+                elif era == 1:
+                    serializer_class = TrailblazerScoutEra1ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_e1_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsChurchOfTheCrab"] = discord_earns.get(
+                        "church_of_the_crab", 0
+                    )
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_e1_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsCSRGoUp"] = xbox_earns.get("csr_go_up", 0)
+                    serializable_dict["pointsPlayToSlay"] = xbox_earns.get(
+                        "play_to_slay", 0
+                    )
+                    serializable_dict["pointsMeanStreets"] = xbox_earns.get(
+                        "mean_streets", 0
+                    )
+                    serializable_dict["pointsHotStreak"] = xbox_earns.get(
+                        "hot_streak", 0
                     )
             except Exception as ex:
                 raise_exception(ex)

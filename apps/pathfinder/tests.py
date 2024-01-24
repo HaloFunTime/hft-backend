@@ -15,6 +15,7 @@ from apps.pathfinder.models import (
 from apps.pathfinder.utils import (
     change_beans,
     check_beans,
+    get_e1_discord_earn_dict,
     get_s3_discord_earn_dict,
     get_s4_discord_earn_dict,
     get_s5_discord_earn_dict,
@@ -397,6 +398,24 @@ class PathfinderUtilsTestCase(TestCase):
 
         # No IDs = No earn dicts
         earn_dict = get_s5_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # TODO: Complete this test.
+
+    def test_get_e1_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_e1_discord_earn_dict([])
         self.assertEqual(earn_dict, {})
 
         # TODO: Complete this test.
