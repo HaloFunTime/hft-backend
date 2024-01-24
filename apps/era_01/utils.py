@@ -91,13 +91,14 @@ def check_xuid_challenge(
         stat_path = challenge.stat.split("_")
         for team_stats in player_data["PlayerTeamStats"]:
             data = team_stats.get("Stats")
-            found = True
+            found = False
             while len(stat_path) > 0:
                 stat_piece = stat_path.pop(0)
                 if stat_piece in data:
                     data = data[stat_piece]
+                    if len(stat_path) == 0:
+                        found = True
                 else:
-                    found = False
                     break
             if found:
                 stat_data_type = STATS.get(challenge.stat)[0]
@@ -105,8 +106,8 @@ def check_xuid_challenge(
                 challenge_score = None
                 if stat_data_type == datetime.timedelta:
                     # Special case for durations
-                    actual_score = isodate.parse_duration(data)
-                    challenge_score = isodate.parse_duration(challenge.score)
+                    actual_score = isodate.parse_duration(str(data))
+                    challenge_score = isodate.parse_duration(str(challenge.score))
                 elif stat_data_type == list:
                     # Special case for medals
                     actual_score = 0
