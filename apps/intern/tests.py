@@ -18,7 +18,11 @@ from apps.intern.models import (
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
+    InternPathfinderProdigyDemotionQuip,
+    InternPathfinderProdigyPromotionQuip,
     InternPlusRepQuip,
+    InternTrailblazerTitanDemotionQuip,
+    InternTrailblazerTitanPromotionQuip,
 )
 from apps.intern.views import (
     INTERN_CHATTER_DEFAULT_MESSAGE,
@@ -36,7 +40,11 @@ from apps.intern.views import (
     INTERN_NEW_HERE_WELCOME_QUIP_DEFAULT,
     INTERN_NEW_HERE_YEET_QUIP_DEFAULT,
     INTERN_PASSION_REPORT_QUIP_DEFAULT,
+    INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_DEFAULT,
+    INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_DEFAULT,
     INTERN_PLUS_REP_QUIP_DEFAULT,
+    INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_DEFAULT,
+    INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_DEFAULT,
 )
 
 
@@ -138,10 +146,46 @@ def intern_passion_report_quip_factory(
     )
 
 
+def intern_pathfinder_prodigy_demotion_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternPathfinderProdigyDemotionQuip:
+    return InternPathfinderProdigyDemotionQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_pathfinder_prodigy_promotion_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternPathfinderProdigyPromotionQuip:
+    return InternPathfinderProdigyPromotionQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
 def intern_plus_rep_quip_factory(
     creator: User, quip_text: str = None
 ) -> InternPlusRepQuip:
     return InternPlusRepQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_trailblazer_titan_demotion_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternTrailblazerTitanDemotionQuip:
+    return InternTrailblazerTitanDemotionQuip.objects.create(
+        creator=creator,
+        quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
+    )
+
+
+def intern_trailblazer_titan_promotion_quip_factory(
+    creator: User, quip_text: str = None
+) -> InternTrailblazerTitanPromotionQuip:
+    return InternTrailblazerTitanPromotionQuip.objects.create(
         creator=creator,
         quip_text=uuid.uuid4().hex if quip_text is None else quip_text,
     )
@@ -446,6 +490,54 @@ class InternPassionReportQuipTestCase(APITestCase):
         self.assertEqual(response.data, {"quip": quip_text})
 
 
+class InternPathfinderProdigyDemotionQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_pathfinder_prodigy_demotion_quip(self):
+        # Empty InternPathfinderProdigyDemotionQuip table returns default quip
+        response = self.client.get("/intern/random-pathfinder-prodigy-demotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_pathfinder_prodigy_demotion_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-pathfinder-prodigy-demotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternPathfinderProdigyPromotionQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_pathfinder_prodigy_promotion_quip(self):
+        # Empty InternPathfinderProdigyPromotionQuip table returns default quip
+        response = self.client.get("/intern/random-pathfinder-prodigy-promotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_pathfinder_prodigy_promotion_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-pathfinder-prodigy-promotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
 class InternPlusRepQuipTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -464,5 +556,53 @@ class InternPlusRepQuipTestCase(APITestCase):
         quip_text = "This is my test quip message."
         intern_plus_rep_quip_factory(self.user, quip_text)
         response = self.client.get("/intern/random-plus-rep-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternTrailblazerTitanDemotionQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_trailblazer_titan_demotion_quip(self):
+        # Empty InternTrailblazerTitanDemotionQuip table returns default quip
+        response = self.client.get("/intern/random-trailblazer-titan-demotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_trailblazer_titan_demotion_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-trailblazer-titan-demotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"quip": quip_text})
+
+
+class InternTrailblazerTitanPromotionQuipTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
+        )
+        token, _created = Token.objects.get_or_create(user=self.user)
+        self.client = APIClient(HTTP_AUTHORIZATION="Bearer " + token.key)
+
+    def test_intern_random_intern_trailblazer_titan_promotion_quip(self):
+        # Empty InternTrailblazerTitanPromotionQuip table returns default quip
+        response = self.client.get("/intern/random-trailblazer-titan-promotion-quip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data, {"quip": INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_DEFAULT}
+        )
+
+        # Returned quip matches record (if there's only one in the table)
+        quip_text = "This is my test quip message."
+        intern_trailblazer_titan_promotion_quip_factory(self.user, quip_text)
+        response = self.client.get("/intern/random-trailblazer-titan-promotion-quip")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"quip": quip_text})

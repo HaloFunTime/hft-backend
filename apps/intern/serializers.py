@@ -86,9 +86,41 @@ class InternPassionReportQuipErrorSerializer(serializers.Serializer):
     error = serializers.CharField()
 
 
+class InternPathfinderProdigyDemotionQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternPathfinderProdigyDemotionQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternPathfinderProdigyPromotionQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternPathfinderProdigyPromotionQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
 class InternPlusRepQuipSerializer(serializers.Serializer):
     quip = serializers.CharField()
 
 
 class InternPlusRepQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternTrailblazerTitanDemotionQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternTrailblazerTitanDemotionQuipErrorSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class InternTrailblazerTitanPromotionQuipSerializer(serializers.Serializer):
+    quip = serializers.CharField()
+
+
+class InternTrailblazerTitanPromotionQuipErrorSerializer(serializers.Serializer):
     error = serializers.CharField()

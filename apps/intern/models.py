@@ -230,12 +230,96 @@ class InternPassionReportQuip(Base):
         return self.short_quip_text
 
 
+class InternPathfinderProdigyDemotionQuip(Base):
+    class Meta:
+        db_table = "InternPathfinderProdigyDemotionQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Pathfinder Prodigy Demotion Quip"
+        verbose_name_plural = "Pathfinder Prodigy Demotion Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternPathfinderProdigyPromotionQuip(Base):
+    class Meta:
+        db_table = "InternPathfinderProdigyPromotionQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Pathfinder Prodigy Promotion Quip"
+        verbose_name_plural = "Pathfinder Prodigy Promotion Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
 class InternPlusRepQuip(Base):
     class Meta:
         db_table = "InternPlusRepQuip"
         ordering = ["-updated_at"]
         verbose_name = "Plus Rep Quip"
         verbose_name_plural = "Plus Rep Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternTrailblazerTitanDemotionQuip(Base):
+    class Meta:
+        db_table = "InternTrailblazerTitanDemotionQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Trailblazer Titan Demotion Quip"
+        verbose_name_plural = "Trailblazer Titan Demotion Quips"
+
+    quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
+
+    @property
+    def short_quip_text(self):
+        return (
+            (self.quip_text[:50] + "...")
+            if len(self.quip_text) > 50
+            else self.quip_text
+        )
+
+    def __str__(self):
+        return self.short_quip_text
+
+
+class InternTrailblazerTitanPromotionQuip(Base):
+    class Meta:
+        db_table = "InternTrailblazerTitanPromotionQuip"
+        ordering = ["-updated_at"]
+        verbose_name = "Trailblazer Titan Promotion Quip"
+        verbose_name_plural = "Trailblazer Titan Promotion Quips"
 
     quip_text = models.CharField(max_length=200, blank=True, verbose_name="Quip Text")
 

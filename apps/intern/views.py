@@ -18,7 +18,11 @@ from apps.intern.models import (
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
+    InternPathfinderProdigyDemotionQuip,
+    InternPathfinderProdigyPromotionQuip,
     InternPlusRepQuip,
+    InternTrailblazerTitanDemotionQuip,
+    InternTrailblazerTitanPromotionQuip,
 )
 from apps.intern.serializers import (
     InternChatterErrorSerializer,
@@ -42,8 +46,16 @@ from apps.intern.serializers import (
     InternNewHereYeetQuipSerializer,
     InternPassionReportQuipErrorSerializer,
     InternPassionReportQuipSerializer,
+    InternPathfinderProdigyDemotionQuipErrorSerializer,
+    InternPathfinderProdigyDemotionQuipSerializer,
+    InternPathfinderProdigyPromotionQuipErrorSerializer,
+    InternPathfinderProdigyPromotionQuipSerializer,
     InternPlusRepQuipErrorSerializer,
     InternPlusRepQuipSerializer,
+    InternTrailblazerTitanDemotionQuipErrorSerializer,
+    InternTrailblazerTitanDemotionQuipSerializer,
+    InternTrailblazerTitanPromotionQuipErrorSerializer,
+    InternTrailblazerTitanPromotionQuipSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -85,8 +97,16 @@ INTERN_NEW_HERE_YEET_QUIP_DEFAULT = "Bye!"
 INTERN_NEW_HERE_YEET_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_PASSION_REPORT_QUIP_DEFAULT = "Passion."
 INTERN_PASSION_REPORT_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_DEFAULT = "You've been rotated out."
+INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_DEFAULT = "You're a talented Forger!"
+INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 INTERN_PLUS_REP_QUIP_DEFAULT = "Giving rep is a great way to thank someone."
 INTERN_PLUS_REP_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_DEFAULT = "You didn't have enough passion."
+INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
+INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_DEFAULT = "You're brimming with passion!"
+INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_ERROR_UNKNOWN = "An unknown error occurred."
 
 
 class RandomInternChatter(APIView):
@@ -385,6 +405,68 @@ class RandomInternPassionReportQuip(APIView):
         )
 
 
+class RandomInternPathfinderProdigyDemotionQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternPathfinderProdigyDemotionQuipSerializer,
+            500: InternPathfinderProdigyDemotionQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternPathfinderProdigyDemotionQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_DEFAULT
+        try:
+            random_quips = InternPathfinderProdigyDemotionQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternPathfinderProdigyDemotionQuipErrorSerializer(
+                {"error": INTERN_PATHFINDER_PRODIGY_DEMOTION_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternPathfinderProdigyDemotionQuipSerializer(
+            {"quip": random_quip}
+        )
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternPathfinderProdigyPromotionQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternPathfinderProdigyPromotionQuipSerializer,
+            500: InternPathfinderProdigyPromotionQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternPathfinderProdigyPromotionQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_DEFAULT
+        try:
+            random_quips = InternPathfinderProdigyPromotionQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternPathfinderProdigyPromotionQuipErrorSerializer(
+                {"error": INTERN_PATHFINDER_PRODIGY_PROMOTION_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternPathfinderProdigyPromotionQuipSerializer(
+            {"quip": random_quip}
+        )
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
 class RandomInternPlusRepQuip(APIView):
     @extend_schema(
         responses={
@@ -409,6 +491,66 @@ class RandomInternPlusRepQuip(APIView):
             )
             return Response(serializer.data, status=500)
         serializer = InternPlusRepQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternTrailblazerTitanDemotionQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternTrailblazerTitanDemotionQuipSerializer,
+            500: InternTrailblazerTitanDemotionQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternTrailblazerTitanDemotionQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_DEFAULT
+        try:
+            random_quips = InternTrailblazerTitanDemotionQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternTrailblazerTitanDemotionQuipErrorSerializer(
+                {"error": INTERN_TRAILBLAZER_TITAN_DEMOTION_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternTrailblazerTitanDemotionQuipSerializer({"quip": random_quip})
+        return Response(
+            serializer.data, status=200, headers={"Cache-Control": "no-cache"}
+        )
+
+
+class RandomInternTrailblazerTitanPromotionQuip(APIView):
+    @extend_schema(
+        responses={
+            200: InternTrailblazerTitanPromotionQuipSerializer,
+            500: InternTrailblazerTitanPromotionQuipErrorSerializer,
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves a random InternTrailblazerTitanPromotionQuip.
+        """
+        # Get a random quip and return it
+        random_quip = INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_DEFAULT
+        try:
+            random_quips = InternTrailblazerTitanPromotionQuip.objects.order_by("?")
+            if random_quips.count() > 0:
+                random_quip = random_quips.first().quip_text
+        except Exception as ex:
+            logger.error(ex)
+            serializer = InternTrailblazerTitanPromotionQuipErrorSerializer(
+                {"error": INTERN_TRAILBLAZER_TITAN_PROMOTION_QUIP_ERROR_UNKNOWN}
+            )
+            return Response(serializer.data, status=500)
+        serializer = InternTrailblazerTitanPromotionQuipSerializer(
+            {"quip": random_quip}
+        )
         return Response(
             serializer.data, status=200, headers={"Cache-Control": "no-cache"}
         )

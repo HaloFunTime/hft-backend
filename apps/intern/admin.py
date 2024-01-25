@@ -12,7 +12,11 @@ from apps.intern.models import (
     InternNewHereWelcomeQuip,
     InternNewHereYeetQuip,
     InternPassionReportQuip,
+    InternPathfinderProdigyDemotionQuip,
+    InternPathfinderProdigyPromotionQuip,
     InternPlusRepQuip,
+    InternTrailblazerTitanDemotionQuip,
+    InternTrailblazerTitanPromotionQuip,
 )
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 
@@ -102,8 +106,36 @@ class InternPassionReportQuipAdmin(AutofillCreatorModelAdmin):
     fields = ("quip_text", "creator")
 
 
+@admin.register(InternPathfinderProdigyDemotionQuip)
+class InternPathfinderProdigyDemotionQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
+
+
+@admin.register(InternPathfinderProdigyPromotionQuip)
+class InternPathfinderProdigyPromotionQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
+
+
 @admin.register(InternPlusRepQuip)
 class InternPlusRepQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
+
+
+@admin.register(InternTrailblazerTitanDemotionQuip)
+class InternTrailblazerTitanDemotionQuipAdmin(AutofillCreatorModelAdmin):
+    list_display = ("id", "short_quip_text", "creator")
+    list_filter = ("creator",)
+    fields = ("quip_text", "creator")
+
+
+@admin.register(InternTrailblazerTitanPromotionQuip)
+class InternTrailblazerTitanPromotionQuipAdmin(AutofillCreatorModelAdmin):
     list_display = ("id", "short_quip_text", "creator")
     list_filter = ("creator",)
     fields = ("quip_text", "creator")
