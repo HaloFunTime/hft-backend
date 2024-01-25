@@ -1,9 +1,12 @@
 import datetime
 import logging
 
+import requests
+
 from apps.halo_infinite.api.career_rank import career_rank
 from apps.halo_infinite.api.csr import csr
 from apps.halo_infinite.api.files import get_map, get_mode, get_playlist
+from apps.halo_infinite.api.map_mode_pair import get_map_mode_pair
 from apps.halo_infinite.api.match import (
     last_25_matches,
     match_count,
@@ -272,6 +275,41 @@ def get_csrs(xuids: list[int], playlist_id: str):
             ),
         }
     return return_dict
+
+
+def update_known_playlists():
+    known_playlists = HaloInfinitePlaylist.objects.all()
+    for playlist in known_playlists:
+        playlist.save()
+
+
+def get_contributor_xuids_for_maps_in_active_playlists() -> set[int]:
+    contributor_xuids = set()
+    with requests.Session() as s:
+        # Retrieve MapModePair IDs (Asset/Version) for all active playlists
+        active_playlists = HaloInfinitePlaylist.objects.filter(active=True)
+        map_mode_pair_ids = set()
+        for playlist in active_playlists:
+            playlist_version_info = playlist_version(
+                playlist.playlist_id, playlist.version_id
+            )
+            for rotation_entry in playlist_version_info.get("RotationEntries", []):
+                map_mode_pair_ids.add(
+                    (rotation_entry["AssetId"], rotation_entry["VersionId"])
+                )
+
+        # Retrieve contributor XUIDs for the MapLinks in each MapModePair
+        for map_mode_pair_id in map_mode_pair_ids:
+            asset_id = map_mode_pair_id[0]
+            version_id = map_mode_pair_id[1]
+            for contributor in (
+                get_map_mode_pair(asset_id, version_id, s)
+                .get("MapLink", {})
+                .get("Contributors")
+            ):
+                contributor_xuids.add(int(contributor.lstrip("xuid(").rstrip(")")))
+
+    return contributor_xuids
 
 
 def get_playlist_latest_version_info(playlist_id: str):

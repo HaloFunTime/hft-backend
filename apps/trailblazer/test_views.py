@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -7,6 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
 from apps.link.models import DiscordXboxLiveLink
+from apps.trailblazer.constants import TRAILBLAZER_TITAN_CSR_MINIMUM
 from apps.xbox_live.models import XboxLiveAccount
 
 
@@ -840,3 +842,383 @@ class TrailblazerTestCase(APITestCase):
         mock_get_e1_xbox_earn_dict.assert_not_called()
         mock_get_e1_discord_earn_dict.reset_mock()
         mock_get_e1_xbox_earn_dict.reset_mock()
+
+    @patch("apps.trailblazer.views.get_csrs")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_trailblazer_titan_check_view(
+        self, mock_get_xuid_and_exact_gamertag, mock_get_csrs
+    ):
+        # Missing field values throw errors
+        response = self.client.post("/trailblazer/titan-check", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("playlistId", details)
+        self.assertEqual(
+            details.get("playlistId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/trailblazer/titan-check",
+            {"discordUserIds": ["abc"], "playlistId": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds")[0],
+            [
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                )
+            ],
+        )
+        self.assertIn("playlistId", details)
+        self.assertEqual(
+            details.get("playlistId"),
+            [
+                ErrorDetail(
+                    string="Only a valid UUID string is allowed.", code="invalid"
+                )
+            ],
+        )
+
+        # Create some test data
+        test_playlist_id = str(uuid.uuid4())
+        links = []
+        for i in range(10):
+            mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
+            discord_account = DiscordAccount.objects.create(
+                creator=self.user,
+                discord_id=str(i),
+                discord_username=f"TestUsername{i}",
+            )
+            xbox_live_account = XboxLiveAccount.objects.create(
+                creator=self.user, gamertag=f"testGT{i}"
+            )
+            links.append(
+                DiscordXboxLiveLink.objects.create(
+                    creator=self.user,
+                    discord_account=discord_account,
+                    xbox_live_account=xbox_live_account,
+                    verified=True,
+                )
+            )
+
+        def titan_check_dict(discord_id, csr):
+            return {
+                "currentCSR": csr,
+                "discordUserId": discord_id,
+            }
+
+        # Exception in get_csrs throws error
+        mock_get_csrs.side_effect = Exception()
+        response = self.client.post(
+            "/trailblazer/titan-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                ],
+                "playlistId": test_playlist_id,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Trailblazer Titan check.", code="error"
+            ),
+        )
+        mock_get_csrs.assert_called_once_with(
+            [
+                links[0].xbox_live_account_id,
+                links[1].xbox_live_account_id,
+                links[2].xbox_live_account_id,
+            ],
+            test_playlist_id,
+        )
+        mock_get_csrs.reset_mock()
+
+        # Success - all accounts have ranks
+        mock_get_csrs.return_value = {
+            "csrs": {
+                links[0].xbox_live_account_id: {
+                    "current_csr": 1800,
+                },
+                links[1].xbox_live_account_id: {
+                    "current_csr": 1700,
+                },
+                links[2].xbox_live_account_id: {
+                    "current_csr": 1600,
+                },
+                links[3].xbox_live_account_id: {
+                    "current_csr": 1599,
+                },
+                links[4].xbox_live_account_id: {
+                    "current_csr": 1500,
+                },
+                links[5].xbox_live_account_id: {
+                    "current_csr": 1400,
+                },
+                links[6].xbox_live_account_id: {
+                    "current_csr": 1300,
+                },
+                links[7].xbox_live_account_id: {
+                    "current_csr": 1200,
+                },
+                links[8].xbox_live_account_id: {
+                    "current_csr": 1000,
+                },
+                links[9].xbox_live_account_id: {
+                    "current_csr": 900,
+                },
+            }
+        }
+        mock_get_csrs.side_effect = None
+        response = self.client.post(
+            "/trailblazer/titan-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+                "playlistId": test_playlist_id,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [
+                titan_check_dict(links[0].discord_account_id, 1800),
+                titan_check_dict(links[1].discord_account_id, 1700),
+                titan_check_dict(links[2].discord_account_id, 1600),
+            ],
+        )
+        self.assertCountEqual(
+            response.data.get("no"),
+            [
+                titan_check_dict(links[3].discord_account_id, 1599),
+                titan_check_dict(links[4].discord_account_id, 1500),
+                titan_check_dict(links[5].discord_account_id, 1400),
+                titan_check_dict(links[6].discord_account_id, 1300),
+                titan_check_dict(links[7].discord_account_id, 1200),
+                titan_check_dict(links[8].discord_account_id, 1000),
+                titan_check_dict(links[9].discord_account_id, 900),
+            ],
+        )
+        self.assertEqual(
+            response.data.get("thresholdCSR"), TRAILBLAZER_TITAN_CSR_MINIMUM
+        )
+        mock_get_csrs.assert_called_once_with(
+            [
+                links[0].xbox_live_account_id,
+                links[1].xbox_live_account_id,
+                links[2].xbox_live_account_id,
+                links[3].xbox_live_account_id,
+                links[4].xbox_live_account_id,
+                links[5].xbox_live_account_id,
+                links[6].xbox_live_account_id,
+                links[7].xbox_live_account_id,
+                links[8].xbox_live_account_id,
+                links[9].xbox_live_account_id,
+            ],
+            test_playlist_id,
+        )
+        mock_get_csrs.reset_mock()
+
+        # Success - some accounts have ranks and some are unranked
+        mock_get_csrs.return_value = {
+            "csrs": {
+                links[0].xbox_live_account_id: {
+                    "current_csr": 1600,
+                },
+                links[1].xbox_live_account_id: {
+                    "current_csr": 1600,
+                },
+                links[2].xbox_live_account_id: {
+                    "current_csr": 1500,
+                },
+                links[3].xbox_live_account_id: {
+                    "current_csr": 1500,
+                },
+                links[4].xbox_live_account_id: {
+                    "current_csr": None,
+                },
+                links[5].xbox_live_account_id: {
+                    "current_csr": None,
+                },
+                links[6].xbox_live_account_id: {
+                    "current_csr": 800,
+                },
+                links[7].xbox_live_account_id: {
+                    "current_csr": None,
+                },
+                links[8].xbox_live_account_id: {
+                    "current_csr": 1650,
+                },
+                links[9].xbox_live_account_id: {
+                    "current_csr": None,
+                },
+            }
+        }
+        mock_get_csrs.side_effect = None
+        response = self.client.post(
+            "/trailblazer/titan-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+                "playlistId": test_playlist_id,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [
+                titan_check_dict(links[0].discord_account_id, 1600),
+                titan_check_dict(links[1].discord_account_id, 1600),
+                titan_check_dict(links[8].discord_account_id, 1650),
+            ],
+        )
+        self.assertCountEqual(
+            response.data.get("no"),
+            [
+                titan_check_dict(links[2].discord_account_id, 1500),
+                titan_check_dict(links[3].discord_account_id, 1500),
+                titan_check_dict(links[4].discord_account_id, None),
+                titan_check_dict(links[5].discord_account_id, None),
+                titan_check_dict(links[6].discord_account_id, 800),
+                titan_check_dict(links[7].discord_account_id, None),
+                titan_check_dict(links[9].discord_account_id, None),
+            ],
+        )
+        self.assertEqual(
+            response.data.get("thresholdCSR"), TRAILBLAZER_TITAN_CSR_MINIMUM
+        )
+        mock_get_csrs.assert_called_once_with(
+            [
+                links[0].xbox_live_account_id,
+                links[1].xbox_live_account_id,
+                links[2].xbox_live_account_id,
+                links[3].xbox_live_account_id,
+                links[4].xbox_live_account_id,
+                links[5].xbox_live_account_id,
+                links[6].xbox_live_account_id,
+                links[7].xbox_live_account_id,
+                links[8].xbox_live_account_id,
+                links[9].xbox_live_account_id,
+            ],
+            test_playlist_id,
+        )
+        mock_get_csrs.reset_mock()
+
+        # Success - some rank data missing from CSR result
+        mock_get_csrs.return_value = {
+            "csrs": {
+                links[0].xbox_live_account_id: {
+                    "current_csr": 1800,
+                },
+                links[2].xbox_live_account_id: {
+                    "current_csr": 1600,
+                },
+                links[4].xbox_live_account_id: {
+                    "current_csr": 1500,
+                },
+                links[6].xbox_live_account_id: {
+                    "current_csr": 1200,
+                },
+                links[8].xbox_live_account_id: {
+                    "current_csr": 700,
+                },
+            }
+        }
+        mock_get_csrs.side_effect = None
+        response = self.client.post(
+            "/trailblazer/titan-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+                "playlistId": test_playlist_id,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [
+                titan_check_dict(links[0].discord_account_id, 1800),
+                titan_check_dict(links[2].discord_account_id, 1600),
+            ],
+        )
+        self.assertCountEqual(
+            response.data.get("no"),
+            [
+                titan_check_dict(links[1].discord_account_id, None),
+                titan_check_dict(links[3].discord_account_id, None),
+                titan_check_dict(links[4].discord_account_id, 1500),
+                titan_check_dict(links[5].discord_account_id, None),
+                titan_check_dict(links[6].discord_account_id, 1200),
+                titan_check_dict(links[7].discord_account_id, None),
+                titan_check_dict(links[8].discord_account_id, 700),
+                titan_check_dict(links[9].discord_account_id, None),
+            ],
+        )
+        self.assertEqual(
+            response.data.get("thresholdCSR"), TRAILBLAZER_TITAN_CSR_MINIMUM
+        )
+        mock_get_csrs.assert_called_once_with(
+            [
+                links[0].xbox_live_account_id,
+                links[1].xbox_live_account_id,
+                links[2].xbox_live_account_id,
+                links[3].xbox_live_account_id,
+                links[4].xbox_live_account_id,
+                links[5].xbox_live_account_id,
+                links[6].xbox_live_account_id,
+                links[7].xbox_live_account_id,
+                links[8].xbox_live_account_id,
+                links[9].xbox_live_account_id,
+            ],
+            test_playlist_id,
+        )
+        mock_get_csrs.reset_mock()

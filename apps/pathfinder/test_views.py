@@ -1737,6 +1737,276 @@ class PathfinderTestCase(APITestCase):
         mock_get_e1_discord_earn_dict.reset_mock()
         mock_get_e1_xbox_earn_dict.reset_mock()
 
+    @patch("apps.pathfinder.views.get_contributor_xuids_for_maps_in_active_playlists")
+    @patch("apps.pathfinder.views.update_known_playlists")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    def test_pathfinder_prodigy_check_view(
+        self,
+        mock_get_xuid_and_exact_gamertag,
+        mock_update_known_playlists,
+        mock_get_contributor_xuids_for_maps_in_active_playlists,
+    ):
+        # Missing field values throw errors
+        response = self.client.post("/pathfinder/prodigy-check", {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {"discordUserIds": ["abc"]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserIds", details)
+        self.assertEqual(
+            details.get("discordUserIds")[0],
+            [
+                ErrorDetail(
+                    string="Only numeric characters are allowed.", code="invalid"
+                )
+            ],
+        )
+
+        # Create some test data
+        links = []
+        for i in range(10):
+            mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
+            discord_account = DiscordAccount.objects.create(
+                creator=self.user,
+                discord_id=str(i),
+                discord_username=f"TestUsername{i}",
+            )
+            xbox_live_account = XboxLiveAccount.objects.create(
+                creator=self.user, gamertag=f"testGT{i}"
+            )
+            links.append(
+                DiscordXboxLiveLink.objects.create(
+                    creator=self.user,
+                    discord_account=discord_account,
+                    xbox_live_account=xbox_live_account,
+                    verified=True,
+                )
+            )
+
+        def prodigy_check_dict(discord_id):
+            return {
+                "discordUserId": discord_id,
+            }
+
+        # Exception in update_known_playlists throws error
+        mock_update_known_playlists.side_effect = Exception()
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Prodigy check.", code="error"
+            ),
+        )
+        mock_update_known_playlists.assert_called_once()
+        mock_update_known_playlists.reset_mock()
+        mock_update_known_playlists.side_effect = None
+
+        # Exception in get_contributor_xuids_for_maps_in_active_playlists throws error
+        mock_get_contributor_xuids_for_maps_in_active_playlists.side_effect = (
+            Exception()
+        )
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Prodigy check.", code="error"
+            ),
+        )
+        mock_update_known_playlists.assert_called_once()
+        mock_update_known_playlists.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.side_effect = None
+
+        # Success - 5/10 accounts qualify
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {
+            links[0].xbox_live_account_id,
+            links[2].xbox_live_account_id,
+            links[4].xbox_live_account_id,
+            links[6].xbox_live_account_id,
+            links[8].xbox_live_account_id,
+        }
+        mock_update_known_playlists.side_effect = None
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [
+                prodigy_check_dict(links[0].discord_account_id),
+                prodigy_check_dict(links[2].discord_account_id),
+                prodigy_check_dict(links[4].discord_account_id),
+                prodigy_check_dict(links[6].discord_account_id),
+                prodigy_check_dict(links[8].discord_account_id),
+            ],
+        )
+        self.assertCountEqual(
+            response.data.get("no"),
+            [
+                prodigy_check_dict(links[1].discord_account_id),
+                prodigy_check_dict(links[3].discord_account_id),
+                prodigy_check_dict(links[5].discord_account_id),
+                prodigy_check_dict(links[7].discord_account_id),
+                prodigy_check_dict(links[9].discord_account_id),
+            ],
+        )
+        mock_update_known_playlists.assert_called_once()
+        mock_update_known_playlists.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # Success - all accounts qualify
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {
+            links[0].xbox_live_account_id,
+            links[1].xbox_live_account_id,
+            links[2].xbox_live_account_id,
+            links[3].xbox_live_account_id,
+            links[4].xbox_live_account_id,
+            links[5].xbox_live_account_id,
+            links[6].xbox_live_account_id,
+            links[7].xbox_live_account_id,
+            links[8].xbox_live_account_id,
+            links[9].xbox_live_account_id,
+        }
+        mock_update_known_playlists.side_effect = None
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [
+                prodigy_check_dict(links[0].discord_account_id),
+                prodigy_check_dict(links[1].discord_account_id),
+                prodigy_check_dict(links[2].discord_account_id),
+                prodigy_check_dict(links[3].discord_account_id),
+                prodigy_check_dict(links[4].discord_account_id),
+                prodigy_check_dict(links[5].discord_account_id),
+                prodigy_check_dict(links[6].discord_account_id),
+                prodigy_check_dict(links[7].discord_account_id),
+                prodigy_check_dict(links[8].discord_account_id),
+                prodigy_check_dict(links[9].discord_account_id),
+            ],
+        )
+        self.assertCountEqual(response.data.get("no"), [])
+        mock_update_known_playlists.assert_called_once()
+        mock_update_known_playlists.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # Success - no accounts qualify
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {}
+        mock_update_known_playlists.side_effect = None
+        response = self.client.post(
+            "/pathfinder/prodigy-check",
+            {
+                "discordUserIds": [
+                    links[0].discord_account_id,
+                    links[1].discord_account_id,
+                    links[2].discord_account_id,
+                    links[3].discord_account_id,
+                    links[4].discord_account_id,
+                    links[5].discord_account_id,
+                    links[6].discord_account_id,
+                    links[7].discord_account_id,
+                    links[8].discord_account_id,
+                    links[9].discord_account_id,
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            response.data.get("yes"),
+            [],
+        )
+        self.assertCountEqual(
+            response.data.get("no"),
+            [
+                prodigy_check_dict(links[0].discord_account_id),
+                prodigy_check_dict(links[1].discord_account_id),
+                prodigy_check_dict(links[2].discord_account_id),
+                prodigy_check_dict(links[3].discord_account_id),
+                prodigy_check_dict(links[4].discord_account_id),
+                prodigy_check_dict(links[5].discord_account_id),
+                prodigy_check_dict(links[6].discord_account_id),
+                prodigy_check_dict(links[7].discord_account_id),
+                prodigy_check_dict(links[8].discord_account_id),
+                prodigy_check_dict(links[9].discord_account_id),
+            ],
+        )
+        mock_update_known_playlists.assert_called_once()
+        mock_update_known_playlists.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
     @patch("apps.pathfinder.views.now_utc")
     def test_weekly_recap_view(self, mock_now_utc):
         mock_now_utc.return_value = datetime.datetime(

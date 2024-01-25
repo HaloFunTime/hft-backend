@@ -42,8 +42,8 @@ class HaloInfiniteMatchAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(HaloInfinitePlaylist)
 class HaloInfinitePlaylistAdmin(AutofillCreatorModelAdmin):
-    list_display = ("playlist_id", "name", "active", "ranked", "creator")
-    list_filter = ("ranked", "creator")
+    list_display = ("name", "description", "active", "ranked", "creator")
+    list_filter = ("active", "ranked", "creator")
     fields = (
         "playlist_id",
         "version_id",

@@ -16,9 +16,11 @@ from apps.halo_infinite.exceptions import (
     MissingSeasonDataException,
 )
 from apps.halo_infinite.utils import (
+    get_contributor_xuids_for_maps_in_active_playlists,
     get_current_era,
     get_current_season_id,
     get_waypoint_file_url,
+    update_known_playlists,
 )
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
@@ -46,6 +48,9 @@ from apps.pathfinder.serializers import (
     PathfinderDynamoSeason3ProgressResponseSerializer,
     PathfinderDynamoSeason4ProgressResponseSerializer,
     PathfinderDynamoSeason5ProgressResponseSerializer,
+    PathfinderProdigyCheckRequestSerializer,
+    PathfinderProdigyCheckResponseSerializer,
+    PathfinderProdigyCheckSerializer,
     PathfinderSeasonalRoleCheckRequestSerializer,
     PathfinderSeasonalRoleCheckResponseSerializer,
     PopularFileSerializer,
@@ -385,6 +390,93 @@ class HikeSubmissionView(APIView):
                     "Error attempting to create a PathfinderHikeSubmission."
                 )
             serializer = HikeSubmissionPostResponseSerializer({"success": True})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PathfinderProdigyCheckView(APIView):
+    @extend_schema(
+        request=PathfinderProdigyCheckRequestSerializer,
+        responses={
+            200: PathfinderProdigyCheckResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
+        Halo Infinite API, and returning a payload indicating whether or not each one qualifies for Trailblazer Titan.
+        """
+        validation_serializer = PathfinderProdigyCheckRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_ids = validation_serializer.data.get("discordUserIds")
+            try:
+                # Get the XUIDs from all verified DiscordXboxLiveLink records matching the input discordUserIDs
+                links = (
+                    DiscordXboxLiveLink.objects.filter(
+                        discord_account_id__in=discord_ids
+                    )
+                    .filter(verified=True)
+                    .order_by("created_at")
+                )
+                xuid_to_discord_id = {
+                    link.xbox_live_account_id: link.discord_account_id for link in links
+                }
+                xuids = [link.xbox_live_account_id for link in links]
+
+                # Update known playlists
+                update_known_playlists()
+
+                # Get contributor XUIDs for all maps in all active playlists
+                contributor_xuids = get_contributor_xuids_for_maps_in_active_playlists()
+                logger.info(contributor_xuids)
+
+                # For each Pathfinder XUID, add Discord IDs to the appropriate yes/no list
+                linked_discord_ids = set()
+                yes = []
+                no = []
+                for xuid in xuids:
+                    discord_id = xuid_to_discord_id.get(xuid)
+                    linked_discord_ids.add(discord_id)
+                    if xuid in contributor_xuids:
+                        yes.append(
+                            PathfinderProdigyCheckSerializer(
+                                {
+                                    "discordUserId": discord_id,
+                                }
+                            ).data
+                        )
+                    else:
+                        no.append(
+                            PathfinderProdigyCheckSerializer(
+                                {
+                                    "discordUserId": discord_id,
+                                }
+                            ).data
+                        )
+
+                # For Discord IDs without linked gamertags, automatically add them to the no list
+                unlinked_discord_ids = set(discord_ids).difference(linked_discord_ids)
+                for discord_id in unlinked_discord_ids:
+                    no.append(
+                        PathfinderProdigyCheckSerializer(
+                            {
+                                "discordUserId": discord_id,
+                            }
+                        ).data
+                    )
+            except Exception as ex:
+                logger.error("Error attempting the Pathfinder Prodigy check.")
+                logger.error(ex)
+                raise APIException("Error attempting the Pathfinder Prodigy check.")
+            serializer = PathfinderProdigyCheckResponseSerializer(
+                {
+                    "yes": yes,
+                    "no": no,
+                }
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 

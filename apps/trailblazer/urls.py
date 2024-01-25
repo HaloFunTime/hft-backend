@@ -13,4 +13,9 @@ urlpatterns = [
         views.TrailblazerScoutProgressView.as_view(),
         name="scout-progress",
     ),
+    path(
+        "titan-check",
+        views.TrailblazerTitanCheckView.as_view(),
+        name="titan-check",
+    ),
 ]

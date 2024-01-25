@@ -590,7 +590,7 @@ def get_e1_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                 if match.get("Outcome") == 2:
                     streets_wins += 1
 
-        # Hot Streak: Finish first on the postgame scoreboard in 3 consecutive games
+        # Hot Streak: Win 3 consecutive Ranked Arena games and finish on top of the scoreboard each time. Earnable once.
         for i in range(len(matches_sorted) - 3):
             match_a = matches[i]
             match_b = matches[i + 1]

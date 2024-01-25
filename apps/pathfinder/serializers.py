@@ -135,6 +135,28 @@ class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     totalPoints = serializers.IntegerField()
 
 
+class PathfinderProdigyCheckSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+
+
+class PathfinderProdigyCheckRequestSerializer(serializers.Serializer):
+    discordUserIds = serializers.ListField(
+        allow_empty=True,
+        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    )
+
+
+class PathfinderProdigyCheckResponseSerializer(serializers.Serializer):
+    yes = serializers.ListField(
+        allow_empty=True, child=PathfinderProdigyCheckSerializer()
+    )
+    no = serializers.ListField(
+        allow_empty=True, child=PathfinderProdigyCheckSerializer()
+    )
+
+
 class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]

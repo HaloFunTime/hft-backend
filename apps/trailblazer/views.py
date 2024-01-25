@@ -11,8 +11,9 @@ from apps.halo_infinite.exceptions import (
     MissingEraDataException,
     MissingSeasonDataException,
 )
-from apps.halo_infinite.utils import get_current_era, get_current_season_id
+from apps.halo_infinite.utils import get_csrs, get_current_era, get_current_season_id
 from apps.link.models import DiscordXboxLiveLink
+from apps.trailblazer.constants import TRAILBLAZER_TITAN_CSR_MINIMUM
 from apps.trailblazer.serializers import (
     TrailblazerScoutEra1ProgressResponseSerializer,
     TrailblazerScoutProgressRequestSerializer,
@@ -22,6 +23,9 @@ from apps.trailblazer.serializers import (
     TrailblazerScoutSeason5ProgressResponseSerializer,
     TrailblazerSeasonalRoleCheckRequestSerializer,
     TrailblazerSeasonalRoleCheckResponseSerializer,
+    TrailblazerTitanCheckRequestSerializer,
+    TrailblazerTitanCheckResponseSerializer,
+    TrailblazerTitanCheckSerializer,
 )
 from apps.trailblazer.utils import (
     get_e1_discord_earn_dict,
@@ -280,4 +284,95 @@ class TrailblazerScoutProgressView(APIView):
                 "totalPoints": sum(serializable_dict.values()),
             } | serializable_dict
             serializer = serializer_class(merged_dict)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TrailblazerTitanCheckView(APIView):
+    @extend_schema(
+        request=TrailblazerTitanCheckRequestSerializer,
+        responses={
+            200: TrailblazerTitanCheckResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
+        Halo Infinite API, and returning a payload indicating whether or not each one qualifies for Trailblazer Titan.
+        """
+        validation_serializer = TrailblazerTitanCheckRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_ids = validation_serializer.data.get("discordUserIds")
+            playlist_id = validation_serializer.data.get("playlistId")
+            try:
+                # Get the XUIDs from all verified DiscordXboxLiveLink records matching the input discordUserIDs
+                links = (
+                    DiscordXboxLiveLink.objects.filter(
+                        discord_account_id__in=discord_ids
+                    )
+                    .filter(verified=True)
+                    .order_by("created_at")
+                )
+                xuid_to_discord_id = {
+                    link.xbox_live_account_id: link.discord_account_id for link in links
+                }
+                xuids = [link.xbox_live_account_id for link in links]
+
+                # Get CSRs for all XUIDs for the playlist ID in question
+                csr_by_xuid = get_csrs(xuids, playlist_id).get("csrs")
+
+                # For each Trailblazer XUID, add Discord IDs to the appropriate yes/no list
+                linked_discord_ids = set()
+                yes = []
+                no = []
+                for xuid_str in csr_by_xuid:
+                    current_csr = csr_by_xuid[xuid_str]["current_csr"]
+                    discord_id = xuid_to_discord_id.get(int(xuid_str))
+                    linked_discord_ids.add(discord_id)
+                    if (
+                        current_csr is not None
+                        and current_csr >= TRAILBLAZER_TITAN_CSR_MINIMUM
+                    ):
+                        yes.append(
+                            TrailblazerTitanCheckSerializer(
+                                {
+                                    "discordUserId": discord_id,
+                                    "currentCSR": current_csr,
+                                }
+                            ).data
+                        )
+                    else:
+                        no.append(
+                            TrailblazerTitanCheckSerializer(
+                                {
+                                    "discordUserId": discord_id,
+                                    "currentCSR": current_csr,
+                                }
+                            ).data
+                        )
+                # For Discord IDs without linked gamertags, automatically add them to the no list
+                unlinked_discord_ids = set(discord_ids).difference(linked_discord_ids)
+                for discord_id in unlinked_discord_ids:
+                    no.append(
+                        TrailblazerTitanCheckSerializer(
+                            {
+                                "discordUserId": discord_id,
+                                "currentCSR": None,
+                            }
+                        ).data
+                    )
+            except Exception as ex:
+                logger.error("Error attempting the Trailblazer Titan check.")
+                logger.error(ex)
+                raise APIException("Error attempting the Trailblazer Titan check.")
+            serializer = TrailblazerTitanCheckResponseSerializer(
+                {
+                    "yes": yes,
+                    "no": no,
+                    "thresholdCSR": TRAILBLAZER_TITAN_CSR_MINIMUM,
+                }
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)

@@ -15,6 +15,11 @@ urlpatterns = [
     path("hike-submission", views.HikeSubmissionView.as_view(), name="hike-submission"),
     path("popular-files", views.PopularFilesView.as_view(), name="popular-files"),
     path(
+        "prodigy-check",
+        views.PathfinderProdigyCheckView.as_view(),
+        name="prodigy-check",
+    ),
+    path(
         "seasonal-role-check",
         views.PathfinderSeasonalRoleCheckView.as_view(),
         name="seasonal-role-check",

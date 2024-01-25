@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.discord.serializers import validate_discord_id
+from apps.overrides.serializers import validate_uuid
 
 
 class TrailblazerScoutProgressRequestSerializer(serializers.Serializer):
@@ -72,3 +73,28 @@ class TrailblazerSeasonalRoleCheckResponseSerializer(serializers.Serializer):
     )
     sherpa = serializers.BooleanField()
     scout = serializers.BooleanField()
+
+
+class TrailblazerTitanCheckSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    currentCSR = serializers.IntegerField()
+
+
+class TrailblazerTitanCheckRequestSerializer(serializers.Serializer):
+    discordUserIds = serializers.ListField(
+        allow_empty=True,
+        child=serializers.CharField(max_length=20, validators=[validate_discord_id]),
+    )
+    playlistId = serializers.CharField(required=True, validators=[validate_uuid])
+
+
+class TrailblazerTitanCheckResponseSerializer(serializers.Serializer):
+    yes = serializers.ListField(
+        allow_empty=True, child=TrailblazerTitanCheckSerializer()
+    )
+    no = serializers.ListField(
+        allow_empty=True, child=TrailblazerTitanCheckSerializer()
+    )
+    thresholdCSR = serializers.IntegerField()
