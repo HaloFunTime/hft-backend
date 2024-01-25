@@ -44,7 +44,8 @@ class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfinitePlaylist"
         ordering = [
-            "-created_at",
+            "-active",
+            "name",
         ]
         verbose_name = "Playlist"
         verbose_name_plural = "Playlists"
@@ -55,26 +56,6 @@ class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     active = models.BooleanField(default=False)
     name = models.CharField(blank=True, max_length=256)
     description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class HaloInfiniteSeason(BaseWithoutPrimaryKey):
-    class Meta:
-        db_table = "HaloInfiniteSeason"
-        ordering = [
-            "-created_at",
-        ]
-        verbose_name = "Season"
-        verbose_name_plural = "Seasons"
-
-    season_id = models.CharField(
-        primary_key=True, max_length=256, verbose_name="Season ID"
-    )
-    name = models.CharField(max_length=256, verbose_name="Season Name")
-    start_date = models.DateTimeField(verbose_name="Start Date & Time")
-    end_date = models.DateTimeField(verbose_name="End Date & Time")
 
     def __str__(self):
         return self.name

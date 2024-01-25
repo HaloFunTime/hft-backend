@@ -5,7 +5,6 @@ from apps.halo_infinite.models import (
     HaloInfiniteClearanceToken,
     HaloInfiniteMatch,
     HaloInfinitePlaylist,
-    HaloInfiniteSeason,
     HaloInfiniteSpartanToken,
     HaloInfiniteXSTSToken,
 )
@@ -42,7 +41,7 @@ class HaloInfiniteMatchAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(HaloInfinitePlaylist)
 class HaloInfinitePlaylistAdmin(AutofillCreatorModelAdmin):
-    list_display = ("name", "description", "active", "ranked", "creator")
+    list_display = ("name", "description", "active", "creator")
     list_filter = ("active", "ranked", "creator")
     fields = (
         "playlist_id",
@@ -53,13 +52,6 @@ class HaloInfinitePlaylistAdmin(AutofillCreatorModelAdmin):
         "ranked",
         "creator",
     )
-
-
-@admin.register(HaloInfiniteSeason)
-class HaloInfiniteSeasonAdmin(AutofillCreatorModelAdmin):
-    list_display = ("season_id", "name", "start_date", "end_date", "creator")
-    list_filter = ("creator",)
-    fields = ("season_id", "name", "start_date", "end_date", "creator")
 
 
 @admin.register(HaloInfiniteXSTSToken)
