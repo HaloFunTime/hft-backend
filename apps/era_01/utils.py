@@ -6,11 +6,11 @@ import requests
 
 from apps.era_01.models import BingoChallenge
 from apps.halo_infinite.api.match import match_stats, matches_between
-from apps.halo_infinite.constants import SEASON_5_END_TIME, SEASON_5_START_TIME, STATS
+from apps.halo_infinite.constants import ERA_1_END_TIME, ERA_1_START_TIME, STATS
 from apps.halo_infinite.models import HaloInfiniteMatch
 
-EARLIEST_TIME = SEASON_5_START_TIME  # TODO: Update to S6 value
-LATEST_TIME = SEASON_5_END_TIME  # TODO: Update to S6 value
+EARLIEST_TIME = ERA_1_START_TIME
+LATEST_TIME = ERA_1_END_TIME
 
 logger = logging.getLogger(__name__)
 

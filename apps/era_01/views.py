@@ -52,7 +52,7 @@ class CheckBingoCard(APIView):
     def post(self, request, format=None):
         """
         Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying match stats from the
-        HFT DB, and saving/returning the progress the gamertag has made toward the Season 6 Bingo Challenge.
+        HFT DB, and saving/returning the progress the gamertag has made toward the Era 1 Bingo Challenge.
         """
         validation_serializer = CheckBingoCardRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
@@ -97,7 +97,7 @@ class CheckBingoCard(APIView):
                             BingoChallengeCompletion.objects.create(
                                 challenge=challenge,
                                 participant=participant,
-                                match=match,
+                                match_id=match.match_id,
                                 creator=request.user,
                             )
                             letters_completed.append(challenge.id)
@@ -220,7 +220,7 @@ class JoinChallenge(APIView):
     )
     def post(self, request, format=None):
         """
-        Create a BingoChallengeParticipant for someone who has not yet joined the Season 6 Bingo Challenge.
+        Create a BingoChallengeParticipant for someone who has not yet joined the Era 1 Bingo Challenge.
         """
         validation_serializer = JoinBingoChallengeRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
@@ -276,7 +276,7 @@ class SaveBuff(APIView):
     )
     def post(self, request, format=None):
         """
-        Save whether a Discord User ID has already completed the Season 6 Bingo Challenge. Update or create a record
+        Save whether a Discord User ID has already completed the Era 1 Bingo Challenge. Update or create a record
         in the BingoBuff table based on that information.
         """
         validation_serializer = SaveBuffRequestSerializer(data=request.data)

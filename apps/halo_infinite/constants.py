@@ -620,40 +620,6 @@ SEASON_5_DEV_MAP_IDS = {
     MAP_ID_SOLITUDE,
     MAP_ID_STREETS,
 }
-SEASON_6_API_ID = None  # TODO
-SEASON_6_FIRST_DAY = datetime.date(year=2024, month=1, day=31)
-SEASON_6_LAST_DAY = datetime.date(year=2024, month=4, day=30)  # TODO
-SEASON_6_PART_1_START_TIME = datetime.datetime.fromisoformat("2024-01-30T17:00:00Z")
-SEASON_6_PART_1_END_TIME = None  # TODO
-SEASON_6_START_TIME = SEASON_6_PART_1_START_TIME
-SEASON_6_END_TIME = datetime.datetime.fromisoformat("2024-04-30T17:00:00Z")  # TODO
-SEASON_6_RANKED_ARENA_PLAYLIST_ID = "edfef3ac-9cbe-4fa2-b949-8f29deafd483"
-SEASON_6_DEV_MAP_IDS = {
-    MAP_ID_AQUARIUS,
-    MAP_ID_ARGYLE,
-    MAP_ID_BAZAAR,
-    MAP_ID_BEHEMOTH,
-    MAP_ID_BREAKER,
-    MAP_ID_CATALYST,
-    MAP_ID_CHASM,
-    MAP_ID_CLIFFHANGER,
-    MAP_ID_DEADLOCK,
-    MAP_ID_DETACHMENT,
-    MAP_ID_DREDGE,
-    MAP_ID_EMPYREAN,
-    MAP_ID_FORBIDDEN,
-    MAP_ID_FOREST,
-    MAP_ID_FRAGMENTATION,
-    MAP_ID_HIGHPOWER,
-    MAP_ID_LAUNCH_SITE,
-    MAP_ID_LIVE_FIRE,
-    MAP_ID_OASIS,
-    MAP_ID_PRISM,
-    MAP_ID_RECHARGE,
-    MAP_ID_SCARR,
-    MAP_ID_SOLITUDE,
-    MAP_ID_STREETS,
-}  # TODO
 SEASON_DATA_DICT = {
     "3": {
         "api_id": SEASON_3_API_ID,
@@ -685,15 +651,6 @@ SEASON_DATA_DICT = {
         "end_time": SEASON_5_END_TIME,
         "ranked_arena_playlist_id": SEASON_5_RANKED_ARENA_PLAYLIST_ID,
         "dev_map_ids": SEASON_5_DEV_MAP_IDS,
-    },
-    "6": {
-        "api_id": SEASON_6_API_ID,
-        "first_day": SEASON_6_FIRST_DAY,
-        "last_day": SEASON_6_LAST_DAY,
-        "start_time": SEASON_6_START_TIME,
-        "end_time": SEASON_6_END_TIME,
-        "ranked_arena_playlist_id": SEASON_6_RANKED_ARENA_PLAYLIST_ID,
-        "dev_map_ids": SEASON_6_DEV_MAP_IDS,
     },
 }
 

@@ -1,9 +1,9 @@
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.utils.html import format_html
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.constants import STATS
-from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.overrides.models import Base, BaseWithoutPrimaryKey
 
 
@@ -135,17 +135,22 @@ class BingoChallengeCompletion(Base):
         BingoChallenge,
         on_delete=models.RESTRICT,
         related_name="completions",
-        verbose_name="Completion",
+        verbose_name="Challenge",
     )
     participant = models.ForeignKey(
         BingoChallengeParticipant,
         on_delete=models.RESTRICT,
         related_name="completions",
-        verbose_name="Completion",
+        verbose_name="Participant",
     )
-    match = models.ForeignKey(
-        HaloInfiniteMatch,
-        on_delete=models.RESTRICT,
-        related_name="completions",
-        verbose_name="Completion",
-    )
+    match_id = models.UUIDField(null=True, verbose_name="Match ID")
+
+    @property
+    def match_link(self):
+        return (
+            ""
+            if self.match_id is None
+            else format_html(
+                f"<a href=https://leafapp.co/game/{self.match_id}>View on LeafApp</a>"
+            )
+        )

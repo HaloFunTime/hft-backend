@@ -81,12 +81,12 @@ class BingoChallengeCompletionAdmin(AutofillCreatorModelAdmin):
         "created_at",
         linkify("challenge"),
         linkify("participant"),
-        linkify("match"),
+        "match_link",
     )
     list_filter = ("challenge", "participant", "creator")
     fields = (
         "challenge",
         "participant",
-        "match",
+        "match_id",
         "creator",
     )
