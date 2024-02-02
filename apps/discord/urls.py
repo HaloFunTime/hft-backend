@@ -9,6 +9,11 @@ urlpatterns = [
         name="csr-snapshot",
     ),
     path(
+        "lfg-channel-help-prompt",
+        views.LFGChannelHelpPromptView.as_view(),
+        name="lfg-channel-help-prompt",
+    ),
+    path(
         "lfg-thread-help-prompt",
         views.LFGThreadHelpPromptView.as_view(),
         name="lfg-thread-help-prompt",

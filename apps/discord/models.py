@@ -27,6 +27,32 @@ class DiscordAccount(BaseWithoutPrimaryKey):
         return self.discord_username
 
 
+class DiscordLFGChannelHelpPrompt(Base):
+    class Meta:
+        db_table = "DiscordLFGChannelHelpPrompt"
+        ordering = [
+            "-created_at",
+        ]
+        verbose_name = "LFG Channel Help Prompt"
+        verbose_name_plural = "LFG Channel Help Prompts"
+
+    help_receiver_discord = models.ForeignKey(
+        DiscordAccount,
+        on_delete=models.RESTRICT,
+        verbose_name="Help Receiver Discord",
+        related_name="lfg_channel_help_receivers",
+    )
+    lfg_channel_name = models.CharField(
+        max_length=100, blank=False, verbose_name="LFG Channel Name"
+    )
+    lfg_channel_id = models.CharField(
+        max_length=20, blank=False, verbose_name="LFG Channel ID"
+    )
+
+    def __str__(self):
+        return f"{self.help_receiver_discord} in {self.lfg_channel_name}"
+
+
 class DiscordLFGThreadHelpPrompt(Base):
     class Meta:
         db_table = "DiscordLFGThreadHelpPrompt"

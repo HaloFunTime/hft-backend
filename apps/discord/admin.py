@@ -1,6 +1,10 @@
 from django.contrib import admin
 
-from apps.discord.models import DiscordAccount, DiscordLFGThreadHelpPrompt
+from apps.discord.models import (
+    DiscordAccount,
+    DiscordLFGChannelHelpPrompt,
+    DiscordLFGThreadHelpPrompt,
+)
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
 
 
@@ -10,6 +14,29 @@ class DiscordAccountAdmin(AutofillCreatorModelAdmin):
     list_filter = ("creator",)
     fields = ("discord_username", "discord_id", "creator")
     search_fields = ["discord_username"]
+
+
+@admin.register(DiscordLFGChannelHelpPrompt)
+class DiscordLFGChannelHelpPromptAdmin(AutofillCreatorModelAdmin):
+    autocomplete_fields = ["help_receiver_discord"]
+    list_display = (
+        "__str__",
+        linkify("help_receiver_discord"),
+        "lfg_channel_name",
+        "lfg_channel_id",
+    )
+    list_filter = (
+        "help_receiver_discord",
+        "lfg_channel_name",
+        "lfg_channel_id",
+    )
+    fields = (
+        "help_receiver_discord",
+        "lfg_channel_name",
+        "lfg_channel_id",
+        "creator",
+    )
+    search_fields = ["help_receiver_discord__discord_username", "lfg_channel_name"]
 
 
 @admin.register(DiscordLFGThreadHelpPrompt)

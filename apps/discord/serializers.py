@@ -45,6 +45,22 @@ class DiscordUserInfoSerializer(serializers.Serializer):
     discordUsername = serializers.CharField(min_length=2, max_length=32)
 
 
+class LFGChannelHelpPromptRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+    lfgChannelId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    lfgChannelName = serializers.CharField(min_length=1, max_length=100)
+
+
+class LFGChannelHelpPromptResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    new = serializers.BooleanField()
+
+
 class LFGThreadHelpPromptRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]

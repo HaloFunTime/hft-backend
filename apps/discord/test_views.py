@@ -6,7 +6,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
-from apps.discord.models import DiscordAccount, DiscordLFGThreadHelpPrompt
+from apps.discord.models import (
+    DiscordAccount,
+    DiscordLFGChannelHelpPrompt,
+    DiscordLFGThreadHelpPrompt,
+)
 from apps.link.models import DiscordXboxLiveLink
 from apps.xbox_live.models import XboxLiveAccount
 
@@ -398,6 +402,107 @@ class DiscordTestCase(APITestCase):
             test_playlist_id,
         )
         mock_get_csrs.reset_mock()
+
+    def test_lfg_channel_help_prompt_view(self):
+        # Missing field values throw errors
+        response = self.client.post(
+            "/discord/lfg-channel-help-prompt", {}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("lfgChannelId", details)
+        self.assertEqual(
+            details.get("lfgChannelId"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+        self.assertIn("lfgChannelName", details)
+        self.assertEqual(
+            details.get("lfgChannelName"),
+            [ErrorDetail(string="This field is required.", code="required")],
+        )
+
+        # Improperly formatted values throw errors
+        response = self.client.post(
+            "/discord/lfg-channel-help-prompt",
+            {
+                "discordUserId": "abc",
+                "discordUsername": "a",
+                "lfgChannelId": "def",
+                "lfgChannelName": "",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        details = response.data.get("error").get("details")
+        self.assertIn("discordUserId", details)
+        self.assertEqual(
+            details.get("discordUserId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("discordUsername", details)
+        self.assertEqual(
+            details.get("discordUsername")[0],
+            ErrorDetail(
+                string="Ensure this field has at least 2 characters.", code="min_length"
+            ),
+        )
+        self.assertIn("lfgChannelId", details)
+        self.assertEqual(
+            details.get("lfgChannelId")[0],
+            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
+        )
+        self.assertIn("lfgChannelName", details)
+        self.assertEqual(
+            details.get("lfgChannelName")[0],
+            ErrorDetail(string="This field may not be blank.", code="blank"),
+        )
+
+        # First call to endpoint with same data
+        response = self.client.post(
+            "/discord/lfg-channel-help-prompt",
+            {
+                "discordUserId": "123456789",
+                "discordUsername": "Test123",
+                "lfgChannelId": "987654321",
+                "lfgChannelName": "Test LFG Channel",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get("success"))
+        self.assertTrue(response.data.get("new"))
+        self.assertEqual(DiscordLFGChannelHelpPrompt.objects.count(), 1)
+        prompt = DiscordLFGChannelHelpPrompt.objects.first()
+        self.assertEqual(prompt.help_receiver_discord.discord_id, "123456789")
+        self.assertEqual(prompt.help_receiver_discord.discord_username, "Test123")
+        self.assertEqual(prompt.lfg_channel_id, "987654321")
+        self.assertEqual(prompt.lfg_channel_name, "Test LFG Channel")
+
+        # Second call to endpoint with same data
+        response = self.client.post(
+            "/discord/lfg-channel-help-prompt",
+            {
+                "discordUserId": "123456789",
+                "discordUsername": "Test123",
+                "lfgChannelId": "987654321",
+                "lfgChannelName": "Test LFG Channel",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.get("success"))
+        self.assertFalse(response.data.get("new"))
+        self.assertEqual(DiscordLFGChannelHelpPrompt.objects.count(), 1)
 
     def test_lfg_thread_help_prompt_view(self):
         # Missing field values throw errors

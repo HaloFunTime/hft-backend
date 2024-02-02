@@ -6,11 +6,13 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.discord.models import DiscordLFGThreadHelpPrompt
+from apps.discord.models import DiscordLFGChannelHelpPrompt, DiscordLFGThreadHelpPrompt
 from apps.discord.serializers import (
     CSRSnapshot,
     CSRSnapshotRequestSerializer,
     CSRSnapshotResponseSerializer,
+    LFGChannelHelpPromptRequestSerializer,
+    LFGChannelHelpPromptResponseSerializer,
     LFGThreadHelpPromptRequestSerializer,
     LFGThreadHelpPromptResponseSerializer,
     RankedRoleCheckRequestSerializer,
@@ -81,6 +83,54 @@ class CSRSnapshotView(APIView):
                 logger.error(ex)
                 raise APIException("Error attempting the CSR snapshot.")
             serializer = CSRSnapshotResponseSerializer({"players": players})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LFGChannelHelpPromptView(APIView):
+    @extend_schema(
+        request=LFGChannelHelpPromptRequestSerializer,
+        responses={
+            200: LFGChannelHelpPromptResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Returns a boolean indicating whether or not a given Discord User has been shown the LFG Help message for the
+        LFG channel they're posting in previously. Creates an LFGChannelHelpPrompt record if not.
+        """
+        validation_serializer = LFGChannelHelpPromptRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            lfg_channel_id = validation_serializer.data.get("lfgChannelId")
+            lfg_channel_name = validation_serializer.data.get("lfgChannelName")
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+                new = (
+                    DiscordLFGChannelHelpPrompt.objects.filter(
+                        help_receiver_discord_id=discord_account.discord_id,
+                        lfg_channel_id=lfg_channel_id,
+                    ).count()
+                    == 0
+                )
+                if new:
+                    DiscordLFGChannelHelpPrompt.objects.create(
+                        creator=request.user,
+                        help_receiver_discord=discord_account,
+                        lfg_channel_id=lfg_channel_id,
+                        lfg_channel_name=lfg_channel_name,
+                    )
+            except Exception as ex:
+                logger.error("Error attempting LFG Channel Help.")
+                logger.error(ex)
+                raise APIException("Error attempting LFG Channel Help.")
+            serializer = LFGChannelHelpPromptResponseSerializer(
+                {"success": True, "new": new}
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
