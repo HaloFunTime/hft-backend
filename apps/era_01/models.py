@@ -151,6 +151,10 @@ class BingoChallengeCompletion(Base):
             ""
             if self.match_id is None
             else format_html(
+                f"<a href=https://halotracker.com/halo-infinite/match/{self.match_id}>View on HaloTracker</a>"
+            )
+            if self.challenge_id < "U"
+            else format_html(
                 f"<a href=https://leafapp.co/game/{self.match_id}>View on LeafApp</a>"
             )
         )
