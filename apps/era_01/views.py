@@ -305,6 +305,7 @@ class SaveBuff(APIView):
                         bingo_count=bingo_count,
                         challenge_count=challenge_count,
                     )
+                    new_blackout = challenge_count == 25
                 else:
                     new_blackout = (
                         challenge_count == 25 and existing_buff.challenge_count != 25
