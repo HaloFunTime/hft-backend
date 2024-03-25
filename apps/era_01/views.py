@@ -285,6 +285,7 @@ class SaveBuff(APIView):
             discord_username = validation_serializer.data.get("discordUsername")
             bingo_count = validation_serializer.data.get("bingoCount")
             challenge_count = validation_serializer.data.get("challengeCount")
+            new_blackout = False
 
             try:
                 existing_buff = BingoBuff.objects.filter(earner_id=discord_id).get()
@@ -305,6 +306,9 @@ class SaveBuff(APIView):
                         challenge_count=challenge_count,
                     )
                 else:
+                    new_blackout = (
+                        challenge_count == 25 and existing_buff.challenge_count != 25
+                    )
                     existing_buff.bingo_count = bingo_count
                     existing_buff.challenge_count = challenge_count
                     existing_buff.save()
@@ -317,7 +321,7 @@ class SaveBuff(APIView):
                 {
                     "discordUserId": discord_id,
                     "newBuff": existing_buff is None,
-                    "blackout": bingo_count == 12 and challenge_count == 25,
+                    "blackout": new_blackout,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
