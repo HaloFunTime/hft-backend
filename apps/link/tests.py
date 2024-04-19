@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -8,8 +9,12 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient, APITestCase
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.models import HaloInfinitePlaylist
 from apps.link.models import DiscordXboxLiveLink
-from apps.link.utils import update_or_create_discord_xbox_live_link
+from apps.link.utils import (
+    auto_verify_discord_xbox_live_link,
+    update_or_create_discord_xbox_live_link,
+)
 from apps.link.views import (
     LINK_ERROR_INVALID_DISCORD_ID,
     LINK_ERROR_INVALID_DISCORD_USERNAME,
@@ -85,13 +90,18 @@ class LinkTestCase(APITestCase):
         )
         self.assertEqual(response.data.get("verified"), False)
 
+    @patch("apps.link.views.auto_verify_discord_xbox_live_link")
     @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_discord_to_xbox_live_post(
         self,
         mock_signals_get_xuid_and_exact_gamertag,
         mock_utils_get_xuid_and_exact_gamertag,
+        mock_auto_verify_discord_xbox_live_link,
     ):
+        # For clarity, the auto-verify function is mocked to return the link unchanged
+        mock_auto_verify_discord_xbox_live_link.side_effect = lambda x, _: x
+
         # Missing field values throw errors
         response = self.client.post("/link/discord-to-xbox-live", {}, format="json")
         self.assertEqual(response.status_code, 400)
@@ -171,6 +181,10 @@ class LinkTestCase(APITestCase):
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 1)
         self.assertEqual(DiscordAccount.objects.count(), 1)
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
+        mock_auto_verify_discord_xbox_live_link.assert_called_once_with(
+            DiscordXboxLiveLink.objects.first(), self.user
+        )
+        mock_auto_verify_discord_xbox_live_link.reset_mock()
         # Approve the link record
         link = DiscordXboxLiveLink.objects.all().first()
         link.verifier = self.user
@@ -203,6 +217,8 @@ class LinkTestCase(APITestCase):
         self.assertEqual(link.xbox_live_account.xuid, 0)
         self.assertEqual(link.verified, True)
         self.assertEqual(link.verifier, self.user)
+        mock_auto_verify_discord_xbox_live_link.assert_not_called()
+        mock_auto_verify_discord_xbox_live_link.reset_mock()
 
         # If another Discord Account attempts to claim an already-linked Xbox Live Account, an error should be thrown
         mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
@@ -248,6 +264,8 @@ class LinkTestCase(APITestCase):
         self.assertEqual(link.xbox_live_account.xuid, 1)
         self.assertEqual(link.verified, False)
         self.assertEqual(link.verifier, None)
+        mock_auto_verify_discord_xbox_live_link.assert_called_once_with(link, self.user)
+        mock_auto_verify_discord_xbox_live_link.reset_mock()
 
         # Now the "other" Discord Account can link to the first Xbox Live Account without issue
         mock_signals_get_xuid_and_exact_gamertag.return_value = (0, "test")
@@ -269,20 +287,21 @@ class LinkTestCase(APITestCase):
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
         self.assertEqual(DiscordAccount.objects.count(), 2)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
+        mock_auto_verify_discord_xbox_live_link.assert_called_once_with(
+            DiscordXboxLiveLink.objects.filter(xbox_live_account_id=0)[0], self.user
+        )
+        mock_auto_verify_discord_xbox_live_link.reset_mock()
 
 
 class LinkUtilsTestCase(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username="test", email="test@test.com", password="test"
-        )
-
+    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
     @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_update_or_create_discord_xbox_live_link(
+    def setUp(
         self,
         mock_signals_get_xuid_and_exact_gamertag,
         mock_utils_get_xuid_and_exact_gamertag,
+        mock_get_playlist_latest_version_info,
     ):
         def set_both_mock_return_values(return_value):
             mock_signals_get_xuid_and_exact_gamertag.return_value = return_value
@@ -292,35 +311,54 @@ class LinkUtilsTestCase(TestCase):
             mock_signals_get_xuid_and_exact_gamertag.reset_mock()
             mock_utils_get_xuid_and_exact_gamertag.reset_mock()
 
-        discord_account_1 = DiscordAccount.objects.create(
-            creator=self.user, discord_id="123", discord_username="ABC1234"
+        self.user = User.objects.create_user(
+            username="test", email="test@test.com", password="test"
         )
-        discord_account_2 = DiscordAccount.objects.create(
-            creator=self.user, discord_id="456", discord_username="ABC1234"
+        self.discord_account_1 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="1", discord_username="Username1"
         )
+        self.discord_account_2 = DiscordAccount.objects.create(
+            creator=self.user, discord_id="2", discord_username="Username2"
+        )
+
         set_both_mock_return_values((1, "xbl1"))
-        xbox_live_account_1 = XboxLiveAccount.objects.create(
+        self.xbox_live_account_1 = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="XBL1"
         )
         reset_both_mocks()
         set_both_mock_return_values((2, "xbl2"))
-        xbox_live_account_2 = XboxLiveAccount.objects.create(
+        self.xbox_live_account_2 = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="XBL2"
         )
         reset_both_mocks()
         set_both_mock_return_values((3, "xbl3"))
-        xbox_live_account_3 = XboxLiveAccount.objects.create(
+        self.xbox_live_account_3 = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="XBL3"
         )
         reset_both_mocks()
 
+        test_playlist_id = uuid.uuid4()
+        mock_get_playlist_latest_version_info.return_value = {
+            "playlist_id": test_playlist_id,
+            "version_id": uuid.uuid4(),
+            "ranked": True,
+            "name": "name",
+            "description": "description",
+        }
+        self.playlist = HaloInfinitePlaylist.objects.create(
+            creator=self.user, playlist_id=test_playlist_id, active=True
+        )
+
+    def test_update_or_create_discord_xbox_live_link(self):
         # Initial call creates DiscordXboxLiveLink
         discord_xbox_live_link_1 = update_or_create_discord_xbox_live_link(
-            discord_account_1, xbox_live_account_1, self.user
+            self.discord_account_1, self.xbox_live_account_1, self.user
         )
-        self.assertEqual(discord_xbox_live_link_1.discord_account, discord_account_1)
         self.assertEqual(
-            discord_xbox_live_link_1.xbox_live_account, xbox_live_account_1
+            discord_xbox_live_link_1.discord_account, self.discord_account_1
+        )
+        self.assertEqual(
+            discord_xbox_live_link_1.xbox_live_account, self.xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_1.verified, False)
         self.assertIsNone(discord_xbox_live_link_1.verifier)
@@ -328,11 +366,13 @@ class LinkUtilsTestCase(TestCase):
 
         # Call with same DiscordAccount and different XboxLiveAccount should update the existing link record
         discord_xbox_live_link_2 = update_or_create_discord_xbox_live_link(
-            discord_account_1, xbox_live_account_2, self.user
+            self.discord_account_1, self.xbox_live_account_2, self.user
         )
-        self.assertEqual(discord_xbox_live_link_2.discord_account, discord_account_1)
         self.assertEqual(
-            discord_xbox_live_link_2.xbox_live_account, xbox_live_account_2
+            discord_xbox_live_link_2.discord_account, self.discord_account_1
+        )
+        self.assertEqual(
+            discord_xbox_live_link_2.xbox_live_account, self.xbox_live_account_2
         )
         self.assertEqual(discord_xbox_live_link_2.verified, False)
         self.assertIsNone(discord_xbox_live_link_2.verifier)
@@ -343,17 +383,19 @@ class LinkUtilsTestCase(TestCase):
             IntegrityError,
             'duplicate key value violates unique constraint "DiscordXboxLiveLink_xbox_live_account_id_key"',
             lambda: update_or_create_discord_xbox_live_link(
-                discord_account_2, xbox_live_account_2, self.user
+                self.discord_account_2, self.xbox_live_account_2, self.user
             ),
         )
 
         # Call with orphaned records should allow creation of new DiscordXboxLiveLink
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
-            discord_account_2, xbox_live_account_1, self.user
+            self.discord_account_2, self.xbox_live_account_1, self.user
         )
-        self.assertEqual(discord_xbox_live_link_3.discord_account, discord_account_2)
         self.assertEqual(
-            discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
+            discord_xbox_live_link_3.discord_account, self.discord_account_2
+        )
+        self.assertEqual(
+            discord_xbox_live_link_3.xbox_live_account, self.xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
         self.assertIsNone(discord_xbox_live_link_3.verifier)
@@ -361,11 +403,13 @@ class LinkUtilsTestCase(TestCase):
 
         # Update with same arguments should preserve existing verification status (False)
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
-            discord_account_2, xbox_live_account_1, self.user
+            self.discord_account_2, self.xbox_live_account_1, self.user
         )
-        self.assertEqual(discord_xbox_live_link_3.discord_account, discord_account_2)
         self.assertEqual(
-            discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
+            discord_xbox_live_link_3.discord_account, self.discord_account_2
+        )
+        self.assertEqual(
+            discord_xbox_live_link_3.xbox_live_account, self.xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
         self.assertIsNone(discord_xbox_live_link_3.verifier)
@@ -376,11 +420,13 @@ class LinkUtilsTestCase(TestCase):
         discord_xbox_live_link_3.verifier = self.user
         discord_xbox_live_link_3.save()
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
-            discord_account_2, xbox_live_account_1, self.user
+            self.discord_account_2, self.xbox_live_account_1, self.user
         )
-        self.assertEqual(discord_xbox_live_link_3.discord_account, discord_account_2)
         self.assertEqual(
-            discord_xbox_live_link_3.xbox_live_account, xbox_live_account_1
+            discord_xbox_live_link_3.discord_account, self.discord_account_2
+        )
+        self.assertEqual(
+            discord_xbox_live_link_3.xbox_live_account, self.xbox_live_account_1
         )
         self.assertEqual(discord_xbox_live_link_3.verified, True)
         self.assertEqual(discord_xbox_live_link_3.verifier, self.user)
@@ -388,12 +434,195 @@ class LinkUtilsTestCase(TestCase):
 
         # Update with a new XboxLiveAccount should reset verified to False and clear verifier
         discord_xbox_live_link_3 = update_or_create_discord_xbox_live_link(
-            discord_account_2, xbox_live_account_3, self.user
+            self.discord_account_2, self.xbox_live_account_3, self.user
         )
-        self.assertEqual(discord_xbox_live_link_3.discord_account, discord_account_2)
         self.assertEqual(
-            discord_xbox_live_link_3.xbox_live_account, xbox_live_account_3
+            discord_xbox_live_link_3.discord_account, self.discord_account_2
+        )
+        self.assertEqual(
+            discord_xbox_live_link_3.xbox_live_account, self.xbox_live_account_3
         )
         self.assertEqual(discord_xbox_live_link_3.verified, False)
         self.assertIsNone(discord_xbox_live_link_3.verifier)
         self.assertEqual(DiscordXboxLiveLink.objects.count(), 2)
+
+    @patch("apps.link.utils.get_contributor_xuids_for_maps_in_active_playlists")
+    @patch("apps.link.utils.get_csrs")
+    @patch("apps.link.utils.get_career_ranks")
+    def test_auto_verify_discord_xbox_live_link(
+        self,
+        mock_get_career_ranks,
+        mock_get_csrs,
+        mock_get_contributor_xuids_for_maps_in_active_playlists,
+    ):
+        link_1 = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account_id=self.discord_account_1.discord_id,
+            xbox_live_account_id=self.xbox_live_account_1.xuid,
+        )
+        link_2 = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account_id=self.discord_account_2.discord_id,
+            xbox_live_account_id=self.xbox_live_account_2.xuid,
+        )
+        # NO CHANGE: null return data
+        mock_get_career_ranks.return_value = {}
+        mock_get_csrs.return_value = {}
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = set()
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # NO CHANGE: zero Career Rank, no CSR, no matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 0}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": -1}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = set()
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # NO CHANGE: non-zero Career Rank, Onyx CSR, no matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": 1500}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = set()
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # NO CHANGE: non-zero Career Rank, no CSR, matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": -1}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {
+            self.xbox_live_account_1.xuid
+        }
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # NO CHANGE: non-zero Career Rank, non-Onyx CSR, matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": 1499}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {
+            self.xbox_live_account_1.xuid
+        }
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # NO CHANGE: non-zero Career Rank, Onyx CSR, matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": 1500}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {
+            self.xbox_live_account_1.xuid
+        }
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertFalse(updated_link.verified)
+        self.assertIsNone(updated_link.verifier)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # AUTO VERIFICATION: non-zero Career Rank, no CSR, no matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_1.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_1.xuid: {"all_time_max_csr": -1}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = set()
+        updated_link = auto_verify_discord_xbox_live_link(link_1, self.user)
+        self.assertTrue(updated_link.verified)
+        self.assertEqual(updated_link.verifier, self.user)
+        mock_get_career_ranks.assert_called_once_with([link_1.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_1.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
+
+        # AUTO VERIFICATION: non-zero Career Rank, non-Onyx CSR, no matchmaking map credit
+        mock_get_career_ranks.return_value = {
+            "career_ranks": {self.xbox_live_account_2.xuid: {"cumulative_score": 1}}
+        }
+        mock_get_csrs.return_value = {
+            "csrs": {self.xbox_live_account_2.xuid: {"all_time_max_csr": 1499}}
+        }
+        mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = set()
+        updated_link = auto_verify_discord_xbox_live_link(link_2, self.user)
+        self.assertTrue(updated_link.verified)
+        self.assertEqual(updated_link.verifier, self.user)
+        mock_get_career_ranks.assert_called_once_with([link_2.xbox_live_account_id])
+        mock_get_csrs.assert_called_once_with(
+            [link_2.xbox_live_account_id], self.playlist.playlist_id
+        )
+        mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
+        mock_get_career_ranks.reset_mock()
+        mock_get_csrs.reset_mock()
+        mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()

@@ -16,7 +16,10 @@ from apps.link.serializers import (
     DiscordXboxLiveLinkErrorSerializer,
     DiscordXboxLiveLinkResponseSerializer,
 )
-from apps.link.utils import update_or_create_discord_xbox_live_link
+from apps.link.utils import (
+    auto_verify_discord_xbox_live_link,
+    update_or_create_discord_xbox_live_link,
+)
 from apps.xbox_live.utils import update_or_create_xbox_live_account
 from config.serializers import StandardErrorSerializer
 
@@ -135,6 +138,7 @@ class DiscordToXboxLive(APIView):
         """
         Create a DiscordXboxLiveLink record from the provided information, which should uniquely identify both a Discord
         Account and an Xbox Live Account. If either or both records to link do not exist, this method will create them.
+        By default, this method will attempt auto-verification of the link record by the system.
         """
         validation_serializer = DiscordToXboxLiveRequestSerializer(data=request.data)
         if validation_serializer.is_valid(raise_exception=True):
@@ -151,6 +155,11 @@ class DiscordToXboxLive(APIView):
                 discord_xbox_live_link = update_or_create_discord_xbox_live_link(
                     discord_account, xbox_live_account, request.user
                 )
+                # Attempt auto-verification if the link is not verified on creation
+                if not discord_xbox_live_link.verified:
+                    discord_xbox_live_link = auto_verify_discord_xbox_live_link(
+                        discord_xbox_live_link, request.user
+                    )
             except Exception as ex:
                 logger.error(
                     f"Error attempting to link Discord ID {discord_id} to Xbox Live Gamertag {xbox_live_gamertag}"
