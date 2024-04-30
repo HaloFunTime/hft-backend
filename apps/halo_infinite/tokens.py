@@ -144,7 +144,7 @@ def generate_clearance_token(
     with requests.Session() as s:
         response = s.get(
             "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
-            f"xuid({xuid})/active?sandbox=UNUSED&build={build_id}",
+            f"xuid({xuid})/active?build={build_id}",
             headers=headers,
         )
         if response.status_code == 200:

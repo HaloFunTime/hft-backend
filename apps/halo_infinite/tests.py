@@ -533,7 +533,7 @@ class HaloInfiniteTokensTestCase(TestCase):
         )
         mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
             "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
-            f"xuid({test_xuid})/active?sandbox=UNUSED&build={test_build_id}",
+            f"xuid({test_xuid})/active?build={test_build_id}",
             headers={
                 "Accept": "application/json",
                 "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
@@ -558,7 +558,7 @@ class HaloInfiniteTokensTestCase(TestCase):
         )
         mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
             "https://settings.svc.halowaypoint.com/oban/flight-configurations/titles/hi/audiences/RETAIL/players/"
-            f"xuid({test_xuid})/active?sandbox=UNUSED&build={test_build_id}",
+            f"xuid({test_xuid})/active?build={test_build_id}",
             headers={
                 "Accept": "application/json",
                 "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
