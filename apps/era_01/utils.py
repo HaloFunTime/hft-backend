@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def fetch_match_ids_for_xuid(xuid: int, session: requests.Session = None) -> list[str]:
-    matches = matches_between(xuid, EARLIEST_TIME, LATEST_TIME, session=session)
+    matches = matches_between(
+        xuid, EARLIEST_TIME, LATEST_TIME, session=session, ids_only=True
+    )
     return [match.get("MatchId") for match in matches]
 
 

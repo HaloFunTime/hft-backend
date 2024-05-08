@@ -90,6 +90,7 @@ def matches_between(
     end_time: datetime.datetime,
     type: str = None,
     session: requests.Session = None,
+    ids_only: bool = False,
 ) -> list[dict]:
     match_list = []
     close_session_before_exit = session is None
@@ -129,7 +130,10 @@ def matches_between(
                 ):
                     pass
                 else:
-                    match_list.append(match)
+                    if ids_only:
+                        match_list.append({"MatchId": match.get("MatchId")})
+                    else:
+                        match_list.append(match)
             start = response_dict.get("Start") + 25
         else:
             break

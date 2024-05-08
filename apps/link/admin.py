@@ -28,7 +28,7 @@ class DiscordXboxLiveLinkAdmin(AutofillCreatorModelAdmin):
         linkify("discord_account"),
         linkify("xbox_live_account"),
         "verified",
-        "creator",
+        "verifier",
     )
     list_filter = (
         "verified",
