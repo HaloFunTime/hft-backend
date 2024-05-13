@@ -33,6 +33,7 @@ from apps.era_01.utils import (
     fetch_match_ids_for_xuid,
     save_new_matches,
 )
+from apps.halo_infinite.constants import ERA_1_END_TIME, ERA_1_START_TIME
 from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.link.models import DiscordXboxLiveLink
 from config.serializers import StandardErrorSerializer
@@ -185,9 +186,9 @@ class CheckParticipantGames(APIView):
                             participant_match_ids |= set(match_ids)
                 old_match_ids = {
                     str(uuid)
-                    for uuid in HaloInfiniteMatch.objects.all().values_list(
-                        "match_id", flat=True
-                    )
+                    for uuid in HaloInfiniteMatch.objects.filter(
+                        start_time__gte=ERA_1_START_TIME, end_time__lte=ERA_1_END_TIME
+                    ).values_list("match_id", flat=True)
                 }
                 new_match_ids = participant_match_ids.difference(old_match_ids)
                 new_matches_saved = save_new_matches(new_match_ids, request.user)
