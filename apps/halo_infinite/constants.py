@@ -657,9 +657,15 @@ SEASON_DATA_DICT = {
 # HaloFunTime-defined Eras
 ERA_1_START_TIME = datetime.datetime.fromisoformat("2024-01-30T17:00:00Z")
 ERA_1_END_TIME = datetime.datetime.fromisoformat("2024-05-28T17:00:00Z")
+ERA_2_START_TIME = datetime.datetime.fromisoformat("2024-05-28T17:00:00Z")
+ERA_2_END_TIME = datetime.datetime.fromisoformat("2024-09-24T17:00:00Z")
 ERA_DATA_DICT = {
     1: {
         "start_time": ERA_1_START_TIME,
         "end_time": ERA_1_END_TIME,
-    }
+    },
+    2: {
+        "start_time": ERA_2_START_TIME,
+        "end_time": ERA_2_END_TIME,
+    },
 }
