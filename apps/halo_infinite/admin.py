@@ -37,6 +37,7 @@ class HaloInfiniteMatchAdmin(AutofillCreatorModelAdmin):
         "data",
         "creator",
     )
+    search_fields = ["match_id"]
 
 
 @admin.register(HaloInfinitePlaylist)

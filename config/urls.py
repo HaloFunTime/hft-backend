@@ -73,6 +73,7 @@ urlpatterns = [
     # Import urls from /apps here:
     path("discord/", include("apps.discord.urls")),
     path("era-01/", include("apps.era_01.urls")),
+    path("era-02/", include("apps.era_02.urls")),
     path("fun-time-friday/", include("apps.fun_time_friday.urls")),
     path("halo-infinite/", include("apps.halo_infinite.urls")),
     path("intern/", include("apps.intern.urls")),
