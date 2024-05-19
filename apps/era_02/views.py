@@ -45,7 +45,7 @@ class CheckPlayerGames(APIView):
             try:
                 link = DiscordXboxLiveLink.objects.filter(
                     verified=True, discord_account_id=discord_id
-                )
+                ).first()
                 fetched_match_ids = set()
                 with requests.Session() as s:
                     if link is not None:

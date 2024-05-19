@@ -25,22 +25,23 @@ class MVTAdmin(AutofillCreatorModelAdmin):
 
 @admin.register(TeamUpChallengeCompletion)
 class TeamUpChallengeCompletionAdmin(AutofillCreatorModelAdmin):
-    autocomplete_fields = ["xbox_account", "match"]
+    autocomplete_fields = ["match"]
     list_display = (
         "created_at",
         "challenge",
-        linkify("xbox_account"),
+        "xuid",
         linkify("match"),
+        "score",
         "external_match_link",
     )
     list_filter = (
         "challenge",
-        "xbox_account",
         "creator",
     )
     fields = (
         "challenge",
-        "xbox_account",
+        "xuid",
         "match",
+        "score",
         "creator",
     )

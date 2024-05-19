@@ -64,7 +64,12 @@ class UtilsTestCase(TestCase):
         mock_matches_between.return_value = []
         match_ids = fetch_match_ids_for_xuid(123)
         mock_matches_between.assert_called_once_with(
-            123, ERA_2_START_TIME, ERA_2_END_TIME, session=None, ids_only=True
+            123,
+            ERA_2_START_TIME,
+            ERA_2_END_TIME,
+            type="Matchmaking",
+            session=None,
+            ids_only=True,
         )
         self.assertEqual(match_ids, [])
         mock_matches_between.reset_mock()
@@ -144,7 +149,12 @@ class UtilsTestCase(TestCase):
         ]
         match_ids = fetch_match_ids_for_xuid(456)
         mock_matches_between.assert_called_once_with(
-            456, ERA_2_START_TIME, ERA_2_END_TIME, session=None, ids_only=True
+            456,
+            ERA_2_START_TIME,
+            ERA_2_END_TIME,
+            type="Matchmaking",
+            session=None,
+            ids_only=True,
         )
         self.assertEqual(
             match_ids,

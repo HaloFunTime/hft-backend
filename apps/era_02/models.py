@@ -5,12 +5,11 @@ from django.utils.translation import gettext_lazy as _
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.overrides.models import Base
-from apps.xbox_live.models import XboxLiveAccount
 
 
 class TeamUpChallenges(models.TextChoices):
     BAIT_THE_FLAGS = "BAIT_THE_FLAGS", _("Bait the Flags")
-    FIFTY_FISTS = "FIFTY_FISTS", _("Fifty Fists")
+    FORTY_FISTS = "FORTY_FISTS", _("Forty Fists")
     GRENADE_PARADE = "GRENADE_PARADE", _("Grenade Parade")
     HUNDRED_HEADS = "HUNDRED_HEADS", _("Hundred Heads")
     MOST_VALUABLE_DRIVER = "MOST_VALUABLE_DRIVER", _("Most Valuable Driver")
@@ -51,12 +50,8 @@ class TeamUpChallengeCompletion(Base):
         related_name="+",
     )
     challenge = models.CharField(choices=TeamUpChallenges.choices)
-    xbox_account = models.ForeignKey(
-        XboxLiveAccount,
-        on_delete=models.RESTRICT,
-        related_name="+",
-        verbose_name="Xbox Account",
-    )
+    xuid = models.PositiveBigIntegerField(verbose_name="Xbox Live ID")
+    score = models.CharField()
 
     @property
     def external_match_link(self):
