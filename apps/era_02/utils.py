@@ -33,7 +33,7 @@ def fetch_match_ids_for_xuid(xuid: int, session: requests.Session = None) -> lis
     return [match.get("MatchId") for match in matches]
 
 
-def save_era_02_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None:
+def save_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None:
     # Early exit if no teams
     if not match.data.get("Teams"):
         return
@@ -168,7 +168,7 @@ def save_new_matches(match_ids: set[str], user) -> bool:
                     data=data,
                     creator=user,
                 )
-                save_era_02_challenge_completions_for_match(match, user)
+                save_challenge_completions_for_match(match, user)
         return True
     except Exception as ex:
         logger.error("Error attempting to save new matches.")

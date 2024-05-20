@@ -54,7 +54,7 @@ from apps.halo_infinite.utils import (
 from apps.xbox_live.models import XboxLiveUserToken
 
 
-class HaloInfinitePlaylistTestCase(TestCase):
+class HaloInfiniteDataSaveTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
