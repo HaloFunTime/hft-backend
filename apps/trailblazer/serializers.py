@@ -60,6 +60,16 @@ class TrailblazerScoutEra1ProgressResponseSerializer(
     pointsHotStreak = serializers.IntegerField()
 
 
+class TrailblazerScoutEra2ProgressResponseSerializer(
+    TrailblazerScoutProgressResponseSerializer
+):
+    pointsChurchOfTheCrab = serializers.IntegerField()
+    pointsCSRGoUp = serializers.IntegerField()
+    pointsTooStronk = serializers.IntegerField()
+    pointsScoreboard = serializers.IntegerField()
+    pointsTheCycle = serializers.IntegerField()
+
+
 class TrailblazerSeasonalRoleCheckRequestSerializer(serializers.Serializer):
     discordUserId = serializers.CharField(
         max_length=20, validators=[validate_discord_id]
