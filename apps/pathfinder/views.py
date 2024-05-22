@@ -43,6 +43,7 @@ from apps.pathfinder.serializers import (
     HikeSubmissionPostRequestSerializer,
     HikeSubmissionPostResponseSerializer,
     PathfinderDynamoEra1ProgressResponseSerializer,
+    PathfinderDynamoEra2ProgressResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
     PathfinderDynamoProgressResponseSerializer,
     PathfinderDynamoSeason3ProgressResponseSerializer,
@@ -74,6 +75,8 @@ from apps.pathfinder.utils import (
     check_beans,
     get_e1_discord_earn_dict,
     get_e1_xbox_earn_dict,
+    get_e2_discord_earn_dict,
+    get_e2_xbox_earn_dict,
     get_s3_discord_earn_dict,
     get_s3_xbox_earn_dict,
     get_s4_discord_earn_dict,
@@ -870,6 +873,34 @@ class PathfinderDynamoProgressView(APIView):
                     xbox_earns = {}
                     if link is not None:
                         xbox_earns = get_e1_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsGoneHiking"] = xbox_earns.get(
+                        "gone_hiking", 0
+                    )
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
+                elif era == 2:
+                    serializer_class = PathfinderDynamoEra2ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_e2_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsBeanSpender"] = discord_earns.get(
+                        "bean_spender", 0
+                    )
+                    serializable_dict["pointsWhatAreYouWorkingOn"] = discord_earns.get(
+                        "what_are_you_working_on", 0
+                    )
+                    serializable_dict["pointsFeedbackFiend"] = discord_earns.get(
+                        "feedback_fiend", 0
+                    )
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_e2_xbox_earn_dict(
                             [link.xbox_live_account_id]
                         ).get(link.xbox_live_account_id)
                     serializable_dict["pointsGoneHiking"] = xbox_earns.get(

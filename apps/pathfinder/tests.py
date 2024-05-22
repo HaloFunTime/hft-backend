@@ -5,17 +5,20 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.constants import ERA_1_START_TIME, ERA_2_START_TIME
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
     PathfinderBeanCount,
     PathfinderHikeAttendance,
     PathfinderHikeSubmission,
+    PathfinderWAYWOComment,
     PathfinderWAYWOPost,
 )
 from apps.pathfinder.utils import (
     change_beans,
     check_beans,
     get_e1_discord_earn_dict,
+    get_e2_discord_earn_dict,
     get_s3_discord_earn_dict,
     get_s4_discord_earn_dict,
     get_s5_discord_earn_dict,
@@ -419,6 +422,132 @@ class PathfinderUtilsTestCase(TestCase):
         self.assertEqual(earn_dict, {})
 
         # TODO: Complete this test.
+
+    def test_get_e2_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_e2_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # Max Points - exactly
+        hike_submissions = []
+        waywo_posts = []
+        waywo_comments = []
+        hike_submissions.append(
+            PathfinderHikeSubmission.objects.create(
+                creator=self.user,
+                map_submitter_discord=discord_accounts[0],
+            )
+        )
+        PathfinderHikeSubmission.objects.all().update(created_at=ERA_2_START_TIME)
+        for i in range(3):
+            waywo_posts.append(
+                PathfinderWAYWOPost.objects.create(
+                    creator=self.user,
+                    poster_discord=discord_accounts[0],
+                )
+            )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_2_START_TIME)
+        for i in range(100):
+            waywo_comments.append(
+                PathfinderWAYWOComment.objects.create(
+                    creator=self.user,
+                    commenter_discord=discord_accounts[0],
+                    comment_length=100,
+                )
+            )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_2_START_TIME)
+        earn_dict = get_e2_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bean_spender"], 200)
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 150
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 100
+        )
+
+        # Max points - overages
+        hike_submissions.append(
+            PathfinderHikeSubmission.objects.create(
+                creator=self.user,
+                map_submitter_discord=discord_accounts[0],
+            )
+        )
+        PathfinderHikeSubmission.objects.all().update(created_at=ERA_2_START_TIME)
+        waywo_posts.append(
+            PathfinderWAYWOPost.objects.create(
+                creator=self.user,
+                poster_discord=discord_accounts[0],
+            )
+        )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_2_START_TIME)
+        waywo_comments.append(
+            PathfinderWAYWOComment.objects.create(
+                creator=self.user,
+                commenter_discord=discord_accounts[0],
+                comment_length=100,
+            )
+        )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_2_START_TIME)
+        earn_dict = get_e2_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bean_spender"], 200)
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 150
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 100
+        )
+
+        # Deletion of all records eliminates points
+        PathfinderHikeSubmission.objects.all().delete()
+        PathfinderWAYWOPost.objects.all().delete()
+        PathfinderWAYWOComment.objects.all().delete()
+        earn_dict = get_e2_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bean_spender"], 0)
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 0)
+
+        # Addition of records outside the date range still results in no points
+        hike_submissions.append(
+            PathfinderHikeSubmission.objects.create(
+                creator=self.user,
+                map_submitter_discord=discord_accounts[0],
+            )
+        )
+        PathfinderHikeSubmission.objects.all().update(created_at=ERA_1_START_TIME)
+        waywo_posts.append(
+            PathfinderWAYWOPost.objects.create(
+                creator=self.user,
+                poster_discord=discord_accounts[0],
+            )
+        )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_1_START_TIME)
+        waywo_comments.append(
+            PathfinderWAYWOComment.objects.create(
+                creator=self.user,
+                commenter_discord=discord_accounts[0],
+                comment_length=100,
+            )
+        )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_1_START_TIME)
+        earn_dict = get_e2_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bean_spender"], 0)
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 0)
 
     @patch("apps.pathfinder.utils.get_s5_xbox_earn_dict")
     @patch("apps.pathfinder.utils.get_s5_discord_earn_dict")

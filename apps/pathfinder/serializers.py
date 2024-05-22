@@ -130,6 +130,16 @@ class PathfinderDynamoEra1ProgressResponseSerializer(
     pointsForgedInFire = serializers.IntegerField()
 
 
+class PathfinderDynamoEra2ProgressResponseSerializer(
+    PathfinderDynamoProgressResponseSerializer
+):
+    pointsGoneHiking = serializers.IntegerField()
+    pointsBeanSpender = serializers.IntegerField()
+    pointsWhatAreYouWorkingOn = serializers.IntegerField()
+    pointsFeedbackFiend = serializers.IntegerField()
+    pointsForgedInFire = serializers.IntegerField()
+
+
 class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     linkedGamertag = serializers.BooleanField()
     totalPoints = serializers.IntegerField()
