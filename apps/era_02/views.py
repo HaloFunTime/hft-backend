@@ -9,10 +9,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
-from apps.era_02.models import MVT
+from apps.era_02.models import MVT, TeamUpChallengeCompletion, TeamUpChallenges
 from apps.era_02.serializers import (
     CheckPlayerGamesRequestSerializer,
     CheckPlayerGamesResponseSerializer,
+    CheckTeamUpChallengesRequestSerializer,
+    CheckTeamUpChallengesResponseSerializer,
     SaveMVTRequestSerializer,
     SaveMVTResponseSerializer,
 )
@@ -73,6 +75,135 @@ class CheckPlayerGames(APIView):
                     "success": new_matches_saved,
                     "totalGameCount": len(fetched_match_ids),
                     "newGameCount": len(new_match_ids),
+                }
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CheckTeamUpChallenges(APIView):
+    @extend_schema(
+        request=CheckTeamUpChallengesRequestSerializer,
+        responses={
+            200: CheckTeamUpChallengesResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying match stats from the
+        HFT DB, and saving/returning the progress the gamertag has made toward the Era 2 Team Up Challenge.
+        """
+        validation_serializer = CheckTeamUpChallengesRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            link = None
+
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+                try:
+                    link = DiscordXboxLiveLink.objects.filter(
+                        discord_account_id=discord_account.discord_id, verified=True
+                    ).get()
+                except DiscordXboxLiveLink.DoesNotExist:
+                    pass
+
+                completions_bait_the_flags = 0
+                completions_forty_fists = 0
+                completions_grenade_parade = 0
+                completions_hundred_heads = 0
+                completions_most_valuable_driver = 0
+                completions_own_the_zones = 0
+                completions_speed_for_seeds = 0
+                completions_spin_class = 0
+                completions_sticky_icky = 0
+                completions_summon_a_demon = 0
+                if link is not None:
+                    completions_bait_the_flags = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.BAIT_THE_FLAGS,
+                        )
+                    )
+                    completions_forty_fists = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.FORTY_FISTS,
+                        )
+                    )
+                    completions_grenade_parade = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.GRENADE_PARADE,
+                        )
+                    )
+                    completions_hundred_heads = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.HUNDRED_HEADS,
+                        )
+                    )
+                    completions_most_valuable_driver = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.MOST_VALUABLE_DRIVER,
+                        )
+                    )
+                    completions_own_the_zones = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.OWN_THE_ZONES,
+                        )
+                    )
+                    completions_speed_for_seeds = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.SPEED_FOR_SEEDS,
+                        )
+                    )
+                    completions_spin_class = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.SPIN_CLASS,
+                        )
+                    )
+                    completions_sticky_icky = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.STICKY_ICKY,
+                        )
+                    )
+                    completions_summon_a_demon = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.SUMMON_A_DEMON,
+                        )
+                    )
+            except Exception as ex:
+                logger.error("Error attempting to check Team Up Challenge progress.")
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to check Team Up Challenge progress."
+                )
+            serializer = CheckTeamUpChallengesResponseSerializer(
+                {
+                    "discordUserId": discord_id,
+                    "linkedGamertag": link is not None,
+                    "completionsBaitTheFlags": completions_bait_the_flags,
+                    "completionsFortyFists": completions_forty_fists,
+                    "completionsGrenadeParade": completions_grenade_parade,
+                    "completionsHundredHeads": completions_hundred_heads,
+                    "completionsMostValuableDriver": completions_most_valuable_driver,
+                    "completionsOwnTheZones": completions_own_the_zones,
+                    "completionsSpeedForSeeds": completions_speed_for_seeds,
+                    "completionsSpinClass": completions_spin_class,
+                    "completionsStickyIcky": completions_sticky_icky,
+                    "completionsSummonADemon": completions_summon_a_demon,
                 }
             )
             return Response(serializer.data, status=status.HTTP_200_OK)

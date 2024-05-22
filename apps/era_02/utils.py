@@ -117,7 +117,7 @@ def save_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None
                     if medal["NameId"] == MEDAL_ID_STICK
                 ]
                 medal_dict = medal_dicts[0] if medal_dicts else {}
-                if medal_dict.get("Count", 0) >= 10:
+                if medal_dict.get("Count", 0) >= 15:
                     score = str(medal_dict.get("Count", 0))
             case TeamUpChallenges.SUMMON_A_DEMON:
                 medal_dicts = [

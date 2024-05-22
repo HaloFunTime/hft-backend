@@ -765,7 +765,7 @@ class UtilsTestCase(TestCase):
 
         # Challenge complete
         match.data["Teams"][0]["Stats"]["CoreStats"]["Medals"] = [
-            {"Count": 10, "NameId": MEDAL_ID_STICK}
+            {"Count": 15, "NameId": MEDAL_ID_STICK}
         ]
         match.save()
         save_challenge_completions_for_match(match, self.user)
