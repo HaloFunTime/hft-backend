@@ -14,7 +14,6 @@ from apps.halo_infinite.constants import (
     MEDAL_ID_360,
     MEDAL_ID_DEMON,
     MEDAL_ID_IMMORTAL_CHAUFFEUR,
-    MEDAL_ID_STICK,
 )
 from apps.halo_infinite.models import HaloInfiniteMatch
 
@@ -78,6 +77,9 @@ def save_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None
             case TeamUpChallenges.HUNDRED_HEADS:
                 if winning_team_stats["CoreStats"]["HeadshotKills"] >= 100:
                     score = str(winning_team_stats["CoreStats"]["HeadshotKills"])
+            case TeamUpChallenges.MARKS_OF_SHAME:
+                if winning_team_stats["CoreStats"]["CalloutAssists"] >= 30:
+                    score = str(winning_team_stats["CoreStats"]["CalloutAssists"])
             case TeamUpChallenges.MOST_VALUABLE_DRIVER:
                 medal_dicts = [
                     medal
@@ -109,15 +111,6 @@ def save_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None
                 ]
                 medal_dict = medal_dicts[0] if medal_dicts else {}
                 if medal_dict.get("Count", 0) >= 10:
-                    score = str(medal_dict.get("Count", 0))
-            case TeamUpChallenges.STICKY_ICKY:
-                medal_dicts = [
-                    medal
-                    for medal in winning_team_medals
-                    if medal["NameId"] == MEDAL_ID_STICK
-                ]
-                medal_dict = medal_dicts[0] if medal_dicts else {}
-                if medal_dict.get("Count", 0) >= 15:
                     score = str(medal_dict.get("Count", 0))
             case TeamUpChallenges.SUMMON_A_DEMON:
                 medal_dicts = [

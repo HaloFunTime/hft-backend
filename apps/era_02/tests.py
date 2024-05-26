@@ -19,7 +19,6 @@ from apps.halo_infinite.constants import (
     MEDAL_ID_360,
     MEDAL_ID_DEMON,
     MEDAL_ID_IMMORTAL_CHAUFFEUR,
-    MEDAL_ID_STICK,
 )
 from apps.halo_infinite.models import HaloInfiniteMatch
 
@@ -193,6 +192,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                         "CaptureTheFlagStats": {
                             "FlagReturnersKilled": 9,
@@ -262,6 +262,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 39,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,
@@ -326,6 +327,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 24,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,
@@ -390,6 +392,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 99,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,
@@ -441,6 +444,71 @@ class UtilsTestCase(TestCase):
             xuid += 1
 
     @patch("apps.halo_infinite.signals.match_stats")
+    def test_challenge_completion_marks_of_shame(self, mock_match_stats):
+        # Set up test data for the challenge
+        match_id = uuid.uuid4()
+        mock_match_stats.return_value = {
+            "Teams": [
+                {
+                    "Rank": 1,
+                    "Stats": {
+                        "CoreStats": {
+                            "Medals": [],
+                            "MeleeKills": 0,
+                            "GrenadeKills": 0,
+                            "HeadshotKills": 0,
+                            "CalloutAssists": 0,
+                        },
+                    },
+                    "TeamId": 0,
+                    "Outcome": 2,
+                }
+            ],
+            "MatchId": str(match_id),
+            "MatchInfo": {
+                "StartTime": "2024-06-01T00:00:00.00Z",
+                "EndTime": "2024-06-01T00:12:34.567Z",
+                "Playlist": str(uuid.uuid4()),
+            },
+            "Players": [
+                {
+                    "PlayerId": "xuid(0)",
+                    "LastTeamId": 0,
+                },
+                {
+                    "PlayerId": "xuid(1)",
+                    "LastTeamId": 0,
+                },
+                {
+                    "PlayerId": "xuid(2)",
+                    "LastTeamId": 0,
+                },
+                {
+                    "PlayerId": "xuid(3)",
+                    "LastTeamId": 0,
+                },
+            ],
+        }
+        match = HaloInfiniteMatch.objects.create(creator=self.user, match_id=match_id)
+
+        # Challenge incomplete
+        save_challenge_completions_for_match(match, self.user)
+        self.assertEqual(len(TeamUpChallengeCompletion.objects.all()), 0)
+
+        # Challenge complete
+        match.data["Teams"][0]["Stats"]["CoreStats"]["CalloutAssists"] = 30
+        match.save()
+        save_challenge_completions_for_match(match, self.user)
+        completions = TeamUpChallengeCompletion.objects.all().order_by("xuid")
+        self.assertEqual(len(completions), 4)
+        xuid = 0
+        for completion in completions:
+            self.assertEqual(completion.xuid, xuid)
+            self.assertEqual(completion.match_id, match_id)
+            self.assertEqual(completion.challenge, TeamUpChallenges.MARKS_OF_SHAME)
+            xuid += 1
+
+    @patch("apps.halo_infinite.signals.match_stats")
     def test_challenge_completion_most_valuable_driver(self, mock_match_stats):
         # Set up test data for the challenge
         match_id = uuid.uuid4()
@@ -454,6 +522,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,
@@ -522,6 +591,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                         "ZonesStats": {
                             "StrongholdOccupationTime": "PT24M59S",
@@ -591,6 +661,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                         "StockpileStats": {
                             "TimeAsPowerSeedDriver": "PT9M59S",
@@ -660,6 +731,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,
@@ -713,72 +785,6 @@ class UtilsTestCase(TestCase):
             xuid += 1
 
     @patch("apps.halo_infinite.signals.match_stats")
-    def test_challenge_completion_sticky_icky(self, mock_match_stats):
-        # Set up test data for the challenge
-        match_id = uuid.uuid4()
-        mock_match_stats.return_value = {
-            "Teams": [
-                {
-                    "Rank": 1,
-                    "Stats": {
-                        "CoreStats": {
-                            "Medals": [],
-                            "MeleeKills": 0,
-                            "GrenadeKills": 0,
-                            "HeadshotKills": 0,
-                        },
-                    },
-                    "TeamId": 0,
-                    "Outcome": 2,
-                }
-            ],
-            "MatchId": str(match_id),
-            "MatchInfo": {
-                "StartTime": "2024-06-01T00:00:00.00Z",
-                "EndTime": "2024-06-01T00:12:34.567Z",
-                "Playlist": str(uuid.uuid4()),
-            },
-            "Players": [
-                {
-                    "PlayerId": "xuid(0)",
-                    "LastTeamId": 0,
-                },
-                {
-                    "PlayerId": "xuid(1)",
-                    "LastTeamId": 0,
-                },
-                {
-                    "PlayerId": "xuid(2)",
-                    "LastTeamId": 0,
-                },
-                {
-                    "PlayerId": "xuid(3)",
-                    "LastTeamId": 0,
-                },
-            ],
-        }
-        match = HaloInfiniteMatch.objects.create(creator=self.user, match_id=match_id)
-
-        # Challenge incomplete
-        save_challenge_completions_for_match(match, self.user)
-        self.assertEqual(len(TeamUpChallengeCompletion.objects.all()), 0)
-
-        # Challenge complete
-        match.data["Teams"][0]["Stats"]["CoreStats"]["Medals"] = [
-            {"Count": 15, "NameId": MEDAL_ID_STICK}
-        ]
-        match.save()
-        save_challenge_completions_for_match(match, self.user)
-        completions = TeamUpChallengeCompletion.objects.all().order_by("xuid")
-        self.assertEqual(len(completions), 4)
-        xuid = 0
-        for completion in completions:
-            self.assertEqual(completion.xuid, xuid)
-            self.assertEqual(completion.match_id, match_id)
-            self.assertEqual(completion.challenge, TeamUpChallenges.STICKY_ICKY)
-            xuid += 1
-
-    @patch("apps.halo_infinite.signals.match_stats")
     def test_challenge_completion_summon_a_demon(self, mock_match_stats):
         # Set up test data for the challenge
         match_id = uuid.uuid4()
@@ -792,6 +798,7 @@ class UtilsTestCase(TestCase):
                             "MeleeKills": 0,
                             "GrenadeKills": 0,
                             "HeadshotKills": 0,
+                            "CalloutAssists": 0,
                         },
                     },
                     "TeamId": 0,

@@ -117,11 +117,11 @@ class CheckTeamUpChallenges(APIView):
                 completions_forty_fists = 0
                 completions_grenade_parade = 0
                 completions_hundred_heads = 0
+                completions_marks_of_shame = 0
                 completions_most_valuable_driver = 0
                 completions_own_the_zones = 0
                 completions_speed_for_seeds = 0
                 completions_spin_class = 0
-                completions_sticky_icky = 0
                 completions_summon_a_demon = 0
                 if link is not None:
                     completions_bait_the_flags = len(
@@ -148,6 +148,12 @@ class CheckTeamUpChallenges(APIView):
                             challenge=TeamUpChallenges.HUNDRED_HEADS,
                         )
                     )
+                    completions_marks_of_shame = len(
+                        TeamUpChallengeCompletion.objects.filter(
+                            xuid=link.xbox_live_account_id,
+                            challenge=TeamUpChallenges.MARKS_OF_SHAME,
+                        )
+                    )
                     completions_most_valuable_driver = len(
                         TeamUpChallengeCompletion.objects.filter(
                             xuid=link.xbox_live_account_id,
@@ -170,12 +176,6 @@ class CheckTeamUpChallenges(APIView):
                         TeamUpChallengeCompletion.objects.filter(
                             xuid=link.xbox_live_account_id,
                             challenge=TeamUpChallenges.SPIN_CLASS,
-                        )
-                    )
-                    completions_sticky_icky = len(
-                        TeamUpChallengeCompletion.objects.filter(
-                            xuid=link.xbox_live_account_id,
-                            challenge=TeamUpChallenges.STICKY_ICKY,
                         )
                     )
                     completions_summon_a_demon = len(
@@ -202,7 +202,7 @@ class CheckTeamUpChallenges(APIView):
                     "completionsOwnTheZones": completions_own_the_zones,
                     "completionsSpeedForSeeds": completions_speed_for_seeds,
                     "completionsSpinClass": completions_spin_class,
-                    "completionsStickyIcky": completions_sticky_icky,
+                    "completionsMarksOfShame": completions_marks_of_shame,
                     "completionsSummonADemon": completions_summon_a_demon,
                 }
             )

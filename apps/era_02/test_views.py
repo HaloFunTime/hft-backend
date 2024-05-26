@@ -251,11 +251,11 @@ class Era02TestCase(APITestCase):
         self.assertEqual(response.data.get("completionsFortyFists"), 0)
         self.assertEqual(response.data.get("completionsGrenadeParade"), 0)
         self.assertEqual(response.data.get("completionsHundredHeads"), 0)
+        self.assertEqual(response.data.get("completionsMarksOfShame"), 0)
         self.assertEqual(response.data.get("completionsMostValuableDriver"), 0)
         self.assertEqual(response.data.get("completionsOwnTheZones"), 0)
         self.assertEqual(response.data.get("completionsSpeedForSeeds"), 0)
         self.assertEqual(response.data.get("completionsSpinClass"), 0)
-        self.assertEqual(response.data.get("completionsStickyIcky"), 0)
         self.assertEqual(response.data.get("completionsSummonADemon"), 0)
 
         # Completions are returned successfully if present
@@ -265,11 +265,11 @@ class Era02TestCase(APITestCase):
             TeamUpChallenges.FORTY_FISTS,
             TeamUpChallenges.GRENADE_PARADE,
             TeamUpChallenges.HUNDRED_HEADS,
+            TeamUpChallenges.MARKS_OF_SHAME,
             TeamUpChallenges.MOST_VALUABLE_DRIVER,
             TeamUpChallenges.OWN_THE_ZONES,
             TeamUpChallenges.SPEED_FOR_SEEDS,
             TeamUpChallenges.SPIN_CLASS,
-            TeamUpChallenges.STICKY_ICKY,
             TeamUpChallenges.SUMMON_A_DEMON,
         ]:
             n += 1
@@ -297,11 +297,11 @@ class Era02TestCase(APITestCase):
         self.assertEqual(response.data.get("completionsFortyFists"), 2)
         self.assertEqual(response.data.get("completionsGrenadeParade"), 3)
         self.assertEqual(response.data.get("completionsHundredHeads"), 4)
-        self.assertEqual(response.data.get("completionsMostValuableDriver"), 5)
-        self.assertEqual(response.data.get("completionsOwnTheZones"), 6)
-        self.assertEqual(response.data.get("completionsSpeedForSeeds"), 7)
-        self.assertEqual(response.data.get("completionsSpinClass"), 8)
-        self.assertEqual(response.data.get("completionsStickyIcky"), 9)
+        self.assertEqual(response.data.get("completionsMarksOfShame"), 5)
+        self.assertEqual(response.data.get("completionsMostValuableDriver"), 6)
+        self.assertEqual(response.data.get("completionsOwnTheZones"), 7)
+        self.assertEqual(response.data.get("completionsSpeedForSeeds"), 8)
+        self.assertEqual(response.data.get("completionsSpinClass"), 9)
         self.assertEqual(response.data.get("completionsSummonADemon"), 10)
 
         # Zeroes are returned with no link record
@@ -323,9 +323,9 @@ class Era02TestCase(APITestCase):
         self.assertEqual(response.data.get("completionsFortyFists"), 0)
         self.assertEqual(response.data.get("completionsGrenadeParade"), 0)
         self.assertEqual(response.data.get("completionsHundredHeads"), 0)
+        self.assertEqual(response.data.get("completionsMarksOfShame"), 0)
         self.assertEqual(response.data.get("completionsMostValuableDriver"), 0)
         self.assertEqual(response.data.get("completionsOwnTheZones"), 0)
         self.assertEqual(response.data.get("completionsSpeedForSeeds"), 0)
         self.assertEqual(response.data.get("completionsSpinClass"), 0)
-        self.assertEqual(response.data.get("completionsStickyIcky"), 0)
         self.assertEqual(response.data.get("completionsSummonADemon"), 0)

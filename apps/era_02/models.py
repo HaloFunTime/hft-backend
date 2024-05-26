@@ -12,11 +12,11 @@ class TeamUpChallenges(models.TextChoices):
     FORTY_FISTS = "FORTY_FISTS", _("Forty Fists")
     GRENADE_PARADE = "GRENADE_PARADE", _("Grenade Parade")
     HUNDRED_HEADS = "HUNDRED_HEADS", _("Hundred Heads")
+    MARKS_OF_SHAME = "MARKS_OF_SHAME", _("Marks of Shame")
     MOST_VALUABLE_DRIVER = "MOST_VALUABLE_DRIVER", _("Most Valuable Driver")
     OWN_THE_ZONES = "OWN_THE_ZONES", _("Own the Zones")
     SPEED_FOR_SEEDS = "SPEED_FOR_SEEDS", _("Speed for Seeds")
     SPIN_CLASS = "SPIN_CLASS", _("Spin Class")
-    STICKY_ICKY = "STICKY_ICKY", _("Sticky Icky")
     SUMMON_A_DEMON = "SUMMON_A_DEMON", _("Summon a Demon")
 
 

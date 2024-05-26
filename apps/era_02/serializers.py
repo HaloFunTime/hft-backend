@@ -31,11 +31,11 @@ class CheckTeamUpChallengesResponseSerializer(serializers.Serializer):
     completionsFortyFists = serializers.IntegerField()
     completionsGrenadeParade = serializers.IntegerField()
     completionsHundredHeads = serializers.IntegerField()
+    completionsMarksOfShame = serializers.IntegerField()
     completionsMostValuableDriver = serializers.IntegerField()
     completionsOwnTheZones = serializers.IntegerField()
     completionsSpeedForSeeds = serializers.IntegerField()
     completionsSpinClass = serializers.IntegerField()
-    completionsStickyIcky = serializers.IntegerField()
     completionsSummonADemon = serializers.IntegerField()
 
 
