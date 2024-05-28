@@ -198,11 +198,11 @@ class CheckTeamUpChallenges(APIView):
                     "completionsFortyFists": completions_forty_fists,
                     "completionsGrenadeParade": completions_grenade_parade,
                     "completionsHundredHeads": completions_hundred_heads,
+                    "completionsMarksOfShame": completions_marks_of_shame,
                     "completionsMostValuableDriver": completions_most_valuable_driver,
                     "completionsOwnTheZones": completions_own_the_zones,
                     "completionsSpeedForSeeds": completions_speed_for_seeds,
                     "completionsSpinClass": completions_spin_class,
-                    "completionsMarksOfShame": completions_marks_of_shame,
                     "completionsSummonADemon": completions_summon_a_demon,
                 }
             )

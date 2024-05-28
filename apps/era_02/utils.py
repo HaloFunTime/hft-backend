@@ -11,6 +11,7 @@ from apps.halo_infinite.constants import (
     ERA_2_END_TIME,
     ERA_2_START_TIME,
     GAME_VARIANT_CATEGORY_FIREFIGHT,
+    GAME_VARIANT_CATEGORY_MINIGAME,
     MEDAL_ID_360,
     MEDAL_ID_DEMON,
     MEDAL_ID_IMMORTAL_CHAUFFEUR,
@@ -43,7 +44,8 @@ def save_challenge_completions_for_match(match: HaloInfiniteMatch, user) -> None
 
     # Early exit if the game mode is disallowed
     if match.data.get("MatchInfo", {}).get("GameVariantCategory") in {
-        GAME_VARIANT_CATEGORY_FIREFIGHT
+        GAME_VARIANT_CATEGORY_MINIGAME,
+        GAME_VARIANT_CATEGORY_FIREFIGHT,
     }:
         return
 
