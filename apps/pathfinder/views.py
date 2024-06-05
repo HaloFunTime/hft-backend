@@ -408,7 +408,7 @@ class PathfinderProdigyCheckView(APIView):
     def post(self, request, format=None):
         """
         Evaluate a list of Discord IDs by retrieving their verified linked Xbox Live gamertags, querying stats from the
-        Halo Infinite API, and returning a payload indicating whether or not each one qualifies for Trailblazer Titan.
+        Halo Infinite API, and returning a payload indicating whether or not each one qualifies for Pathfinder Prodigy.
         """
         validation_serializer = PathfinderProdigyCheckRequestSerializer(
             data=request.data
@@ -429,8 +429,10 @@ class PathfinderProdigyCheckView(APIView):
                 }
                 xuids = [link.xbox_live_account_id for link in links]
 
-                # Update known playlists
-                update_known_playlists()
+                # Update known playlists if today is a Tuesday at 2PM
+                now = datetime.datetime.now()
+                if now.weekday() == 1 and now.hour == 14:
+                    update_known_playlists()
 
                 # Get contributor XUIDs for all maps in all active playlists
                 contributor_xuids = get_contributor_xuids_for_maps_in_active_playlists()

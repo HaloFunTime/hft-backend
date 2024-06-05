@@ -5,7 +5,7 @@ import requests
 
 from apps.halo_infinite.api.career_rank import career_rank
 from apps.halo_infinite.api.csr import csr
-from apps.halo_infinite.api.files import get_map, get_mode, get_playlist
+from apps.halo_infinite.api.files import get_map, get_mode
 from apps.halo_infinite.api.map_mode_pair import get_map_mode_pair
 from apps.halo_infinite.api.match import (
     last_25_matches,
@@ -13,7 +13,11 @@ from apps.halo_infinite.api.match import (
     match_skill,
     matches_between,
 )
-from apps.halo_infinite.api.playlist import playlist_info, playlist_version
+from apps.halo_infinite.api.playlist import (
+    get_playlist,
+    playlist_info,
+    playlist_version,
+)
 from apps.halo_infinite.api.recommended import recommended
 from apps.halo_infinite.api.search import search_by_author
 from apps.halo_infinite.api.service_record import service_record
@@ -290,10 +294,8 @@ def get_contributor_xuids_for_maps_in_active_playlists() -> set[int]:
         active_playlists = HaloInfinitePlaylist.objects.filter(active=True)
         map_mode_pair_ids = set()
         for playlist in active_playlists:
-            playlist_version_info = playlist_version(
-                playlist.playlist_id, playlist.version_id
-            )
-            for rotation_entry in playlist_version_info.get("RotationEntries", []):
+            playlist_info = get_playlist(playlist.playlist_id, playlist.version_id, s)
+            for rotation_entry in playlist_info.get("RotationEntries", []):
                 map_mode_pair_ids.add(
                     (rotation_entry["AssetId"], rotation_entry["VersionId"])
                 )

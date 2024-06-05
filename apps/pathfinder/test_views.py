@@ -1888,6 +1888,7 @@ class PathfinderTestCase(APITestCase):
         mock_get_e2_discord_earn_dict.reset_mock()
         mock_get_e2_xbox_earn_dict.reset_mock()
 
+    @patch("apps.pathfinder.views.datetime", wraps=datetime)
     @patch("apps.pathfinder.views.get_contributor_xuids_for_maps_in_active_playlists")
     @patch("apps.pathfinder.views.update_known_playlists")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
@@ -1896,7 +1897,12 @@ class PathfinderTestCase(APITestCase):
         mock_get_xuid_and_exact_gamertag,
         mock_update_known_playlists,
         mock_get_contributor_xuids_for_maps_in_active_playlists,
+        mock_datetime,
     ):
+        mock_datetime.datetime.now.return_value = datetime.datetime(
+            2024, 6, 4, 14, 30, 5
+        )
+
         # Missing field values throw errors
         response = self.client.post("/pathfinder/prodigy-check", {}, format="json")
         self.assertEqual(response.status_code, 400)
@@ -1996,7 +2002,8 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(
             details.get("detail"),
             ErrorDetail(
-                string="Error attempting the Pathfinder Prodigy check.", code="error"
+                string="Error attempting the Pathfinder Prodigy check.",
+                code="error",
             ),
         )
         mock_update_known_playlists.assert_called_once()
