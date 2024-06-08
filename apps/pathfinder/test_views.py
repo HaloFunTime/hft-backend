@@ -464,6 +464,7 @@ class PathfinderTestCase(APITestCase):
         self.assertEqual(hike_submission.map, "???")
         self.assertEqual(hike_submission.mode, "???")
         self.assertIsNotNone(hike_submission.scheduled_playtest_date)
+        self.assertIsNotNone(hike_submission.playtest_game_id)
         self.assertEqual(PathfinderHikeGameParticipation.objects.count(), 4)
         for game_participation in PathfinderHikeGameParticipation.objects.all():
             self.assertEqual(game_participation.hike_submission_id, hike_submission.id)
