@@ -4,7 +4,7 @@ import logging
 import requests
 
 from apps.halo_infinite.api.career_rank import career_rank
-from apps.halo_infinite.api.csr import csr
+from apps.halo_infinite.api.csr import get_csr
 from apps.halo_infinite.api.files import get_map, get_mode
 from apps.halo_infinite.api.map_mode_pair import get_map_mode_pair
 from apps.halo_infinite.api.match import (
@@ -252,7 +252,7 @@ def get_csrs(xuids: list[int], playlist_id: str):
     return_dict = {
         "csrs": {},
     }
-    csr_data = csr(xuids, playlist_id)
+    csr_data = get_csr(xuids, playlist_id)
     for value in csr_data.get("Value"):
         xuid = int(value.get("Id").lstrip("xuid(").rstrip(")"))
         current = value.get("Result").get("Current")

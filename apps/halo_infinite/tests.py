@@ -1032,9 +1032,9 @@ class HaloInfiniteUtilsTestCase(TestCase):
         )
         mock_career_rank.assert_called_once_with([2533274870001169])
 
-    @patch("apps.halo_infinite.utils.csr")
-    def test_get_csrs(self, mock_csr):
-        mock_csr.return_value = {
+    @patch("apps.halo_infinite.utils.get_csr")
+    def test_get_csrs(self, mock_get_csr):
+        mock_get_csr.return_value = {
             "Value": [
                 {
                     "Id": "xuid(2533274870001169)",
@@ -1120,7 +1120,7 @@ class HaloInfiniteUtilsTestCase(TestCase):
             data.get("csrs").get(2533274870001169).get("all_time_max_tier_description"),
             "Onyx",
         )
-        mock_csr.assert_called_once_with([2533274870001169], "test_playlist_id")
+        mock_get_csr.assert_called_once_with([2533274870001169], "test_playlist_id")
 
     @patch("apps.halo_infinite.utils.match_skill")
     def test_get_csr_after_match(self, mock_match_skill):

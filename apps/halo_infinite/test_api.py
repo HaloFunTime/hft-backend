@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.halo_infinite.api.career_rank import career_rank
-from apps.halo_infinite.api.csr import csr
+from apps.halo_infinite.api.csr import get_csr
 from apps.halo_infinite.api.files import get_map, get_mode, get_prefab
 from apps.halo_infinite.api.match import (
     match_count,
@@ -147,12 +147,10 @@ class HaloInfiniteAPITestCase(TestCase):
         )
 
     @patch("apps.halo_infinite.api.csr.requests.Session")
-    def test_csr(self, mock_Session):
+    def test_get_csr(self, mock_Session):
         # Successful call with one XUID
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            200
-        )
-        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+        mock_Session.return_value.get.return_value.status_code = 200
+        mock_Session.return_value.get.return_value.json.return_value = {
             "Value": [
                 {
                     "Id": "xuid(2533274870001169)",
@@ -195,8 +193,8 @@ class HaloInfiniteAPITestCase(TestCase):
                 }
             ]
         }
-        csr_data = csr([2533274870001169], "test_playlist_id")
-        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+        csr_data = get_csr([2533274870001169], "test_playlist_id")
+        mock_Session.return_value.get.assert_called_once_with(
             "https://skill.svc.halowaypoint.com:443/hi/playlist/test_playlist_id/csrs?players=xuid(2533274870001169)",
             headers={
                 "Accept": "application/json",
@@ -209,10 +207,8 @@ class HaloInfiniteAPITestCase(TestCase):
         mock_Session.reset_mock()
 
         # Successful call with three XUIDs
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            200
-        )
-        mock_Session.return_value.__enter__.return_value.get.return_value.json.return_value = {
+        mock_Session.return_value.get.return_value.status_code = 200
+        mock_Session.return_value.get.return_value.json.return_value = {
             "Value": [
                 {
                     "Id": "xuid(2535405290989773)",
@@ -334,10 +330,10 @@ class HaloInfiniteAPITestCase(TestCase):
             ]
         }
 
-        csr_data = csr(
+        csr_data = get_csr(
             [2535405290989773, 2533274870001169, 2533274840205695], "test_playlist_id"
         )
-        mock_Session.return_value.__enter__.return_value.get.assert_called_once_with(
+        mock_Session.return_value.get.assert_called_once_with(
             "https://skill.svc.halowaypoint.com:443/hi/playlist/test_playlist_id/csrs"
             "?players=xuid(2535405290989773),xuid(2533274870001169),xuid(2533274840205695)",
             headers={
@@ -353,13 +349,13 @@ class HaloInfiniteAPITestCase(TestCase):
         mock_Session.reset_mock()
 
         # Failed call returns empty values
-        mock_Session.return_value.__enter__.return_value.get.return_value.status_code = (
-            404
+        mock_Session.return_value.get.return_value.status_code = 404
+        self.assertDictEqual(
+            {"Value": []}, get_csr([2533274870001169], "test_playlist_id")
         )
-        self.assertDictEqual({"Value": []}, csr([2533274870001169], "test_playlist_id"))
         self.assertDictEqual(
             {"Value": []},
-            csr(
+            get_csr(
                 [2535405290989773, 2533274870001169, 2533274840205695],
                 "test_playlist_id",
             ),

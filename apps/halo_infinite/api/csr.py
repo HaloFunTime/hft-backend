@@ -3,24 +3,19 @@ import math
 
 import requests
 
-from apps.halo_infinite.decorators import clearance_token, spartan_token
+from apps.halo_infinite.api.utils import hi_api_get
 
 logger = logging.getLogger(__name__)
 
 # Ranked Playlist: edfef3ac-9cbe-4fa2-b949-8f29deafd483
 
 
-@clearance_token
-@spartan_token
-def csr(xuids: list[int], playlist_id: str, **kwargs) -> dict:
-    spartan_token = kwargs.get("HaloInfiniteSpartanToken")
-    clearance_token = kwargs.get("HaloInfiniteClearanceToken")
-    headers = {
-        "Accept": "application/json",
-        "User-Agent": "HaloWaypoint/2021112313511900 CFNetwork/1327.0.4 Darwin/21.2.0",
-        "x-343-authorization-spartan": spartan_token.token,
-        "343-clearance": clearance_token.flight_configuration_id,
-    }
+def get_csr(
+    xuids: list[int], playlist_id: str, session: requests.Session = None
+) -> dict:
+    return_dict = {"Value": []}
+    close_session_before_exit = session is None
+    s = requests.Session() if session is None else session
     # Build XUID strings for every 30 XUIDs, as that is the max allowed per API call
     xuid_strings = []
     for i in range(math.ceil(len(xuids) / 30)):
@@ -31,16 +26,14 @@ def csr(xuids: list[int], playlist_id: str, **kwargs) -> dict:
             xuid_string += f"xuid({xuid}),"
         xuid_string = xuid_string.rstrip(",")
         xuid_strings.append(xuid_string)
-    return_dict = {"Value": []}
-    with requests.Session() as s:
-        for xuid_string in xuid_strings:
-            response = s.get(
-                f"https://skill.svc.halowaypoint.com:443/hi/playlist/{playlist_id}/csrs?players={xuid_string}",
-                headers=headers,
-            )
-            if response.status_code == 200:
-                response_dict = response.json()
-                return_dict.get("Value").extend(response_dict.get("Value"))
+    for xuid_string in xuid_strings:
+        url = f"https://skill.svc.halowaypoint.com:443/hi/playlist/{playlist_id}/csrs?players={xuid_string}"
+        response = hi_api_get(url, s, use_spartan=True, use_clearance=True)
+        if response.status_code == 200:
+            response_dict = response.json()
+            return_dict.get("Value").extend(response_dict.get("Value"))
+    if close_session_before_exit:
+        s.close()
     return return_dict
 
 
