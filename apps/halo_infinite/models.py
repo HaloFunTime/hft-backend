@@ -40,6 +40,51 @@ class HaloInfiniteMatch(BaseWithoutPrimaryKey):
         return str(self.match_id)
 
 
+class HaloInfiniteMap(BaseWithoutPrimaryKey):
+    class Meta:
+        db_table = "HaloInfiniteMap"
+        ordering = [
+            "-published_at",
+        ]
+        verbose_name = "Map"
+        verbose_name_plural = "Maps"
+
+    asset_id = models.UUIDField(primary_key=True, verbose_name="Asset ID")
+    version_id = models.UUIDField(blank=True, verbose_name="Version ID")
+    public_name = models.CharField(blank=True, max_length=255, verbose_name="Name")
+    description = models.CharField(
+        blank=True, max_length=255, verbose_name="Description"
+    )
+    published_at = models.DateTimeField(blank=True, verbose_name="Published Time")
+    data = models.JSONField(blank=True, default=dict, verbose_name="Raw Data")
+
+    def __str__(self):
+        return (
+            f"{self.public_name} ({self.published_at.strftime('%Y-%m-%dT%H:%M:%SZ')})"
+        )
+
+
+class HaloInfiniteMapModePair(BaseWithoutPrimaryKey):
+    class Meta:
+        db_table = "HaloInfiniteMapModePair"
+        ordering = [
+            "-updated_at",
+        ]
+        verbose_name = "MapModePair"
+        verbose_name_plural = "MapModePairs"
+
+    asset_id = models.UUIDField(primary_key=True, verbose_name="Asset ID")
+    version_id = models.UUIDField(blank=True, verbose_name="Version ID")
+    public_name = models.CharField(blank=True, max_length=255, verbose_name="Name")
+    description = models.CharField(
+        blank=True, max_length=255, verbose_name="Description"
+    )
+    data = models.JSONField(blank=True, default=dict, verbose_name="Raw Data")
+
+    def __str__(self):
+        return self.public_name
+
+
 class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     class Meta:
         db_table = "HaloInfinitePlaylist"
@@ -56,6 +101,8 @@ class HaloInfinitePlaylist(BaseWithoutPrimaryKey):
     active = models.BooleanField(default=False)
     name = models.CharField(blank=True, max_length=256)
     description = models.TextField(blank=True)
+    info = models.JSONField(blank=True, default=dict, verbose_name="Raw Info")
+    data = models.JSONField(blank=True, default=dict, verbose_name="Raw Data")
 
     def __str__(self):
         return self.name

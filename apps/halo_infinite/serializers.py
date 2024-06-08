@@ -84,3 +84,11 @@ class SummaryStatsResponseSerializer(serializers.Serializer):
     custom = SummaryCustomSerializer()
     local = SummaryLocalSerializer()
     gamesPlayed = serializers.IntegerField()
+
+
+class UpdateActivePlaylistMapModePairsRequestSerializer(serializers.Serializer):
+    pass
+
+
+class UpdateActivePlaylistMapModePairsResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()

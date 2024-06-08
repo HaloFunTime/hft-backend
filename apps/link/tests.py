@@ -294,14 +294,16 @@ class LinkTestCase(APITestCase):
 
 
 class LinkUtilsTestCase(TestCase):
-    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
+    @patch("apps.halo_infinite.signals.get_playlist")
+    @patch("apps.halo_infinite.signals.get_playlist_info")
     @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def setUp(
         self,
         mock_signals_get_xuid_and_exact_gamertag,
         mock_utils_get_xuid_and_exact_gamertag,
-        mock_get_playlist_latest_version_info,
+        mock_get_playlist_info,
+        mock_get_playlist,
     ):
         def set_both_mock_return_values(return_value):
             mock_signals_get_xuid_and_exact_gamertag.return_value = return_value
@@ -338,12 +340,16 @@ class LinkUtilsTestCase(TestCase):
         reset_both_mocks()
 
         test_playlist_id = uuid.uuid4()
-        mock_get_playlist_latest_version_info.return_value = {
-            "playlist_id": test_playlist_id,
-            "version_id": uuid.uuid4(),
-            "ranked": True,
-            "name": "name",
-            "description": "description",
+        test_version_id = uuid.uuid4()
+        mock_get_playlist_info.return_value = {
+            "UgcPlaylistVersion": str(test_version_id),
+            "HasCsr": True,
+        }
+        mock_get_playlist.return_value = {
+            "AssetId": str(test_playlist_id),
+            "VersionId": str(test_version_id),
+            "PublicName": "name",
+            "Description": "description",
         }
         self.playlist = HaloInfinitePlaylist.objects.create(
             creator=self.user, playlist_id=test_playlist_id, active=True

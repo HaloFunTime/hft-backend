@@ -3,6 +3,8 @@ from django.contrib import admin
 from apps.halo_infinite.models import (
     HaloInfiniteBuildID,
     HaloInfiniteClearanceToken,
+    HaloInfiniteMap,
+    HaloInfiniteMapModePair,
     HaloInfiniteMatch,
     HaloInfinitePlaylist,
     HaloInfiniteSpartanToken,
@@ -20,6 +22,46 @@ class HaloInfiniteBuildIDAdmin(AutofillCreatorModelAdmin):
         "build_date",
         "creator",
     )
+
+
+@admin.register(HaloInfiniteMap)
+class HaloInfiniteMapAdmin(AutofillCreatorModelAdmin):
+    list_display = ("public_name", "description", "published_at", "creator")
+    list_filter = (
+        "public_name",
+        "creator",
+    )
+    fields = (
+        "asset_id",
+        "version_id",
+        "public_name",
+        "description",
+        "data",
+        "creator",
+        "updated_at",
+    )
+    readonly_fields = ("updated_at",)
+    search_fields = ["public_name"]
+
+
+@admin.register(HaloInfiniteMapModePair)
+class HaloInfiniteMapModePairAdmin(AutofillCreatorModelAdmin):
+    list_display = ("public_name", "description", "asset_id", "creator")
+    list_filter = (
+        "public_name",
+        "creator",
+    )
+    fields = (
+        "asset_id",
+        "version_id",
+        "public_name",
+        "description",
+        "data",
+        "creator",
+        "updated_at",
+    )
+    readonly_fields = ("updated_at",)
+    search_fields = ["public_name"]
 
 
 @admin.register(HaloInfiniteMatch)
@@ -51,8 +93,13 @@ class HaloInfinitePlaylistAdmin(AutofillCreatorModelAdmin):
         "description",
         "active",
         "ranked",
+        "info",
+        "data",
         "creator",
+        "updated_at",
     )
+    readonly_fields = ("updated_at",)
+    search_fields = ("name",)
 
 
 @admin.register(HaloInfiniteXSTSToken)

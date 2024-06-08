@@ -1888,21 +1888,13 @@ class PathfinderTestCase(APITestCase):
         mock_get_e2_discord_earn_dict.reset_mock()
         mock_get_e2_xbox_earn_dict.reset_mock()
 
-    @patch("apps.pathfinder.views.datetime", wraps=datetime)
     @patch("apps.pathfinder.views.get_contributor_xuids_for_maps_in_active_playlists")
-    @patch("apps.pathfinder.views.update_known_playlists")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_pathfinder_prodigy_check_view(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_update_known_playlists,
         mock_get_contributor_xuids_for_maps_in_active_playlists,
-        mock_datetime,
     ):
-        mock_datetime.datetime.now.return_value = datetime.datetime(
-            2024, 6, 4, 14, 30, 5
-        )
-
         # Missing field values throw errors
         response = self.client.post("/pathfinder/prodigy-check", {}, format="json")
         self.assertEqual(response.status_code, 400)
@@ -1957,31 +1949,6 @@ class PathfinderTestCase(APITestCase):
                 "discordUserId": discord_id,
             }
 
-        # Exception in update_known_playlists throws error
-        mock_update_known_playlists.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/prodigy-check",
-            {
-                "discordUserIds": [
-                    links[0].discord_account_id,
-                    links[1].discord_account_id,
-                    links[2].discord_account_id,
-                ],
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder Prodigy check.", code="error"
-            ),
-        )
-        mock_update_known_playlists.assert_called_once()
-        mock_update_known_playlists.reset_mock()
-        mock_update_known_playlists.side_effect = None
-
         # Exception in get_contributor_xuids_for_maps_in_active_playlists throws error
         mock_get_contributor_xuids_for_maps_in_active_playlists.side_effect = (
             Exception()
@@ -2006,8 +1973,6 @@ class PathfinderTestCase(APITestCase):
                 code="error",
             ),
         )
-        mock_update_known_playlists.assert_called_once()
-        mock_update_known_playlists.reset_mock()
         mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
         mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
         mock_get_contributor_xuids_for_maps_in_active_playlists.side_effect = None
@@ -2020,7 +1985,6 @@ class PathfinderTestCase(APITestCase):
             links[6].xbox_live_account_id,
             links[8].xbox_live_account_id,
         }
-        mock_update_known_playlists.side_effect = None
         response = self.client.post(
             "/pathfinder/prodigy-check",
             {
@@ -2060,8 +2024,6 @@ class PathfinderTestCase(APITestCase):
                 prodigy_check_dict(links[9].discord_account_id),
             ],
         )
-        mock_update_known_playlists.assert_called_once()
-        mock_update_known_playlists.reset_mock()
         mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
         mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
 
@@ -2078,7 +2040,6 @@ class PathfinderTestCase(APITestCase):
             links[8].xbox_live_account_id,
             links[9].xbox_live_account_id,
         }
-        mock_update_known_playlists.side_effect = None
         response = self.client.post(
             "/pathfinder/prodigy-check",
             {
@@ -2114,14 +2075,11 @@ class PathfinderTestCase(APITestCase):
             ],
         )
         self.assertCountEqual(response.data.get("no"), [])
-        mock_update_known_playlists.assert_called_once()
-        mock_update_known_playlists.reset_mock()
         mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
         mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
 
         # Success - no accounts qualify
         mock_get_contributor_xuids_for_maps_in_active_playlists.return_value = {}
-        mock_update_known_playlists.side_effect = None
         response = self.client.post(
             "/pathfinder/prodigy-check",
             {
@@ -2160,8 +2118,6 @@ class PathfinderTestCase(APITestCase):
                 prodigy_check_dict(links[9].discord_account_id),
             ],
         )
-        mock_update_known_playlists.assert_called_once()
-        mock_update_known_playlists.reset_mock()
         mock_get_contributor_xuids_for_maps_in_active_playlists.assert_called_once()
         mock_get_contributor_xuids_for_maps_in_active_playlists.reset_mock()
 

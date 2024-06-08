@@ -137,17 +137,23 @@ class HaloInfiniteDataSaveTestCase(TestCase):
         mock_match_stats.assert_called_once_with(test_1_match_id)
         mock_match_stats.reset_mock()
 
-    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
-    def test_halo_infinite_playlist_save(self, mock_get_playlist_latest_version_info):
+    @patch("apps.halo_infinite.signals.get_playlist")
+    @patch("apps.halo_infinite.signals.get_playlist_info")
+    def test_halo_infinite_playlist_save(
+        self, mock_get_playlist_info, mock_get_playlist
+    ):
         # Creating a playlist should be successful if only Playlist ID is provided (rest is hydrated by pre_save)
-        test_1_playlist_id = uuid.uuid4()
-        test_1_version_id = uuid.uuid4()
-        mock_get_playlist_latest_version_info.return_value = {
-            "playlist_id": test_1_playlist_id,
-            "version_id": test_1_version_id,
-            "ranked": True,
-            "name": "name",
-            "description": "description",
+        test_1_playlist_id = str(uuid.uuid4())
+        test_1_version_id = str(uuid.uuid4())
+        mock_get_playlist_info.return_value = {
+            "UgcPlaylistVersion": test_1_version_id,
+            "HasCsr": True,
+        }
+        mock_get_playlist.return_value = {
+            "AssetId": test_1_playlist_id,
+            "VersionId": test_1_version_id,
+            "PublicName": "name",
+            "Description": "description",
         }
         playlist = HaloInfinitePlaylist.objects.create(
             creator=self.user, playlist_id=test_1_playlist_id
@@ -158,41 +164,52 @@ class HaloInfiniteDataSaveTestCase(TestCase):
         self.assertEqual(playlist.name, "name")
         self.assertEqual(playlist.description, "description")
 
-        mock_get_playlist_latest_version_info.assert_called_once_with(
-            test_1_playlist_id
+        mock_get_playlist_info.assert_called_once_with(test_1_playlist_id, None)
+        mock_get_playlist_info.reset_mock()
+        mock_get_playlist.assert_called_once_with(
+            test_1_playlist_id, test_1_version_id, None
         )
-        mock_get_playlist_latest_version_info.reset_mock()
+        mock_get_playlist.reset_mock()
 
-        # Playlist ID provided in create call should be replaced by the one retrieved in pre_save signal
-        test_2_playlist_id = uuid.uuid4()
-        test_2_version_id = uuid.uuid4()
-        mock_get_playlist_latest_version_info.return_value = {
-            "playlist_id": test_2_playlist_id,
-            "version_id": test_2_version_id,
-            "ranked": False,
-            "name": "test_name",
-            "description": "test_description",
+        # Playlist ID provided in create call should not be replaced by the one retrieved in pre_save signal
+        test_2_playlist_id = str(uuid.uuid4())
+        test_2_version_id = str(uuid.uuid4())
+        wrong_playlist_id = str(uuid.uuid4())
+        mock_get_playlist_info.return_value = {
+            "UgcPlaylistVersion": test_2_version_id,
+            "HasCsr": False,
+        }
+        mock_get_playlist.return_value = {
+            "AssetId": wrong_playlist_id,
+            "VersionId": test_2_version_id,
+            "PublicName": "test_name",
+            "Description": "test_description",
         }
         playlist = HaloInfinitePlaylist.objects.create(
-            creator=self.user, playlist_id="test_wrong_playlist_id"
+            creator=self.user, playlist_id=test_2_playlist_id
         )
         self.assertEqual(playlist.playlist_id, test_2_playlist_id)
         self.assertEqual(playlist.version_id, test_2_version_id)
         self.assertEqual(playlist.ranked, False)
         self.assertEqual(playlist.name, "test_name")
         self.assertEqual(playlist.description, "test_description")
-        mock_get_playlist_latest_version_info.assert_called_once_with(
-            "test_wrong_playlist_id"
+        mock_get_playlist_info.assert_called_once_with(test_2_playlist_id, None)
+        mock_get_playlist_info.reset_mock()
+        mock_get_playlist.assert_called_once_with(
+            test_2_playlist_id, test_2_version_id, None
         )
-        mock_get_playlist_latest_version_info.reset_mock()
+        mock_get_playlist.reset_mock()
 
         # Duplicate Playlist ID should fail to save
-        mock_get_playlist_latest_version_info.return_value = {
-            "playlist_id": test_1_playlist_id,
-            "version_id": test_1_version_id,
-            "ranked": True,
-            "name": "test_name",
-            "description": "test_description",
+        mock_get_playlist_info.return_value = {
+            "UgcPlaylistVersion": test_1_version_id,
+            "HasCsr": True,
+        }
+        mock_get_playlist.return_value = {
+            "AssetId": test_1_playlist_id,
+            "VersionId": test_1_version_id,
+            "PublicName": "test_name",
+            "Description": "test_description",
         }
         self.assertRaisesMessage(
             IntegrityError,
@@ -201,10 +218,12 @@ class HaloInfiniteDataSaveTestCase(TestCase):
                 creator=self.user, playlist_id=test_1_playlist_id
             ),
         )
-        mock_get_playlist_latest_version_info.assert_called_once_with(
-            test_1_playlist_id
+        mock_get_playlist_info.assert_called_once_with(test_1_playlist_id, None)
+        mock_get_playlist_info.reset_mock()
+        mock_get_playlist.assert_called_once_with(
+            test_1_playlist_id, test_1_version_id, None
         )
-        mock_get_playlist_latest_version_info.reset_mock()
+        mock_get_playlist.reset_mock()
 
 
 class HaloInfiniteTokensTestCase(TestCase):

@@ -20,7 +20,6 @@ from apps.halo_infinite.utils import (
     get_current_era,
     get_current_season_id,
     get_waypoint_file_url,
-    update_known_playlists,
 )
 from apps.link.models import DiscordXboxLiveLink
 from apps.pathfinder.models import (
@@ -428,11 +427,6 @@ class PathfinderProdigyCheckView(APIView):
                     link.xbox_live_account_id: link.discord_account_id for link in links
                 }
                 xuids = [link.xbox_live_account_id for link in links]
-
-                # Update known playlists if today is a Tuesday at 2PM
-                now = datetime.datetime.now()
-                if now.weekday() == 1 and now.hour == 14:
-                    update_known_playlists()
 
                 # Get contributor XUIDs for all maps in all active playlists
                 contributor_xuids = get_contributor_xuids_for_maps_in_active_playlists()

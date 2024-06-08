@@ -106,12 +106,14 @@ class HaloInfiniteTestCase(APITestCase):
         mock_get_career_ranks.reset_mock()
 
     @patch("apps.halo_infinite.views.get_csrs")
-    @patch("apps.halo_infinite.signals.get_playlist_latest_version_info")
+    @patch("apps.halo_infinite.signals.get_playlist")
+    @patch("apps.halo_infinite.signals.get_playlist_info")
     @patch("apps.halo_infinite.views.get_xuid_and_exact_gamertag")
     def test_csr_view(
         self,
         mock_get_xuid_and_exact_gamertag,
-        mock_get_playlist_latest_version_info,
+        mock_get_playlist_info,
+        mock_get_playlist,
         mock_get_csrs,
     ):
         # Missing `gamertag` throws error
@@ -156,12 +158,15 @@ class HaloInfiniteTestCase(APITestCase):
         # Add an active ranked playlist to the DB
         ranked_test_playlist_id_1 = uuid.uuid4()
         ranked_test_version_id_1 = uuid.uuid4()
-        mock_get_playlist_latest_version_info.return_value = {
-            "playlist_id": ranked_test_playlist_id_1,
-            "version_id": ranked_test_version_id_1,
-            "ranked": True,
-            "name": "name",
-            "description": "description",
+        mock_get_playlist_info.return_value = {
+            "UgcPlaylistVersion": str(ranked_test_version_id_1),
+            "HasCsr": True,
+        }
+        mock_get_playlist.return_value = {
+            "AssetId": str(ranked_test_playlist_id_1),
+            "VersionId": str(ranked_test_version_id_1),
+            "PublicName": "name",
+            "Description": "description",
         }
         ranked_test_playlist_1 = HaloInfinitePlaylist.objects.create(
             creator=self.user, playlist_id=ranked_test_playlist_id_1, active=True

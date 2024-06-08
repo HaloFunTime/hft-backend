@@ -20,12 +20,16 @@ from apps.halo_infinite.serializers import (
     SummaryLocalSerializer,
     SummaryMatchmakingSerializer,
     SummaryStatsResponseSerializer,
+    UpdateActivePlaylistMapModePairsRequestSerializer,
+    UpdateActivePlaylistMapModePairsResponseSerializer,
 )
 from apps.halo_infinite.utils import (
     get_career_ranks,
     get_csrs,
     get_recent_games,
     get_summary_stats,
+    update_active_playlists,
+    update_map_mode_pairs_for_playlists,
 )
 from apps.xbox_live.utils import get_xuid_and_exact_gamertag
 from config.serializers import StandardErrorSerializer
@@ -361,3 +365,45 @@ class SummaryStatsView(APIView):
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UpdateActivePlaylistMapModePairsView(APIView):
+    @extend_schema(
+        request=UpdateActivePlaylistMapModePairsRequestSerializer,
+        responses={
+            200: UpdateActivePlaylistMapModePairsResponseSerializer,
+            400: StandardErrorSerializer,
+            500: StandardErrorSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Re-fetch all active HaloInfinitePlaylists and save HaloInfiniteMaps for each one.
+        """
+        validation_serializer = UpdateActivePlaylistMapModePairsRequestSerializer(
+            data=request.data
+        )
+        if validation_serializer.is_valid(raise_exception=True):
+            try:
+                # Update all active Playlists
+                updated_active_playlists = update_active_playlists()
+
+                # Update all active Playlists' MapModePairs
+                updated_map_mode_pairs = update_map_mode_pairs_for_playlists(
+                    updated_active_playlists, request.user
+                )
+
+                logger.info(f"Updated {len(updated_map_mode_pairs)} map/mode pairs.")
+
+            except Exception as ex:
+                logger.error(
+                    "Error attempting to update map/mode pairs for active playlists."
+                )
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to update map/mode pairs for active playlists."
+                )
+            serializer = UpdateActivePlaylistMapModePairsResponseSerializer(
+                {"success": True}
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)

@@ -40,6 +40,9 @@ class AutofillCreatorModelAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ["creator", "verifier"]
+            return self.readonly_fields + (
+                "creator",
+                "verifier",
+            )
         else:
-            return []
+            return self.readonly_fields

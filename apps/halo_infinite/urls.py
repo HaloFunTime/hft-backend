@@ -7,4 +7,9 @@ urlpatterns = [
     path("csr", views.CSRView.as_view(), name="csr"),
     path("recent-games", views.RecentGamesView.as_view(), name="recent-games"),
     path("summary-stats", views.SummaryStatsView.as_view(), name="summary-stats"),
+    path(
+        "update-active-playlist-map-mode-pairs",
+        views.UpdateActivePlaylistMapModePairsView.as_view(),
+        name="update-active-playlist-map-mode-pairs",
+    ),
 ]

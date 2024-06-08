@@ -48,6 +48,19 @@ def playlist_version(
     return return_dict
 
 
+def get_playlist_info(playlist_id: str, session: requests.Session = None) -> dict:
+    return_dict = {}
+    close_session_before_exit = session is None
+    s = requests.Session() if session is None else session
+    url = f"https://gamecms-hacs.svc.halowaypoint.com/hi/multiplayer/file/playlists/assets/{playlist_id}.json"
+    response = hi_api_get(url, s, use_spartan=True, use_clearance=False)
+    if response.status_code == 200:
+        return_dict = response.json()
+    if close_session_before_exit:
+        s.close()
+    return return_dict
+
+
 def get_playlist(
     playlist_id: str, version_id: str = None, session: requests.Session = None
 ) -> dict:
@@ -57,12 +70,7 @@ def get_playlist(
     url = f"https://discovery-infiniteugc.svc.halowaypoint.com:443/hi/playlists/{playlist_id}"
     if version_id is not None:
         url += f"/versions/{version_id}"
-    response = hi_api_get(
-        url,
-        s,
-        use_spartan=True,
-        use_clearance=False,
-    )
+    response = hi_api_get(url, s, use_spartan=True, use_clearance=False)
     if response.status_code == 200:
         return_dict = response.json()
     if close_session_before_exit:

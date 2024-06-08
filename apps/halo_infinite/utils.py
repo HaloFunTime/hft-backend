@@ -35,7 +35,7 @@ from apps.halo_infinite.exceptions import (
     MissingEraDataException,
     MissingSeasonDataException,
 )
-from apps.halo_infinite.models import HaloInfinitePlaylist
+from apps.halo_infinite.models import HaloInfiniteMapModePair, HaloInfinitePlaylist
 
 logger = logging.getLogger(__name__)
 
@@ -281,37 +281,74 @@ def get_csrs(xuids: list[int], playlist_id: str):
     return return_dict
 
 
+def update_active_playlists() -> list[HaloInfinitePlaylist]:
+    active_playlists = HaloInfinitePlaylist.objects.filter(active=True)
+    with requests.Session() as s:
+        for playlist in active_playlists:
+            # Kinda hacky but by triggering the pre-save signal we hit the Halo API
+            playlist.requests_session = s
+            playlist.save()
+    return active_playlists
+
+
 def update_known_playlists():
     known_playlists = HaloInfinitePlaylist.objects.all()
     for playlist in known_playlists:
+        # Kinda hacky but by triggering the pre-save signal we hit the Halo API
         playlist.save()
 
 
 def get_contributor_xuids_for_maps_in_active_playlists() -> set[int]:
     contributor_xuids = set()
+    # Retrieve MapModePair IDs (Asset/Version) for all active playlists
+    active_playlists = HaloInfinitePlaylist.objects.filter(active=True)
+    map_mode_pair_ids = set()
+    for playlist in active_playlists:
+        for rotation_entry in playlist.data.get("RotationEntries", []):
+            map_mode_pair_ids.add(rotation_entry["AssetId"])
+
+    # Retrieve contributor XUIDs for the MapLinks in each MapModePair
+    for asset_id in map_mode_pair_ids:
+        map_mode_pair = HaloInfiniteMapModePair.objects.get(asset_id=asset_id)
+        for contributor in map_mode_pair.data.get("MapLink", {}).get("Contributors"):
+            contributor_xuids.add(int(contributor.lstrip("xuid(").rstrip(")")))
+
+    return contributor_xuids
+
+
+def update_map_mode_pairs_for_playlists(
+    playlists: list[HaloInfinitePlaylist],
+    user,
+) -> list[HaloInfiniteMapModePair]:
+    map_mode_pairs = []
     with requests.Session() as s:
         # Retrieve MapModePair IDs (Asset/Version) for all active playlists
-        active_playlists = HaloInfinitePlaylist.objects.filter(active=True)
         map_mode_pair_ids = set()
-        for playlist in active_playlists:
-            playlist_info = get_playlist(playlist.playlist_id, playlist.version_id, s)
-            for rotation_entry in playlist_info.get("RotationEntries", []):
+        for playlist in playlists:
+            for rotation_entry in playlist.data.get("RotationEntries", []):
                 map_mode_pair_ids.add(
                     (rotation_entry["AssetId"], rotation_entry["VersionId"])
                 )
 
-        # Retrieve contributor XUIDs for the MapLinks in each MapModePair
+        # Create or Update all relevant MapModePairs
         for map_mode_pair_id in map_mode_pair_ids:
             asset_id = map_mode_pair_id[0]
             version_id = map_mode_pair_id[1]
-            for contributor in (
-                get_map_mode_pair(asset_id, version_id, s)
-                .get("MapLink", {})
-                .get("Contributors")
-            ):
-                contributor_xuids.add(int(contributor.lstrip("xuid(").rstrip(")")))
+            map_mode_pair = get_map_mode_pair(asset_id, version_id, s)
+            map_mode_pairs.append(
+                HaloInfiniteMapModePair.objects.update_or_create(
+                    asset_id=map_mode_pair.get("AssetId"),
+                    defaults={
+                        "version_id": map_mode_pair.get("VersionId"),
+                        "public_name": map_mode_pair.get("PublicName"),
+                        "description": map_mode_pair.get("Description"),
+                        "data": map_mode_pair,
+                        "creator": user,
+                    },
+                )
+            )
 
-    return contributor_xuids
+    return map_mode_pairs
 
 
 def get_playlist_latest_version_info(playlist_id: str):
