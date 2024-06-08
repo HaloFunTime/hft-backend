@@ -34,6 +34,7 @@ class HikeCompletePostRequestSerializer(serializers.Serializer):
     discordUsersInVoice = serializers.ListField(
         allow_empty=True, child=DiscordUserInfoSerializer()
     )
+    waywoPostTitle = serializers.CharField(max_length=100)
     waywoPostId = serializers.CharField(max_length=20, validators=[validate_discord_id])
 
 
@@ -86,40 +87,6 @@ class PathfinderDynamoProgressResponseSerializer(serializers.Serializer):
     totalPoints = serializers.IntegerField()
 
 
-class PathfinderDynamoSeason3ProgressResponseSerializer(
-    PathfinderDynamoProgressResponseSerializer
-):
-    pointsGoneHiking = serializers.IntegerField()
-    pointsMapMaker = serializers.IntegerField()
-    pointsShowAndTell = serializers.IntegerField()
-    pointsBookmarked = serializers.IntegerField()
-    pointsPlaytime = serializers.IntegerField()
-    pointsTagtacular = serializers.IntegerField()
-    pointsForgedInFire = serializers.IntegerField()
-
-
-class PathfinderDynamoSeason4ProgressResponseSerializer(
-    PathfinderDynamoProgressResponseSerializer
-):
-    pointsGoneHiking = serializers.IntegerField()
-    pointsTheRoadMoreTraveled = serializers.IntegerField()
-    pointsBlockTalk = serializers.IntegerField()
-    pointsTestDriven = serializers.IntegerField()
-    pointsShowingOff = serializers.IntegerField()
-    pointsPlayOn = serializers.IntegerField()
-    pointsForgedInFire = serializers.IntegerField()
-
-
-class PathfinderDynamoSeason5ProgressResponseSerializer(
-    PathfinderDynamoProgressResponseSerializer
-):
-    pointsGoneHiking = serializers.IntegerField()
-    pointsBeanSpender = serializers.IntegerField()
-    pointsWhatAreYouWorkingOn = serializers.IntegerField()
-    pointsFeedbackFiend = serializers.IntegerField()
-    pointsForgedInFire = serializers.IntegerField()
-
-
 class PathfinderDynamoEra1ProgressResponseSerializer(
     PathfinderDynamoProgressResponseSerializer
 ):
@@ -167,21 +134,6 @@ class PathfinderProdigyCheckResponseSerializer(serializers.Serializer):
     )
 
 
-class PathfinderSeasonalRoleCheckRequestSerializer(serializers.Serializer):
-    discordUserId = serializers.CharField(
-        max_length=20, validators=[validate_discord_id]
-    )
-    discordUsername = serializers.CharField(min_length=2, max_length=32)
-
-
-class PathfinderSeasonalRoleCheckResponseSerializer(serializers.Serializer):
-    discordUserId = serializers.CharField(
-        max_length=20, validators=[validate_discord_id]
-    )
-    illuminated = serializers.BooleanField()
-    dynamo = serializers.BooleanField()
-
-
 class PopularFileSerializer(serializers.Serializer):
     assetId = serializers.CharField(required=True, validators=[validate_uuid])
     versionId = serializers.CharField(required=True, validators=[validate_uuid])
@@ -203,19 +155,6 @@ class PopularFileSerializer(serializers.Serializer):
 
 class PopularFilesResponseSerializer(serializers.Serializer):
     files = PopularFileSerializer(many=True, read_only=True)
-
-
-class TestingLFGPostRequestSerializer(serializers.Serializer):
-    posterDiscordId = serializers.CharField(
-        max_length=20, validators=[validate_discord_id]
-    )
-    posterDiscordUsername = serializers.CharField(min_length=2, max_length=32)
-    postId = serializers.CharField(max_length=20, validators=[validate_discord_id])
-    postTitle = serializers.CharField()
-
-
-class TestingLFGPostResponseSerializer(serializers.Serializer):
-    success = serializers.BooleanField()
 
 
 class WAYWOCommentRequestSerializer(serializers.Serializer):

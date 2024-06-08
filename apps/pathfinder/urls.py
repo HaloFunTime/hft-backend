@@ -20,16 +20,6 @@ urlpatterns = [
         name="prodigy-check",
     ),
     path(
-        "seasonal-role-check",
-        views.PathfinderSeasonalRoleCheckView.as_view(),
-        name="seasonal-role-check",
-    ),
-    path(
-        "testing-lfg-post",
-        views.PathfinderTestingLFGPostView.as_view(),
-        name="waywo-post",
-    ),
-    path(
         "waywo-comment",
         views.PathfinderWAYWOCommentView.as_view(),
         name="waywo-comment",

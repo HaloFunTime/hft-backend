@@ -27,28 +27,6 @@ class PathfinderBeanCount(Base):
         return f"{str(self.bean_owner_discord)}: {self.bean_count} bean{'s' if self.bean_count != 1 else ''}"
 
 
-# TODO: Delete this DEPRECATED table
-class PathfinderHikeAttendance(Base):
-    class Meta:
-        db_table = "PathfinderHikeAttendance"
-        ordering = [
-            "-attendance_date",
-        ]
-        verbose_name = "Hike Attendance"
-        verbose_name_plural = "Hike Attendances"
-
-    attendee_discord = models.ForeignKey(
-        DiscordAccount,
-        on_delete=models.RESTRICT,
-        verbose_name="Attendee Discord",
-        related_name="pathfinder_hike_attendees",
-    )
-    attendance_date = models.DateField(verbose_name="Attendance Date")
-
-    def __str__(self):
-        return f"{str(self.attendee_discord)} attended on {self.attendance_date}"
-
-
 class PathfinderHikeSubmission(Base):
     class Meta:
         db_table = "PathfinderHikeSubmission"
@@ -73,6 +51,7 @@ class PathfinderHikeSubmission(Base):
         on_delete=models.RESTRICT,
         verbose_name="Map Submitter Discord",
         related_name="pathfinder_hike_submitters",
+        null=True,
     )
     scheduled_playtest_date = models.DateField(
         verbose_name="Scheduled Playtest Date", null=True, blank=True
@@ -82,17 +61,6 @@ class PathfinderHikeSubmission(Base):
     playtest_game_id = models.UUIDField(
         verbose_name="Playtest Game ID", null=True, blank=True
     )
-    mode_1 = models.CharField(max_length=32, verbose_name="Mode 1")  # DEPRECATED
-    mode_2 = models.CharField(max_length=32, verbose_name="Mode 2")  # DEPRECATED
-    mode_1_played = models.BooleanField(
-        default=False, verbose_name="Was Mode 1 played?"
-    )  # DEPRECATED
-    mode_2_played = models.BooleanField(
-        default=False, verbose_name="Was Mode 2 played?"
-    )  # DEPRECATED
-    submitter_present_for_playtest = models.BooleanField(
-        default=False, verbose_name="Was the map submitter present for the playtest?"
-    )  # DEPRECATED
 
     @property
     def playtest_game_link(self):
@@ -114,7 +82,7 @@ class PathfinderHikeSubmission(Base):
             if self.scheduled_playtest_date is not None
             else "Unscheduled"
         )
-        return f"{schedule_string}: {self.map}"
+        return f"{schedule_string}: {self.waywo_post_title}"
 
 
 class PathfinderHikeGameParticipation(Base):
@@ -145,31 +113,6 @@ class PathfinderHikeVoiceParticipation(Base):
         on_delete=models.RESTRICT,
         related_name="pathfinder_hike_voice_participants",
     )
-
-
-# TODO: Delete this DEPRECATED table
-class PathfinderTestingLFGPost(Base):
-    class Meta:
-        db_table = "PathfinderTestingLFGPost"
-        ordering = [
-            "-created_at",
-        ]
-        verbose_name = "Testing LFG Post"
-        verbose_name_plural = "Testing LFG Posts"
-
-    post_title = models.CharField(
-        max_length=100, blank=False, verbose_name="Post Title"
-    )
-    post_id = models.CharField(max_length=20, blank=False, verbose_name="Post ID")
-    poster_discord = models.ForeignKey(
-        DiscordAccount,
-        on_delete=models.RESTRICT,
-        verbose_name="Poster Discord",
-        related_name="pathfinder_testing_lfg_posters",
-    )
-
-    def __str__(self):
-        return self.post_title
 
 
 class PathfinderWAYWOComment(Base):

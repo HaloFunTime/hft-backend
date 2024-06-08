@@ -15,7 +15,6 @@ from apps.pathfinder.models import (
     PathfinderHikeGameParticipation,
     PathfinderHikeSubmission,
     PathfinderHikeVoiceParticipation,
-    PathfinderTestingLFGPost,
     PathfinderWAYWOComment,
     PathfinderWAYWOPost,
 )
@@ -223,7 +222,12 @@ class PathfinderTestCase(APITestCase):
         response = self.client.post("/pathfinder/hike-complete", {}, format="json")
         self.assertEqual(response.status_code, 400)
         details = response.data.get("error").get("details")
-        for field in ["playtestGameId", "discordUsersInVoice", "waywoPostId"]:
+        for field in [
+            "playtestGameId",
+            "discordUsersInVoice",
+            "waywoPostId",
+            "waywoPostTitle",
+        ]:
             self.assertIn(field, details)
             self.assertEqual(
                 details.get(field),
@@ -236,6 +240,8 @@ class PathfinderTestCase(APITestCase):
             {
                 "playtestGameId": "abc",
                 "discordUsersInVoice": "foo",
+                "waywoPostTitle": "abcdefghijklmnopqrstuvwxyz"
+                + "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
                 "waywoPostId": "abc",
             },
             format="json",
@@ -259,59 +265,19 @@ class PathfinderTestCase(APITestCase):
             details.get("waywoPostId")[0],
             ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
         )
-
-        # 403 if no Hike Submission exists for WAYWO post
-        response = self.client.post(
-            "/pathfinder/hike-complete",
-            {
-                "playtestGameId": "2028bf2d-a2c6-440b-9fe6-71e7f69376f8",
-                "discordUsersInVoice": [],
-                "waywoPostId": "123",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 403)
-        details = response.data.get("error").get("details")
-        self.assertIn("detail", details)
+        self.assertIn("waywoPostTitle", details)
         self.assertEqual(
-            details.get("detail"),
+            details.get("waywoPostTitle")[0],
             ErrorDetail(
-                string="Could not find an incomplete Pathfinder Hike Submission associated with this WAYWO Post.",
-                code="permission_denied",
+                string="Ensure this field has no more than 100 characters.",
+                code="max_length",
             ),
         )
 
-        # 403 if Hike Submission exists for WAYWO post but is already complete
+        # Create some test DB data
         submitter_discord = DiscordAccount.objects.create(
             creator=self.user, discord_id="123", discord_username="Test123"
         )
-        PathfinderHikeSubmission.objects.create(
-            creator=self.user,
-            map_submitter_discord=submitter_discord,
-            playtest_game_id=uuid.uuid4(),
-            waywo_post_id="123",
-        )
-        response = self.client.post(
-            "/pathfinder/hike-complete",
-            {
-                "playtestGameId": uuid.uuid4(),
-                "discordUsersInVoice": [],
-                "waywoPostId": "123",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 403)
-        details = response.data.get("error").get("details")
-        self.assertIn("detail", details)
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Could not find an incomplete Pathfinder Hike Submission associated with this WAYWO Post.",
-                code="permission_denied",
-            ),
-        )
-
-        # Happy path - three users in voice, four from game, one overlapping
         discord_accounts = []
         for i in range(6):
             mock_get_xuid_and_exact_gamertag.return_value = (i, f"test{i}")
@@ -328,10 +294,13 @@ class PathfinderTestCase(APITestCase):
                 verified=True,
             )
             discord_accounts.append(discord_account)
+
+        # Happy path - three users in voice, four from game, one overlapping
         hike_submission = PathfinderHikeSubmission.objects.create(
             creator=self.user,
             map_submitter_discord=submitter_discord,
             waywo_post_id="456",
+            waywo_post_title="test_title",
         )
         mock_match_stats.return_value = {
             "Players": [
@@ -370,7 +339,8 @@ class PathfinderTestCase(APITestCase):
                     {"discordId": "2", "discordUsername": "Test2"},
                     {"discordId": "4", "discordUsername": "Test4"},
                 ],
-                "waywoPostId": "456",
+                "waywoPostId": hike_submission.waywo_post_id,
+                "waywoPostTitle": hike_submission.waywo_post_title,
             },
             format="json",
         )
@@ -438,6 +408,129 @@ class PathfinderTestCase(APITestCase):
                 bean_owner_discord=discord_account
             ).get()
             self.assertNotEqual(pbc.bean_count, 0)
+        PathfinderHikeSubmission.objects.all().delete()
+        PathfinderHikeGameParticipation.objects.all().delete()
+        PathfinderHikeVoiceParticipation.objects.all().delete()
+        PathfinderBeanCount.objects.all().delete()
+
+        # Happy path - no existing submission, but creates new one successfully
+        mock_match_stats.return_value = {
+            "Players": [
+                {
+                    "PlayerId": "xuid(0)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(1)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(3)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+                {
+                    "PlayerId": "xuid(5)",
+                    "ParticipationInfo": {
+                        "PresentAtCompletion": True,
+                    },
+                },
+            ]
+        }
+        response = self.client.post(
+            "/pathfinder/hike-complete",
+            {
+                "playtestGameId": uuid.uuid4(),
+                "discordUsersInVoice": [
+                    {"discordId": "0", "discordUsername": "Test0"},
+                    {"discordId": "2", "discordUsername": "Test2"},
+                    {"discordId": "4", "discordUsername": "Test4"},
+                ],
+                "waywoPostTitle": "WAYWO Post Title",
+                "waywoPostId": "456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PathfinderHikeSubmission.objects.count(), 1)
+        hike_submission = PathfinderHikeSubmission.objects.first()
+        self.assertEqual(hike_submission.waywo_post_title, "WAYWO Post Title")
+        self.assertEqual(hike_submission.waywo_post_id, "456")
+        self.assertEqual(hike_submission.map, "???")
+        self.assertEqual(hike_submission.mode, "???")
+        self.assertIsNotNone(hike_submission.scheduled_playtest_date)
+        self.assertEqual(PathfinderHikeGameParticipation.objects.count(), 4)
+        for game_participation in PathfinderHikeGameParticipation.objects.all():
+            self.assertEqual(game_participation.hike_submission_id, hike_submission.id)
+        self.assertEqual(PathfinderHikeVoiceParticipation.objects.count(), 3)
+        for voice_participation in PathfinderHikeVoiceParticipation.objects.all():
+            self.assertEqual(voice_participation.hike_submission_id, hike_submission.id)
+        self.assertTrue(response.data.get("success"))
+        self.assertEqual(
+            response.data.get("awardedUsers"),
+            [
+                OrderedDict(
+                    [
+                        ("discordId", "0"),
+                        ("discordUsername", "Test0"),
+                        (
+                            "awardedBeans",
+                            BEAN_AWARD_HIKE_GAME_PARTICIPATION
+                            + BEAN_AWARD_HIKE_VOICE_PARTICIPATION,
+                        ),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "5"),
+                        ("discordUsername", "Test5"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "3"),
+                        ("discordUsername", "Test3"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "1"),
+                        ("discordUsername", "Test1"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_GAME_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "4"),
+                        ("discordUsername", "Test4"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
+                    ]
+                ),
+                OrderedDict(
+                    [
+                        ("discordId", "2"),
+                        ("discordUsername", "Test2"),
+                        ("awardedBeans", BEAN_AWARD_HIKE_VOICE_PARTICIPATION),
+                    ]
+                ),
+            ],
+        )
+        for discord_account in discord_accounts:
+            pbc = PathfinderBeanCount.objects.filter(
+                bean_owner_discord=discord_account
+            ).get()
+            self.assertNotEqual(pbc.bean_count, 0)
+        PathfinderHikeSubmission.objects.all().delete()
+        PathfinderHikeGameParticipation.objects.all().delete()
+        PathfinderHikeVoiceParticipation.objects.all().delete()
+        PathfinderBeanCount.objects.all().delete()
 
     def test_hike_queue_view_get(self):
         # Success - nothing in queue
@@ -749,242 +842,6 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-    @patch("apps.pathfinder.views.is_dynamo_qualified")
-    @patch("apps.pathfinder.views.is_illuminated_qualified")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_pathfinder_seasonal_role_check_view(
-        self,
-        mock_get_xuid_and_exact_gamertag,
-        mock_is_illuminated_qualified,
-        mock_is_dynamo_qualified,
-    ):
-        # Missing field values throw errors
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check", {}, format="json"
-        )
-        self.assertEqual(response.status_code, 400)
-        details = response.data.get("error").get("details")
-        self.assertIn("discordUserId", details)
-        self.assertEqual(
-            details.get("discordUserId"),
-            [ErrorDetail(string="This field is required.", code="required")],
-        )
-        self.assertIn("discordUsername", details)
-        self.assertEqual(
-            details.get("discordUsername"),
-            [ErrorDetail(string="This field is required.", code="required")],
-        )
-
-        # Improperly formatted value throws errors
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check",
-            {"discordUserId": "abc", "discordUsername": "f"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, 400)
-        details = response.data.get("error").get("details")
-        self.assertIn("discordUserId", details)
-        self.assertEqual(
-            details.get("discordUserId")[0],
-            ErrorDetail(string="Only numeric characters are allowed.", code="invalid"),
-        )
-        self.assertIn("discordUsername", details)
-        self.assertEqual(
-            details.get("discordUsername")[0],
-            ErrorDetail(
-                string="Ensure this field has at least 2 characters.",
-                code="min_length",
-            ),
-        )
-
-        # Create some test data
-        mock_get_xuid_and_exact_gamertag.return_value = (0, "test0")
-        discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="0", discord_username="TestUsername01234"
-        )
-        xbox_live_account = XboxLiveAccount.objects.create(
-            creator=self.user, gamertag="testGT0"
-        )
-        link = DiscordXboxLiveLink.objects.create(
-            creator=self.user,
-            discord_account=discord_account,
-            xbox_live_account=xbox_live_account,
-            verified=True,
-        )
-
-        # Exception in is_illuminated_qualified throws error
-        mock_is_illuminated_qualified.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check",
-            {
-                "discordUserId": link.discord_account.discord_id,
-                "discordUsername": link.discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder seasonal role check.",
-                code="error",
-            ),
-        )
-        mock_is_illuminated_qualified.assert_called_once_with(link.xbox_live_account_id)
-        mock_is_illuminated_qualified.side_effect = None
-        mock_is_illuminated_qualified.reset_mock()
-
-        # Exception in is_dynamo_qualified throws error
-        mock_is_dynamo_qualified.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/seasonal-role-check",
-            {
-                "discordUserId": link.discord_account.discord_id,
-                "discordUsername": link.discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder seasonal role check.",
-                code="error",
-            ),
-        )
-        mock_is_dynamo_qualified.assert_called_once_with(
-            link.discord_account_id, link.xbox_live_account_id
-        )
-        mock_is_dynamo_qualified.side_effect = None
-        mock_is_illuminated_qualified.reset_mock()
-        mock_is_dynamo_qualified.reset_mock()
-
-        # All permutations of qualification work
-        for tuple in [(True, True), (True, False), (False, True), (False, False)]:
-            mock_is_illuminated_qualified.return_value = tuple[0]
-            mock_is_dynamo_qualified.return_value = tuple[1]
-            response = self.client.post(
-                "/pathfinder/seasonal-role-check",
-                {
-                    "discordUserId": link.discord_account.discord_id,
-                    "discordUsername": link.discord_account.discord_username,
-                },
-                format="json",
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(
-                response.data.get("discordUserId"), link.discord_account_id
-            )
-            self.assertEqual(response.data.get("illuminated"), tuple[0])
-            self.assertEqual(response.data.get("dynamo"), tuple[1])
-            mock_is_illuminated_qualified.assert_called_once_with(
-                link.xbox_live_account_id
-            )
-            mock_is_dynamo_qualified.assert_called_once_with(
-                link.discord_account_id, link.xbox_live_account_id
-            )
-            mock_is_illuminated_qualified.reset_mock()
-            mock_is_dynamo_qualified.reset_mock()
-
-        # Deleting the DiscordXboxLiveLink record changes calls to utility methods; Illuminated is always False
-        link.delete()
-        for tuple in [(True, True), (True, False), (False, True), (False, False)]:
-            mock_is_illuminated_qualified.return_value = tuple[0]
-            mock_is_dynamo_qualified.return_value = tuple[1]
-            response = self.client.post(
-                "/pathfinder/seasonal-role-check",
-                {
-                    "discordUserId": link.discord_account.discord_id,
-                    "discordUsername": link.discord_account.discord_username,
-                },
-                format="json",
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(
-                response.data.get("discordUserId"), link.discord_account_id
-            )
-            self.assertEqual(
-                response.data.get("illuminated"), False
-            )  # Should be permanently false
-            self.assertEqual(response.data.get("dynamo"), tuple[1])
-            mock_is_illuminated_qualified.assert_not_called()
-            mock_is_dynamo_qualified.assert_called_once_with(
-                link.discord_account_id, None
-            )
-            mock_is_illuminated_qualified.reset_mock()
-            mock_is_dynamo_qualified.reset_mock()
-
-    def test_pathfinder_testing_lfg_post(self):
-        # Missing field values throw errors
-        response = self.client.post("/pathfinder/testing-lfg-post", {}, format="json")
-        self.assertEqual(response.status_code, 400)
-        details = response.data.get("error").get("details")
-        for field in [
-            "posterDiscordId",
-            "posterDiscordUsername",
-            "postId",
-            "postTitle",
-        ]:
-            self.assertIn(field, details)
-            self.assertEqual(
-                details.get(field),
-                [ErrorDetail(string="This field is required.", code="required")],
-            )
-
-        # Improperly formatted values throw errors
-        response = self.client.post(
-            "/pathfinder/testing-lfg-post",
-            {
-                "posterDiscordId": "abc",
-                "posterDiscordUsername": "a",
-                "postId": "abc",
-                "postTitle": "abc",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 400)
-        details = response.data.get("error").get("details")
-        for id_field in ["posterDiscordId", "postId"]:
-            self.assertIn(id_field, details)
-            self.assertEqual(
-                details.get(id_field)[0],
-                ErrorDetail(
-                    string="Only numeric characters are allowed.", code="invalid"
-                ),
-            )
-        self.assertIn("posterDiscordUsername", details)
-        self.assertEqual(
-            details.get("posterDiscordUsername")[0],
-            ErrorDetail(
-                string="Ensure this field has at least 2 characters.",
-                code="min_length",
-            ),
-        )
-
-        # Success (excluding channel name)
-        response = self.client.post(
-            "/pathfinder/testing-lfg-post",
-            {
-                "posterDiscordId": "123",
-                "posterDiscordUsername": "Test0123",
-                "postId": "456",
-                "postTitle": "Please Test",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        discord_account = DiscordAccount.objects.first()
-        self.assertEqual(discord_account.discord_id, "123")
-        self.assertEqual(discord_account.discord_username, "Test0123")
-        testing_lfg_post = PathfinderTestingLFGPost.objects.first()
-        self.assertEqual(testing_lfg_post.poster_discord.discord_id, "123")
-        self.assertEqual(testing_lfg_post.poster_discord.discord_username, "Test0123")
-        self.assertEqual(testing_lfg_post.post_id, "456")
-        self.assertEqual(testing_lfg_post.post_title, "Please Test")
-        testing_lfg_post.delete()
-
     def test_pathfinder_waywo_comment(self):
         # Missing field values throw errors
         response = self.client.post("/pathfinder/waywo-comment", {}, format="json")
@@ -1258,348 +1115,17 @@ class PathfinderTestCase(APITestCase):
             ),
         )
 
-    @patch("apps.pathfinder.views.get_s3_xbox_earn_dict")
-    @patch("apps.pathfinder.views.get_s3_discord_earn_dict")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    @patch("apps.pathfinder.views.get_current_season_id")
-    @patch("apps.pathfinder.views.get_current_era")
-    def test_pathfinder_dynamo_progress_view_s3(
-        self,
-        mock_get_current_era,
-        mock_get_current_season_id,
-        mock_get_xuid_and_exact_gamertag,
-        mock_get_s3_discord_earn_dict,
-        mock_get_s3_xbox_earn_dict,
-    ):
-        mock_get_current_season_id.return_value = "3"
-        mock_get_current_era.return_value = None
-
-        # Create test data
-        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
-        discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
-        )
-        xbox_live_account = XboxLiveAccount.objects.create(
-            creator=self.user, gamertag="testGT1234"
-        )
-        link = DiscordXboxLiveLink.objects.create(
-            creator=self.user,
-            discord_account=discord_account,
-            xbox_live_account=xbox_live_account,
-            verified=True,
-        )
-
-        # Exception in get_s3_discord_earn_dict throws error
-        mock_get_s3_discord_earn_dict.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder Dynamo progress check.",
-                code="error",
-            ),
-        )
-        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_s3_discord_earn_dict.side_effect = None
-        mock_get_s3_discord_earn_dict.reset_mock()
-
-        # Exception in get_s3_xbox_earn_dict throws error
-        mock_get_s3_xbox_earn_dict.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder Dynamo progress check.",
-                code="error",
-            ),
-        )
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_s3_xbox_earn_dict.side_effect = None
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-        # Success - point totals come through for all values
-        mock_get_s3_discord_earn_dict.return_value = {
-            link.discord_account_id: {
-                "gone_hiking": 150,
-                "map_maker": 50,
-                "show_and_tell": 50,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            link.xbox_live_account_id: {
-                "bookmarked": 100,
-                "playtime": 100,
-                "tagtacular": 50,
-                "forged_in_fire": 37,
-            }
-        }
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("linkedGamertag"), True)
-        self.assertEqual(response.data.get("totalPoints"), 537)
-        self.assertEqual(response.data.get("pointsGoneHiking"), 150)
-        self.assertEqual(response.data.get("pointsMapMaker"), 50)
-        self.assertEqual(response.data.get("pointsShowAndTell"), 50)
-        self.assertEqual(response.data.get("pointsBookmarked"), 100)
-        self.assertEqual(response.data.get("pointsPlaytime"), 100)
-        self.assertEqual(response.data.get("pointsTagtacular"), 50)
-        self.assertEqual(response.data.get("pointsForgedInFire"), 37)
-        mock_get_s3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_s3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-        # Success - no linked gamertag
-        link.delete()
-        mock_get_s3_discord_earn_dict.return_value = {
-            discord_account.discord_id: {
-                "gone_hiking": 150,
-                "map_maker": 50,
-                "show_and_tell": 50,
-            }
-        }
-        mock_get_s3_xbox_earn_dict.return_value = {
-            link.xbox_live_account_id: {
-                "bookmarked": 100,
-                "playtime": 100,
-                "tagtacular": 50,
-                "forged_in_fire": 37,
-            }
-        }
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": discord_account.discord_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("linkedGamertag"), False)
-        self.assertEqual(response.data.get("totalPoints"), 250)
-        self.assertEqual(response.data.get("pointsGoneHiking"), 150)
-        self.assertEqual(response.data.get("pointsMapMaker"), 50)
-        self.assertEqual(response.data.get("pointsShowAndTell"), 50)
-        self.assertEqual(response.data.get("pointsBookmarked"), 0)
-        self.assertEqual(response.data.get("pointsPlaytime"), 0)
-        self.assertEqual(response.data.get("pointsTagtacular"), 0)
-        self.assertEqual(response.data.get("pointsForgedInFire"), 0)
-        mock_get_s3_discord_earn_dict.assert_called_once_with(
-            [discord_account.discord_id]
-        )
-        mock_get_s3_xbox_earn_dict.assert_not_called()
-        mock_get_s3_discord_earn_dict.reset_mock()
-        mock_get_s3_xbox_earn_dict.reset_mock()
-
-    @patch("apps.pathfinder.views.get_s4_xbox_earn_dict")
-    @patch("apps.pathfinder.views.get_s4_discord_earn_dict")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    @patch("apps.pathfinder.views.get_current_season_id")
-    @patch("apps.pathfinder.views.get_current_era")
-    def test_pathfinder_dynamo_progress_view_s4(
-        self,
-        mock_get_current_era,
-        mock_get_current_season_id,
-        mock_get_xuid_and_exact_gamertag,
-        mock_get_s4_discord_earn_dict,
-        mock_get_s4_xbox_earn_dict,
-    ):
-        mock_get_current_season_id.return_value = "4"
-        mock_get_current_era.return_value = None
-
-        # TODO: Complete this test.
-
-    @patch("apps.pathfinder.views.get_s5_xbox_earn_dict")
-    @patch("apps.pathfinder.views.get_s5_discord_earn_dict")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    @patch("apps.pathfinder.views.get_current_season_id")
-    @patch("apps.pathfinder.views.get_current_era")
-    def test_pathfinder_dynamo_progress_view_s5(
-        self,
-        mock_get_current_era,
-        mock_get_current_season_id,
-        mock_get_xuid_and_exact_gamertag,
-        mock_get_s5_discord_earn_dict,
-        mock_get_s5_xbox_earn_dict,
-    ):
-        mock_get_current_season_id.return_value = "5"
-        mock_get_current_era.return_value = None
-
-        # Create test data
-        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
-        discord_account = DiscordAccount.objects.create(
-            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
-        )
-        xbox_live_account = XboxLiveAccount.objects.create(
-            creator=self.user, gamertag="testGT1234"
-        )
-        link = DiscordXboxLiveLink.objects.create(
-            creator=self.user,
-            discord_account=discord_account,
-            xbox_live_account=xbox_live_account,
-            verified=True,
-        )
-
-        # Exception in get_s5_discord_earn_dict throws error
-        mock_get_s5_discord_earn_dict.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder Dynamo progress check.",
-                code="error",
-            ),
-        )
-        mock_get_s5_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_s5_discord_earn_dict.side_effect = None
-        mock_get_s5_discord_earn_dict.reset_mock()
-
-        # Exception in get_s5_xbox_earn_dict throws error
-        mock_get_s5_xbox_earn_dict.side_effect = Exception()
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 500)
-        details = response.data.get("error").get("details")
-        self.assertEqual(
-            details.get("detail"),
-            ErrorDetail(
-                string="Error attempting the Pathfinder Dynamo progress check.",
-                code="error",
-            ),
-        )
-        mock_get_s5_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_s5_xbox_earn_dict.side_effect = None
-        mock_get_s5_discord_earn_dict.reset_mock()
-        mock_get_s5_xbox_earn_dict.reset_mock()
-
-        # Success - point totals come through for all values
-        mock_get_s5_discord_earn_dict.return_value = {
-            link.discord_account_id: {
-                "bean_spender": 200,
-                "what_are_you_working_on": 150,
-                "feedback_fiend": 27,
-            }
-        }
-        mock_get_s5_xbox_earn_dict.return_value = {
-            link.xbox_live_account_id: {
-                "gone_hiking": 170,
-                "forged_in_fire": 37,
-            }
-        }
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": link.discord_account_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("linkedGamertag"), True)
-        self.assertEqual(response.data.get("totalPoints"), 584)
-        self.assertEqual(response.data.get("pointsBeanSpender"), 200)
-        self.assertEqual(response.data.get("pointsWhatAreYouWorkingOn"), 150)
-        self.assertEqual(response.data.get("pointsFeedbackFiend"), 27)
-        self.assertEqual(response.data.get("pointsGoneHiking"), 170)
-        self.assertEqual(response.data.get("pointsForgedInFire"), 37)
-        mock_get_s5_discord_earn_dict.assert_called_once_with([link.discord_account_id])
-        mock_get_s5_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
-        mock_get_s5_discord_earn_dict.reset_mock()
-        mock_get_s5_xbox_earn_dict.reset_mock()
-
-        # Success - no linked gamertag
-        link.delete()
-        mock_get_s5_discord_earn_dict.return_value = {
-            link.discord_account_id: {
-                "bean_spender": 200,
-                "what_are_you_working_on": 150,
-                "feedback_fiend": 27,
-            }
-        }
-        mock_get_s5_xbox_earn_dict.return_value = {
-            link.xbox_live_account_id: {
-                "gone_hiking": 170,
-                "forged_in_fire": 37,
-            }
-        }
-        response = self.client.post(
-            "/pathfinder/dynamo-progress",
-            {
-                "discordUserId": discord_account.discord_id,
-                "discordUsername": discord_account.discord_username,
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("linkedGamertag"), False)
-        self.assertEqual(response.data.get("totalPoints"), 377)
-        self.assertEqual(response.data.get("pointsBeanSpender"), 200)
-        self.assertEqual(response.data.get("pointsWhatAreYouWorkingOn"), 150)
-        self.assertEqual(response.data.get("pointsFeedbackFiend"), 27)
-        self.assertEqual(response.data.get("pointsGoneHiking"), 0)
-        self.assertEqual(response.data.get("pointsForgedInFire"), 0)
-        mock_get_s5_discord_earn_dict.assert_called_once_with(
-            [discord_account.discord_id]
-        )
-        mock_get_s5_xbox_earn_dict.assert_not_called()
-        mock_get_s5_discord_earn_dict.reset_mock()
-        mock_get_s5_xbox_earn_dict.reset_mock()
-
     @patch("apps.pathfinder.views.get_e1_xbox_earn_dict")
     @patch("apps.pathfinder.views.get_e1_discord_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    @patch("apps.pathfinder.views.get_current_season_id")
     @patch("apps.pathfinder.views.get_current_era")
     def test_pathfinder_dynamo_progress_view_e1(
         self,
         mock_get_current_era,
-        mock_get_current_season_id,
         mock_get_xuid_and_exact_gamertag,
         mock_get_e1_discord_earn_dict,
         mock_get_e1_xbox_earn_dict,
     ):
-        mock_get_current_season_id.return_value = None
         mock_get_current_era.return_value = 1
 
         # Create test data
@@ -1740,17 +1266,14 @@ class PathfinderTestCase(APITestCase):
     @patch("apps.pathfinder.views.get_e2_xbox_earn_dict")
     @patch("apps.pathfinder.views.get_e2_discord_earn_dict")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    @patch("apps.pathfinder.views.get_current_season_id")
     @patch("apps.pathfinder.views.get_current_era")
     def test_pathfinder_dynamo_progress_view_e2(
         self,
         mock_get_current_era,
-        mock_get_current_season_id,
         mock_get_xuid_and_exact_gamertag,
         mock_get_e2_discord_earn_dict,
         mock_get_e2_xbox_earn_dict,
     ):
-        mock_get_current_season_id.return_value = None
         mock_get_current_era.return_value = 2
 
         # Create test data

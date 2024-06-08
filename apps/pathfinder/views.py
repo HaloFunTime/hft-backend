@@ -11,14 +11,10 @@ from apps.discord.models import DiscordAccount
 from apps.discord.utils import update_or_create_discord_account
 from apps.halo_infinite.api.search import search_halofuntime_popular
 from apps.halo_infinite.constants import SEARCH_ASSET_KINDS
-from apps.halo_infinite.exceptions import (
-    MissingEraDataException,
-    MissingSeasonDataException,
-)
+from apps.halo_infinite.exceptions import MissingEraDataException
 from apps.halo_infinite.utils import (
     get_contributor_xuids_for_maps_in_active_playlists,
     get_current_era,
-    get_current_season_id,
     get_waypoint_file_url,
 )
 from apps.link.models import DiscordXboxLiveLink
@@ -26,7 +22,6 @@ from apps.pathfinder.models import (
     PathfinderHikeGameParticipation,
     PathfinderHikeSubmission,
     PathfinderHikeVoiceParticipation,
-    PathfinderTestingLFGPost,
     PathfinderWAYWOComment,
     PathfinderWAYWOPost,
 )
@@ -45,18 +40,11 @@ from apps.pathfinder.serializers import (
     PathfinderDynamoEra2ProgressResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
     PathfinderDynamoProgressResponseSerializer,
-    PathfinderDynamoSeason3ProgressResponseSerializer,
-    PathfinderDynamoSeason4ProgressResponseSerializer,
-    PathfinderDynamoSeason5ProgressResponseSerializer,
     PathfinderProdigyCheckRequestSerializer,
     PathfinderProdigyCheckResponseSerializer,
     PathfinderProdigyCheckSerializer,
-    PathfinderSeasonalRoleCheckRequestSerializer,
-    PathfinderSeasonalRoleCheckResponseSerializer,
     PopularFileSerializer,
     PopularFilesResponseSerializer,
-    TestingLFGPostRequestSerializer,
-    TestingLFGPostResponseSerializer,
     WAYWOCommentRequestSerializer,
     WAYWOCommentResponseSerializer,
     WAYWOPostRequestSerializer,
@@ -76,14 +64,6 @@ from apps.pathfinder.utils import (
     get_e1_xbox_earn_dict,
     get_e2_discord_earn_dict,
     get_e2_xbox_earn_dict,
-    get_s3_discord_earn_dict,
-    get_s3_xbox_earn_dict,
-    get_s4_discord_earn_dict,
-    get_s4_xbox_earn_dict,
-    get_s5_discord_earn_dict,
-    get_s5_xbox_earn_dict,
-    is_dynamo_qualified,
-    is_illuminated_qualified,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -172,17 +152,26 @@ class HikeCompleteView(APIView):
             discord_users_in_voice = validation_serializer.data.get(
                 "discordUsersInVoice"
             )
+            waywo_post_title = validation_serializer.data.get("waywoPostTitle")
             waywo_post_id = validation_serializer.data.get("waywoPostId")
             account_ids_to_beans_awarded = {}
 
             # Locate the correct PathfinderHikeSubmission
+            hike_submission = None
             try:
+                # Get the incomplete submission if it exists
                 hike_submission = PathfinderHikeSubmission.objects.filter(
                     waywo_post_id=waywo_post_id, playtest_game_id__isnull=True
                 ).get()
             except PathfinderHikeSubmission.DoesNotExist:
-                raise PermissionDenied(
-                    "Could not find an incomplete Pathfinder Hike Submission associated with this WAYWO Post."
+                # If no incomplete submission exists, create one
+                hike_submission = PathfinderHikeSubmission.objects.create(
+                    creator=request.user,
+                    waywo_post_title=waywo_post_title,
+                    waywo_post_id=waywo_post_id,
+                    map="???",
+                    mode="???",
+                    scheduled_playtest_date=datetime.datetime.now().date(),
                 )
 
             # Save the PathfinderHikeSubmission to automatically create PathfinderHikeGameParticipation records
@@ -479,114 +468,6 @@ class PathfinderProdigyCheckView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class PathfinderSeasonalRoleCheckView(APIView):
-    @extend_schema(
-        request=PathfinderSeasonalRoleCheckRequestSerializer,
-        responses={
-            200: PathfinderSeasonalRoleCheckResponseSerializer,
-            400: StandardErrorSerializer,
-            500: StandardErrorSerializer,
-        },
-    )
-    def post(self, request, format=None):
-        """
-        Evaluate a Discord User ID by retrieving its verified linked Xbox Live gamertag, querying stats from the Halo
-        Infinite API and the HFT DB, and returning a payload indicating the seasonal Pathfinder progression roles the
-        Discord User ID qualifies for, if any.
-        """
-        validation_serializer = PathfinderSeasonalRoleCheckRequestSerializer(
-            data=request.data
-        )
-        if validation_serializer.is_valid(raise_exception=True):
-            discord_id = validation_serializer.data.get("discordUserId")
-            discord_username = validation_serializer.data.get("discordUsername")
-            try:
-                discord_account = update_or_create_discord_account(
-                    discord_id, discord_username, request.user
-                )
-                link = None
-                try:
-                    link = DiscordXboxLiveLink.objects.filter(
-                        discord_account_id=discord_account.discord_id, verified=True
-                    ).get()
-                except DiscordXboxLiveLink.DoesNotExist:
-                    pass
-
-                illuminated_qualified = False
-                dynamo_qualified = False
-                if link is not None:
-                    illuminated_qualified = is_illuminated_qualified(
-                        link.xbox_live_account_id
-                    )
-                    dynamo_qualified = is_dynamo_qualified(
-                        discord_account.discord_id, link.xbox_live_account_id
-                    )
-                else:
-                    dynamo_qualified = is_dynamo_qualified(
-                        discord_account.discord_id, None
-                    )
-            except Exception as ex:
-                logger.error("Error attempting the Pathfinder seasonal role check.")
-                logger.error(ex)
-                raise APIException(
-                    "Error attempting the Pathfinder seasonal role check."
-                )
-            serializer = PathfinderSeasonalRoleCheckResponseSerializer(
-                {
-                    "discordUserId": discord_account.discord_id,
-                    "illuminated": illuminated_qualified,
-                    "dynamo": dynamo_qualified,
-                }
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class PathfinderTestingLFGPostView(APIView):
-    @extend_schema(
-        request=TestingLFGPostRequestSerializer,
-        responses={
-            200: TestingLFGPostResponseSerializer,
-            400: StandardErrorSerializer,
-            500: StandardErrorSerializer,
-        },
-    )
-    def post(self, request, format=None):
-        """
-        Record that someone has made a Testing LFG post.
-        """
-        validation_serializer = TestingLFGPostRequestSerializer(data=request.data)
-        if validation_serializer.is_valid(raise_exception=True):
-            poster_discord_id = validation_serializer.data.get("posterDiscordId")
-            poster_discord_username = validation_serializer.data.get(
-                "posterDiscordUsername"
-            )
-            post_id = validation_serializer.data.get("postId")
-            post_title = validation_serializer.data.get("postTitle") or ""
-            try:
-                poster_discord = update_or_create_discord_account(
-                    poster_discord_id, poster_discord_username, request.user
-                )
-            except Exception as ex:
-                logger.error(ex)
-                raise APIException(
-                    "Error attempting to record a PathfinderTestingLFGPost."
-                )
-            try:
-                PathfinderTestingLFGPost.objects.create(
-                    creator=request.user,
-                    poster_discord=poster_discord,
-                    post_id=post_id,
-                    post_title=post_title[:100],
-                )
-            except Exception as ex:
-                logger.error(ex)
-                raise APIException(
-                    "Error attempting to create a PathfinderTestingLFGPost."
-                )
-            serializer = TestingLFGPostResponseSerializer({"success": True})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class PathfinderWAYWOCommentView(APIView):
     @extend_schema(
         request=WAYWOCommentRequestSerializer,
@@ -726,19 +607,13 @@ class PathfinderDynamoProgressView(APIView):
             discord_id = validation_serializer.data.get("discordUserId")
             discord_username = validation_serializer.data.get("discordUsername")
             try:
-                # Get the Season or Era
-                season_id = None
+                # Get the Era
                 era = None
-                try:
-                    season_id = get_current_season_id()
-                except MissingSeasonDataException:
-                    pass
                 try:
                     era = get_current_era()
                 except MissingEraDataException:
                     pass
-                assert season_id is not None or era is not None
-                assert season_id is None or era is None
+                assert era is not None
 
                 # Upsert the DiscordAccount & find a link record
                 discord_account = update_or_create_discord_account(
@@ -757,99 +632,7 @@ class PathfinderDynamoProgressView(APIView):
             serializer_class = None
             serializable_dict = {}
             try:
-                if season_id == "3":
-                    serializer_class = PathfinderDynamoSeason3ProgressResponseSerializer
-                    # Tally the Discord Points
-                    discord_earns = get_s3_discord_earn_dict(
-                        [discord_account.discord_id]
-                    ).get(discord_account.discord_id)
-                    serializable_dict["pointsGoneHiking"] = discord_earns.get(
-                        "gone_hiking", 0
-                    )
-                    serializable_dict["pointsMapMaker"] = discord_earns.get(
-                        "map_maker", 0
-                    )
-                    serializable_dict["pointsShowAndTell"] = discord_earns.get(
-                        "show_and_tell", 0
-                    )
-
-                    # Tally the Xbox Points
-                    xbox_earns = {}
-                    if link is not None:
-                        xbox_earns = get_s3_xbox_earn_dict(
-                            [link.xbox_live_account_id]
-                        ).get(link.xbox_live_account_id)
-                    serializable_dict["pointsBookmarked"] = xbox_earns.get(
-                        "bookmarked", 0
-                    )
-                    serializable_dict["pointsPlaytime"] = xbox_earns.get("playtime", 0)
-                    serializable_dict["pointsTagtacular"] = xbox_earns.get(
-                        "tagtacular", 0
-                    )
-                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
-                        "forged_in_fire", 0
-                    )
-                elif season_id == "4":
-                    serializer_class = PathfinderDynamoSeason4ProgressResponseSerializer
-                    # Tally the Discord Points
-                    discord_earns = get_s4_discord_earn_dict(
-                        [discord_account.discord_id]
-                    ).get(discord_account.discord_id)
-                    serializable_dict["pointsGoneHiking"] = discord_earns.get(
-                        "gone_hiking", 0
-                    )
-                    serializable_dict["pointsTheRoadMoreTraveled"] = discord_earns.get(
-                        "the_road_more_traveled", 0
-                    )
-                    serializable_dict["pointsBlockTalk"] = discord_earns.get(
-                        "block_talk", 0
-                    )
-                    serializable_dict["pointsTestDriven"] = discord_earns.get(
-                        "test_driven", 0
-                    )
-
-                    # Tally the Xbox Points
-                    xbox_earns = {}
-                    if link is not None:
-                        xbox_earns = get_s4_xbox_earn_dict(
-                            [link.xbox_live_account_id]
-                        ).get(link.xbox_live_account_id)
-                    serializable_dict["pointsShowingOff"] = xbox_earns.get(
-                        "showing_off", 0
-                    )
-                    serializable_dict["pointsPlayOn"] = xbox_earns.get("play_on", 0)
-                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
-                        "forged_in_fire", 0
-                    )
-                elif season_id == "5":
-                    serializer_class = PathfinderDynamoSeason5ProgressResponseSerializer
-                    # Tally the Discord Points
-                    discord_earns = get_s5_discord_earn_dict(
-                        [discord_account.discord_id]
-                    ).get(discord_account.discord_id)
-                    serializable_dict["pointsBeanSpender"] = discord_earns.get(
-                        "bean_spender", 0
-                    )
-                    serializable_dict["pointsWhatAreYouWorkingOn"] = discord_earns.get(
-                        "what_are_you_working_on", 0
-                    )
-                    serializable_dict["pointsFeedbackFiend"] = discord_earns.get(
-                        "feedback_fiend", 0
-                    )
-
-                    # Tally the Xbox Points
-                    xbox_earns = {}
-                    if link is not None:
-                        xbox_earns = get_s5_xbox_earn_dict(
-                            [link.xbox_live_account_id]
-                        ).get(link.xbox_live_account_id)
-                    serializable_dict["pointsGoneHiking"] = xbox_earns.get(
-                        "gone_hiking", 0
-                    )
-                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
-                        "forged_in_fire", 0
-                    )
-                elif era == 1:
+                if era == 1:
                     serializer_class = PathfinderDynamoEra1ProgressResponseSerializer
                     # Tally the Discord Points
                     discord_earns = get_e1_discord_earn_dict(
