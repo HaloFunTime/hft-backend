@@ -465,34 +465,34 @@ class TrailblazerTestCase(APITestCase):
         mock_get_csrs.return_value = {
             "csrs": {
                 links[0].xbox_live_account_id: {
-                    "current_csr": 1800,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM + 100,
                 },
                 links[1].xbox_live_account_id: {
-                    "current_csr": 1700,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM + 1,
                 },
                 links[2].xbox_live_account_id: {
-                    "current_csr": 1600,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM,
                 },
                 links[3].xbox_live_account_id: {
-                    "current_csr": 1599,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 1,
                 },
                 links[4].xbox_live_account_id: {
-                    "current_csr": 1500,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 100,
                 },
                 links[5].xbox_live_account_id: {
-                    "current_csr": 1400,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 200,
                 },
                 links[6].xbox_live_account_id: {
-                    "current_csr": 1300,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 300,
                 },
                 links[7].xbox_live_account_id: {
-                    "current_csr": 1200,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 400,
                 },
                 links[8].xbox_live_account_id: {
-                    "current_csr": 1000,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 500,
                 },
                 links[9].xbox_live_account_id: {
-                    "current_csr": 900,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 600,
                 },
             }
         }
@@ -520,21 +520,41 @@ class TrailblazerTestCase(APITestCase):
         self.assertCountEqual(
             response.data.get("yes"),
             [
-                titan_check_dict(links[0].discord_account_id, 1800),
-                titan_check_dict(links[1].discord_account_id, 1700),
-                titan_check_dict(links[2].discord_account_id, 1600),
+                titan_check_dict(
+                    links[0].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM + 100
+                ),
+                titan_check_dict(
+                    links[1].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM + 1
+                ),
+                titan_check_dict(
+                    links[2].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM
+                ),
             ],
         )
         self.assertCountEqual(
             response.data.get("no"),
             [
-                titan_check_dict(links[3].discord_account_id, 1599),
-                titan_check_dict(links[4].discord_account_id, 1500),
-                titan_check_dict(links[5].discord_account_id, 1400),
-                titan_check_dict(links[6].discord_account_id, 1300),
-                titan_check_dict(links[7].discord_account_id, 1200),
-                titan_check_dict(links[8].discord_account_id, 1000),
-                titan_check_dict(links[9].discord_account_id, 900),
+                titan_check_dict(
+                    links[3].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 1
+                ),
+                titan_check_dict(
+                    links[4].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 100
+                ),
+                titan_check_dict(
+                    links[5].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 200
+                ),
+                titan_check_dict(
+                    links[6].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 300
+                ),
+                titan_check_dict(
+                    links[7].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 400
+                ),
+                titan_check_dict(
+                    links[8].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 500
+                ),
+                titan_check_dict(
+                    links[9].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 600
+                ),
             ],
         )
         self.assertEqual(
@@ -561,16 +581,16 @@ class TrailblazerTestCase(APITestCase):
         mock_get_csrs.return_value = {
             "csrs": {
                 links[0].xbox_live_account_id: {
-                    "current_csr": 1600,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM,
                 },
                 links[1].xbox_live_account_id: {
-                    "current_csr": 1600,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM,
                 },
                 links[2].xbox_live_account_id: {
-                    "current_csr": 1500,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 100,
                 },
                 links[3].xbox_live_account_id: {
-                    "current_csr": 1500,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 100,
                 },
                 links[4].xbox_live_account_id: {
                     "current_csr": None,
@@ -579,13 +599,13 @@ class TrailblazerTestCase(APITestCase):
                     "current_csr": None,
                 },
                 links[6].xbox_live_account_id: {
-                    "current_csr": 800,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 700,
                 },
                 links[7].xbox_live_account_id: {
                     "current_csr": None,
                 },
                 links[8].xbox_live_account_id: {
-                    "current_csr": 1650,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM + 50,
                 },
                 links[9].xbox_live_account_id: {
                     "current_csr": None,
@@ -616,19 +636,31 @@ class TrailblazerTestCase(APITestCase):
         self.assertCountEqual(
             response.data.get("yes"),
             [
-                titan_check_dict(links[0].discord_account_id, 1600),
-                titan_check_dict(links[1].discord_account_id, 1600),
-                titan_check_dict(links[8].discord_account_id, 1650),
+                titan_check_dict(
+                    links[0].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM
+                ),
+                titan_check_dict(
+                    links[1].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM
+                ),
+                titan_check_dict(
+                    links[8].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM + 50
+                ),
             ],
         )
         self.assertCountEqual(
             response.data.get("no"),
             [
-                titan_check_dict(links[2].discord_account_id, 1500),
-                titan_check_dict(links[3].discord_account_id, 1500),
+                titan_check_dict(
+                    links[2].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 100
+                ),
+                titan_check_dict(
+                    links[3].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 100
+                ),
                 titan_check_dict(links[4].discord_account_id, None),
                 titan_check_dict(links[5].discord_account_id, None),
-                titan_check_dict(links[6].discord_account_id, 800),
+                titan_check_dict(
+                    links[6].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 700
+                ),
                 titan_check_dict(links[7].discord_account_id, None),
                 titan_check_dict(links[9].discord_account_id, None),
             ],
@@ -657,19 +689,19 @@ class TrailblazerTestCase(APITestCase):
         mock_get_csrs.return_value = {
             "csrs": {
                 links[0].xbox_live_account_id: {
-                    "current_csr": 1800,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM + 100,
                 },
                 links[2].xbox_live_account_id: {
-                    "current_csr": 1600,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM,
                 },
                 links[4].xbox_live_account_id: {
-                    "current_csr": 1500,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 100,
                 },
                 links[6].xbox_live_account_id: {
-                    "current_csr": 1200,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 400,
                 },
                 links[8].xbox_live_account_id: {
-                    "current_csr": 700,
+                    "current_csr": TRAILBLAZER_TITAN_CSR_MINIMUM - 800,
                 },
             }
         }
@@ -697,8 +729,12 @@ class TrailblazerTestCase(APITestCase):
         self.assertCountEqual(
             response.data.get("yes"),
             [
-                titan_check_dict(links[0].discord_account_id, 1800),
-                titan_check_dict(links[2].discord_account_id, 1600),
+                titan_check_dict(
+                    links[0].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM + 100
+                ),
+                titan_check_dict(
+                    links[2].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM
+                ),
             ],
         )
         self.assertCountEqual(
@@ -706,11 +742,17 @@ class TrailblazerTestCase(APITestCase):
             [
                 titan_check_dict(links[1].discord_account_id, None),
                 titan_check_dict(links[3].discord_account_id, None),
-                titan_check_dict(links[4].discord_account_id, 1500),
+                titan_check_dict(
+                    links[4].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 100
+                ),
                 titan_check_dict(links[5].discord_account_id, None),
-                titan_check_dict(links[6].discord_account_id, 1200),
+                titan_check_dict(
+                    links[6].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 400
+                ),
                 titan_check_dict(links[7].discord_account_id, None),
-                titan_check_dict(links[8].discord_account_id, 700),
+                titan_check_dict(
+                    links[8].discord_account_id, TRAILBLAZER_TITAN_CSR_MINIMUM - 800
+                ),
                 titan_check_dict(links[9].discord_account_id, None),
             ],
         )
