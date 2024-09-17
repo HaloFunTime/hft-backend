@@ -47,7 +47,7 @@ class ReportView(APIView):
     )
     def get(self, request, *args, **kwargs):
         """
-        Retrieves a random InternChatter if the destination channel isn't forbidden and Intern chatter isn't paused.
+        Reports on Fun Time Friday voice activity.
         """
         # Validate that the date is in fact a Friday
         friday_date = request.query_params.get("fridayDate")
