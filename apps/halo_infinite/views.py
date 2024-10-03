@@ -227,7 +227,7 @@ class RecentGamesView(APIView):
             ),
         ],
         responses={
-            200: SummaryStatsResponseSerializer,
+            200: RecentGamesResponseSerializer,
             400: StandardErrorSerializer,
             403: StandardErrorSerializer,
             404: StandardErrorSerializer,
