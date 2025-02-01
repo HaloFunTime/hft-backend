@@ -148,7 +148,7 @@ class CSRView(APIView):
         try:
             for playlist in current_ranked_playlists:
                 csr_data = get_csrs([xuid], playlist.playlist_id)
-                xuid_csr_data = csr_data.get("csrs").get(xuid)
+                xuid_csr_data = csr_data.get("csrs", {}).get(xuid, {})
                 playlists.append(
                     CSRPlaylistSerializer(
                         {

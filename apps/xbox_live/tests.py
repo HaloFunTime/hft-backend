@@ -37,8 +37,11 @@ class XboxLiveAccountTestCase(TestCase):
             username="test", email="test@test.com", password="test"
         )
 
+    @patch("apps.xbox_live.signals.get_gamertag_from_xuid")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
-    def test_xbox_live_account_save(self, mock_get_xuid_and_exact_gamertag):
+    def test_xbox_live_account_save(
+        self, mock_get_xuid_and_exact_gamertag, mock_get_gamertag_from_xuid
+    ):
         # Creating an account should be successful if no XUID is provided (hydrated by pre_save)
         mock_get_xuid_and_exact_gamertag.return_value = (0, "Test1")
         account = XboxLiveAccount.objects.create(creator=self.user, gamertag="test1")
@@ -47,15 +50,15 @@ class XboxLiveAccountTestCase(TestCase):
         mock_get_xuid_and_exact_gamertag.assert_called_once_with("test1")
         mock_get_xuid_and_exact_gamertag.reset_mock()
 
-        # XUID provided in create call should be replaced by the one retrieved in pre_save signal
-        mock_get_xuid_and_exact_gamertag.return_value = (1, "Test2")
+        # XUID set on instance is authoritative; gamertag is replaced by the one retrieved in pre_save signal
+        mock_get_gamertag_from_xuid.return_value = "Test2"
         account = XboxLiveAccount.objects.create(
             creator=self.user, gamertag="test2", xuid=10
         )
-        self.assertEqual(account.xuid, 1)
+        self.assertEqual(account.xuid, 10)
         self.assertEqual(account.gamertag, "Test2")
-        mock_get_xuid_and_exact_gamertag.assert_called_once_with("test2")
-        mock_get_xuid_and_exact_gamertag.reset_mock()
+        mock_get_gamertag_from_xuid.assert_called_once_with(10)
+        mock_get_gamertag_from_xuid.reset_mock()
 
         # Duplicate XUID should fail to save
         mock_get_xuid_and_exact_gamertag.return_value = (0, "Test3")
@@ -507,27 +510,27 @@ class XboxLiveUtilsTestCase(TestCase):
         )
 
     @patch("apps.xbox_live.utils.get_xuid_and_exact_gamertag")
-    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.xbox_live.signals.get_gamertag_from_xuid")
     def test_update_or_create_xbox_live_account(
         self,
-        mock_signals_get_xuid_and_exact_gamertag,
+        mock_signals_get_gamertag_from_xuid,
         mock_utils_get_xuid_and_exact_gamertag,
     ):
-        def set_both_mock_return_values(return_value):
-            mock_signals_get_xuid_and_exact_gamertag.return_value = return_value
-            mock_utils_get_xuid_and_exact_gamertag.return_value = return_value
+        def set_both_mock_return_values(return_tuple):
+            mock_signals_get_gamertag_from_xuid.return_value = return_tuple[1]
+            mock_utils_get_xuid_and_exact_gamertag.return_value = return_tuple
 
         def reset_both_mocks():
-            mock_signals_get_xuid_and_exact_gamertag.reset_mock()
+            mock_signals_get_gamertag_from_xuid.reset_mock()
             mock_utils_get_xuid_and_exact_gamertag.reset_mock()
 
-        # Initial call creates XboxLiveAccount with gamertag & XUID, calls both mocks
+        # Initial call creates XboxLiveAccount with gamertag & XUID, calls two of the three mocks
         set_both_mock_return_values((0, "Foo"))
         xbl_account_1 = update_or_create_xbox_live_account("foo", self.user)
         self.assertEqual(xbl_account_1.xuid, 0)
         self.assertEqual(xbl_account_1.gamertag, "Foo")
-        mock_signals_get_xuid_and_exact_gamertag.assert_called_once_with("Foo")
         mock_utils_get_xuid_and_exact_gamertag.assert_called_once_with("foo")
+        mock_signals_get_gamertag_from_xuid.assert_called_once_with(0)
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
         reset_both_mocks()
 
@@ -536,8 +539,8 @@ class XboxLiveUtilsTestCase(TestCase):
         xbl_account_2 = update_or_create_xbox_live_account("foo", self.user)
         self.assertEqual(xbl_account_2.xuid, 0)
         self.assertEqual(xbl_account_2.gamertag, "Foo")
-        mock_signals_get_xuid_and_exact_gamertag.assert_called_once_with("Foo")
         mock_utils_get_xuid_and_exact_gamertag.assert_called_once_with("foo")
+        mock_signals_get_gamertag_from_xuid.assert_called_once_with(0)
         self.assertEqual(XboxLiveAccount.objects.count(), 1)
         reset_both_mocks()
 
@@ -546,8 +549,8 @@ class XboxLiveUtilsTestCase(TestCase):
         xbl_account_3 = update_or_create_xbox_live_account("foo", self.user)
         self.assertEqual(xbl_account_3.xuid, 1)
         self.assertEqual(xbl_account_3.gamertag, "Foo")
-        mock_signals_get_xuid_and_exact_gamertag.assert_called_once_with("Foo")
         mock_utils_get_xuid_and_exact_gamertag.assert_called_once_with("foo")
+        mock_signals_get_gamertag_from_xuid.assert_called_once_with(1)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
         reset_both_mocks()
 
@@ -556,8 +559,8 @@ class XboxLiveUtilsTestCase(TestCase):
         xbl_account_4 = update_or_create_xbox_live_account("bar", self.user)
         self.assertEqual(xbl_account_4.xuid, 0)
         self.assertEqual(xbl_account_4.gamertag, "Bar")
-        mock_signals_get_xuid_and_exact_gamertag.assert_called_once_with("Bar")
         mock_utils_get_xuid_and_exact_gamertag.assert_called_once_with("bar")
+        mock_signals_get_gamertag_from_xuid.assert_called_once_with(0)
         self.assertEqual(XboxLiveAccount.objects.count(), 2)
         xbl_account_1.refresh_from_db()
         self.assertEqual(xbl_account_1.xuid, 0)

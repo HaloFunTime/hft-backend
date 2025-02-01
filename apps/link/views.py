@@ -20,7 +20,10 @@ from apps.link.utils import (
     auto_verify_discord_xbox_live_link,
     update_or_create_discord_xbox_live_link,
 )
-from apps.xbox_live.utils import update_or_create_xbox_live_account
+from apps.xbox_live.utils import (
+    get_gamertag_from_xuid,
+    update_or_create_xbox_live_account,
+)
 from config.serializers import StandardErrorSerializer
 
 logger = logging.getLogger(__name__)
@@ -114,6 +117,14 @@ class DiscordToXboxLive(APIView):
                 {"error": LINK_ERROR_NOT_FOUND}
             )
             return Response(serializer.data, status=404)
+
+        # Update the gamertag for the XboxLiveAccount, in case it has changed
+        if (
+            get_gamertag_from_xuid(discord_xbox_live_link.xbox_live_account.xuid)
+            != discord_xbox_live_link.xbox_live_account.gamertag
+        ):
+            # Re-saving the XboxLiveAccount automatically updates the gamertag
+            discord_xbox_live_link.xbox_live_account.save()
 
         serializer = DiscordXboxLiveLinkResponseSerializer(
             {

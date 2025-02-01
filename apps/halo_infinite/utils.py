@@ -253,11 +253,11 @@ def get_csrs(xuids: list[int], playlist_id: str):
         "csrs": {},
     }
     csr_data = get_csr(xuids, playlist_id)
-    for value in csr_data.get("Value"):
+    for value in csr_data.get("Value", []):
         xuid = int(value.get("Id").lstrip("xuid(").rstrip(")"))
-        current = value.get("Result").get("Current")
-        current_reset_max = value.get("Result").get("SeasonMax")
-        all_time_max = value.get("Result").get("AllTimeMax")
+        current = value.get("Result", {}).get("Current", {})
+        current_reset_max = value.get("Result", {}).get("SeasonMax", {})
+        all_time_max = value.get("Result", {}).get("AllTimeMax", {})
         return_dict["csrs"][xuid] = {
             "current_csr": current.get("Value"),
             "current_tier": current.get("Tier"),

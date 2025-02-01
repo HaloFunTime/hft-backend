@@ -50,3 +50,31 @@ def get_xuid_and_exact_gamertag(
         except Exception:
             logger.debug("Failed to get XUID and exact gamertag.")
     return (xuid, exact_gamertag)
+
+
+@xsts_token
+def get_gamertag_from_xuid(xuid: int, **kwargs) -> str | None:
+    assert xuid is not None
+    logger.debug(f"Called get_gamertag_from_xuid with XUID '{xuid}'.")
+    xsts_token = kwargs.get("XboxLiveXSTSToken")
+    headers = {
+        "Authorization": f"XBL3.0 x={xsts_token.uhs};{xsts_token.token}",
+        "Content-Type": "application/json; charset=utf-8",
+        "x-xbl-contract-version": "3",
+    }
+    with requests.Session() as s:
+        gamertag = None
+        try:
+            params = {"settings": "Gamertag"}
+            response = s.get(
+                f"https://profile.xboxlive.com/users/xuid({xuid})/profile/settings",
+                params=params,
+                headers=headers,
+            )
+            resp_json = response.json()
+            gamertag = resp_json.get("profileUsers")[0].get("settings")[0].get("value")
+            logger.debug(f"Retrieved gamertag: {gamertag}")
+        except Exception as ex:
+            logger.debug("Failed to get gamertag from XUID.")
+            logger.error(ex)
+    return gamertag
