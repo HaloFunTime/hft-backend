@@ -7,11 +7,14 @@ from apps.discord.models import DiscordAccount
 from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG,
     GAME_VARIANT_CATEGORY_KING_OF_THE_HILL,
+    GAME_VARIANT_CATEGORY_NEUTRAL_BOMB,
     GAME_VARIANT_CATEGORY_ODDBALL,
     GAME_VARIANT_CATEGORY_SLAYER,
     GAME_VARIANT_CATEGORY_STRONGHOLDS,
+    LEVEL_ID_AQUARIUS,
     LEVEL_ID_LIVE_FIRE,
     LEVEL_ID_STREETS,
+    MEDAL_ID_OVERKILL,
 )
 from apps.halo_infinite.utils import (
     get_era_ranked_arena_matches_for_xuid,
@@ -209,5 +212,77 @@ def get_e2_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             "too_stronk": min(strongholds_wins, 20) * 5,
             "scoreboard": min(live_fire_wins, 20) * 5,
             "the_cycle": 100 if unlocked_the_cycle else 0,
+        }
+    return earn_dict
+
+
+def get_e3_discord_earn_dict(discord_ids: list[str]) -> dict[str, dict[str, int]]:
+    discord_accounts = DiscordAccount.objects.filter(discord_id__in=discord_ids)
+
+    earn_dict = {}
+    for account in discord_accounts:
+        earn_dict[account.discord_id] = {}
+    return earn_dict
+
+
+def get_e3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
+    earn_dict = {}
+    for xuid in xuids:
+        wins = 0
+        neutral_bomb_wins = 0
+        oddball_wins = 0
+        aquarius_wins = 0
+        unlocked_overkill = False
+
+        # Get matches for this XUID
+        matches = get_era_ranked_arena_matches_for_xuid(xuid, 3)
+
+        # CSR Go Up: Win games in Ranked Arena. 1 point per win.
+        # Bomb Dot Com: Win Neutral Bomb games in Ranked Arena. 5 points per win.
+        # Oddly Effective: Win Oddball games in Ranked Arena. 5 points per win.
+        # It's the Age: Win games on the map Aquarius in Ranked Arena. 5 points per win.
+        # Overkill: Achieve an Overkill in Ranked Arena. Earnable once.
+        for match in matches:
+            if match.get("Outcome") == 2:
+                wins += 1
+            if (
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_NEUTRAL_BOMB
+            ):
+                if match.get("Outcome") == 2:
+                    neutral_bomb_wins += 1
+            if (
+                match.get("MatchInfo", {}).get("GameVariantCategory")
+                == GAME_VARIANT_CATEGORY_ODDBALL
+            ):
+                if match.get("Outcome") == 2:
+                    oddball_wins += 1
+            if match.get("MatchInfo", {}).get("LevelId", {}) == LEVEL_ID_AQUARIUS:
+                if match.get("Outcome") == 2:
+                    aquarius_wins += 1
+
+            # Only check for Overkill if not already unlocked
+            if not unlocked_overkill:
+                player_data = None
+                for player_dict in match.get("Players", []):
+                    if player_dict.get("PlayerId") == f"xuid({xuid})":
+                        player_data = player_dict
+                        break
+                for medal_dict in (
+                    player_data.get("PlayerTeamStats", {})
+                    .get("Stats", {})
+                    .get("CoreStats", {})
+                    .get("Medals", [])
+                ):
+                    if medal_dict.get("NameId") == MEDAL_ID_OVERKILL:
+                        unlocked_overkill = True
+                        break
+
+        earn_dict[xuid] = {
+            "csr_go_up": min(wins, 300),
+            "oddly_effective": min(oddball_wins, 20) * 5,
+            "bomb_dot_com": min(neutral_bomb_wins, 20) * 5,
+            "its_the_age": min(aquarius_wins, 20) * 5,
+            "overkill": 100 if unlocked_overkill else 0,
         }
     return earn_dict

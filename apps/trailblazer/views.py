@@ -14,6 +14,7 @@ from apps.trailblazer.constants import TRAILBLAZER_TITAN_CSR_MINIMUM
 from apps.trailblazer.serializers import (
     TrailblazerScoutEra1ProgressResponseSerializer,
     TrailblazerScoutEra2ProgressResponseSerializer,
+    TrailblazerScoutEra3ProgressResponseSerializer,
     TrailblazerScoutProgressRequestSerializer,
     TrailblazerScoutProgressResponseSerializer,
     TrailblazerTitanCheckRequestSerializer,
@@ -25,6 +26,8 @@ from apps.trailblazer.utils import (
     get_e1_xbox_earn_dict,
     get_e2_discord_earn_dict,
     get_e2_xbox_earn_dict,
+    get_e3_discord_earn_dict,
+    get_e3_xbox_earn_dict,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -130,6 +133,29 @@ class TrailblazerScoutProgressView(APIView):
                         "scoreboard", 0
                     )
                     serializable_dict["pointsTheCycle"] = xbox_earns.get("the_cycle", 0)
+                elif era == 3:
+                    serializer_class = TrailblazerScoutEra3ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_e3_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_e3_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
+                    serializable_dict["pointsCSRGoUp"] = xbox_earns.get("csr_go_up", 0)
+                    serializable_dict["pointsBombDotCom"] = xbox_earns.get(
+                        "bomb_dot_com", 0
+                    )
+                    serializable_dict["pointsOddlyEffective"] = xbox_earns.get(
+                        "oddly_effective", 0
+                    )
+                    serializable_dict["pointsItsTheAge"] = xbox_earns.get(
+                        "its_the_age", 0
+                    )
+                    serializable_dict["pointsOverkill"] = xbox_earns.get("overkill", 0)
             except Exception as ex:
                 raise_exception(ex)
             merged_dict = {

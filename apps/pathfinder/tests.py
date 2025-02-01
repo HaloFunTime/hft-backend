@@ -4,7 +4,11 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
-from apps.halo_infinite.constants import ERA_1_START_TIME, ERA_2_START_TIME
+from apps.halo_infinite.constants import (
+    ERA_1_START_TIME,
+    ERA_2_START_TIME,
+    ERA_3_START_TIME,
+)
 from apps.pathfinder.models import (
     PathfinderBeanCount,
     PathfinderHikeSubmission,
@@ -16,6 +20,7 @@ from apps.pathfinder.utils import (
     check_beans,
     get_e1_discord_earn_dict,
     get_e2_discord_earn_dict,
+    get_e3_discord_earn_dict,
 )
 
 
@@ -222,6 +227,105 @@ class PathfinderUtilsTestCase(TestCase):
         PathfinderWAYWOComment.objects.all().update(created_at=ERA_1_START_TIME)
         earn_dict = get_e2_discord_earn_dict([discord_accounts[0].discord_id])
         self.assertEqual(earn_dict[discord_accounts[0].discord_id]["bean_spender"], 0)
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 0)
+
+    def test_get_e3_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_e3_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # Max Points - exactly
+        waywo_posts = []
+        waywo_comments = []
+        for i in range(2):
+            waywo_posts.append(
+                PathfinderWAYWOPost.objects.create(
+                    creator=self.user,
+                    poster_discord=discord_accounts[0],
+                )
+            )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_3_START_TIME)
+        for i in range(300):
+            waywo_comments.append(
+                PathfinderWAYWOComment.objects.create(
+                    creator=self.user,
+                    commenter_discord=discord_accounts[0],
+                    comment_length=100,
+                )
+            )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_3_START_TIME)
+        earn_dict = get_e3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 200
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 300
+        )
+
+        # Max points - overages
+        waywo_posts.append(
+            PathfinderWAYWOPost.objects.create(
+                creator=self.user,
+                poster_discord=discord_accounts[0],
+            )
+        )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_3_START_TIME)
+        waywo_comments.append(
+            PathfinderWAYWOComment.objects.create(
+                creator=self.user,
+                commenter_discord=discord_accounts[0],
+                comment_length=100,
+            )
+        )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_3_START_TIME)
+        earn_dict = get_e3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 200
+        )
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 300
+        )
+
+        # Deletion of all records eliminates points
+        PathfinderWAYWOPost.objects.all().delete()
+        PathfinderWAYWOComment.objects.all().delete()
+        earn_dict = get_e3_discord_earn_dict([discord_accounts[0].discord_id])
+        self.assertEqual(
+            earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 0
+        )
+        self.assertEqual(earn_dict[discord_accounts[0].discord_id]["feedback_fiend"], 0)
+
+        # Addition of records outside the date range still results in no points
+        waywo_posts.append(
+            PathfinderWAYWOPost.objects.create(
+                creator=self.user,
+                poster_discord=discord_accounts[0],
+            )
+        )
+        PathfinderWAYWOPost.objects.all().update(created_at=ERA_1_START_TIME)
+        waywo_comments.append(
+            PathfinderWAYWOComment.objects.create(
+                creator=self.user,
+                commenter_discord=discord_accounts[0],
+                comment_length=100,
+            )
+        )
+        PathfinderWAYWOComment.objects.all().update(created_at=ERA_1_START_TIME)
+        earn_dict = get_e3_discord_earn_dict([discord_accounts[0].discord_id])
         self.assertEqual(
             earn_dict[discord_accounts[0].discord_id]["what_are_you_working_on"], 0
         )

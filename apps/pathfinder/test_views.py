@@ -1412,6 +1412,146 @@ class PathfinderTestCase(APITestCase):
         mock_get_e2_discord_earn_dict.reset_mock()
         mock_get_e2_xbox_earn_dict.reset_mock()
 
+    @patch("apps.pathfinder.views.get_e3_xbox_earn_dict")
+    @patch("apps.pathfinder.views.get_e3_discord_earn_dict")
+    @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
+    @patch("apps.pathfinder.views.get_current_era")
+    def test_pathfinder_dynamo_progress_view_e3(
+        self,
+        mock_get_current_era,
+        mock_get_xuid_and_exact_gamertag,
+        mock_get_e3_discord_earn_dict,
+        mock_get_e3_xbox_earn_dict,
+    ):
+        mock_get_current_era.return_value = 3
+
+        # Create test data
+        mock_get_xuid_and_exact_gamertag.return_value = (4567, "test1234")
+        discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id="1234", discord_username="TestUsername1234"
+        )
+        xbox_live_account = XboxLiveAccount.objects.create(
+            creator=self.user, gamertag="testGT1234"
+        )
+        link = DiscordXboxLiveLink.objects.create(
+            creator=self.user,
+            discord_account=discord_account,
+            xbox_live_account=xbox_live_account,
+            verified=True,
+        )
+
+        # Exception in get_e3_discord_earn_dict throws error
+        mock_get_e3_discord_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Dynamo progress check.",
+                code="error",
+            ),
+        )
+        mock_get_e3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_e3_discord_earn_dict.side_effect = None
+        mock_get_e3_discord_earn_dict.reset_mock()
+
+        # Exception in get_e3_xbox_earn_dict throws error
+        mock_get_e3_xbox_earn_dict.side_effect = Exception()
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 500)
+        details = response.data.get("error").get("details")
+        self.assertEqual(
+            details.get("detail"),
+            ErrorDetail(
+                string="Error attempting the Pathfinder Dynamo progress check.",
+                code="error",
+            ),
+        )
+        mock_get_e3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_e3_xbox_earn_dict.side_effect = None
+        mock_get_e3_discord_earn_dict.reset_mock()
+        mock_get_e3_xbox_earn_dict.reset_mock()
+
+        # Success - point totals come through for all values
+        mock_get_e3_discord_earn_dict.return_value = {
+            link.discord_account_id: {
+                "what_are_you_working_on": 200,
+                "feedback_fiend": 27,
+            }
+        }
+        mock_get_e3_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "forged_in_fire": 37,
+            }
+        }
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": link.discord_account_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), True)
+        self.assertEqual(response.data.get("totalPoints"), 264)
+        self.assertEqual(response.data.get("pointsWhatAreYouWorkingOn"), 200)
+        self.assertEqual(response.data.get("pointsFeedbackFiend"), 27)
+        self.assertEqual(response.data.get("pointsForgedInFire"), 37)
+        mock_get_e3_discord_earn_dict.assert_called_once_with([link.discord_account_id])
+        mock_get_e3_xbox_earn_dict.assert_called_once_with([link.xbox_live_account_id])
+        mock_get_e3_discord_earn_dict.reset_mock()
+        mock_get_e3_xbox_earn_dict.reset_mock()
+
+        # Success - no linked gamertag
+        link.delete()
+        mock_get_e3_discord_earn_dict.return_value = {
+            link.discord_account_id: {
+                "what_are_you_working_on": 200,
+                "feedback_fiend": 27,
+            }
+        }
+        mock_get_e3_xbox_earn_dict.return_value = {
+            link.xbox_live_account_id: {
+                "forged_in_fire": 37,
+            }
+        }
+        response = self.client.post(
+            "/pathfinder/dynamo-progress",
+            {
+                "discordUserId": discord_account.discord_id,
+                "discordUsername": discord_account.discord_username,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("linkedGamertag"), False)
+        self.assertEqual(response.data.get("totalPoints"), 227)
+        self.assertEqual(response.data.get("pointsWhatAreYouWorkingOn"), 200)
+        self.assertEqual(response.data.get("pointsFeedbackFiend"), 27)
+        self.assertEqual(response.data.get("pointsForgedInFire"), 0)
+        mock_get_e3_discord_earn_dict.assert_called_once_with(
+            [discord_account.discord_id]
+        )
+        mock_get_e3_xbox_earn_dict.assert_not_called()
+        mock_get_e3_discord_earn_dict.reset_mock()
+        mock_get_e3_xbox_earn_dict.reset_mock()
+
     @patch("apps.pathfinder.views.get_contributor_xuids_for_maps_in_active_playlists")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
     def test_pathfinder_prodigy_check_view(

@@ -5,7 +5,11 @@ from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
 from apps.trailblazer.models import TrailblazerTuesdayAttendance
-from apps.trailblazer.utils import get_e1_discord_earn_dict, get_e2_discord_earn_dict
+from apps.trailblazer.utils import (
+    get_e1_discord_earn_dict,
+    get_e2_discord_earn_dict,
+    get_e3_discord_earn_dict,
+)
 
 
 class TrailblazerUtilsTestCase(TestCase):
@@ -149,3 +153,24 @@ class TrailblazerUtilsTestCase(TestCase):
         self.assertEqual(
             earn_dict[discord_accounts[0].discord_id]["church_of_the_crab"], 0
         )
+
+    def test_get_e3_discord_earn_dict(self):
+        # Create some test data
+        discord_accounts = []
+        for i in range(2):
+            discord_accounts.append(
+                DiscordAccount.objects.create(
+                    creator=self.user,
+                    discord_id=str(i),
+                    discord_username=f"TestUsername{i}",
+                )
+            )
+
+        # No IDs = No earn dicts
+        earn_dict = get_e3_discord_earn_dict([])
+        self.assertEqual(earn_dict, {})
+
+        # Always returns an empty dict for each ID
+        for account in discord_accounts:
+            earn_dict = get_e3_discord_earn_dict([account.discord_id])
+            self.assertEqual(earn_dict, {account.discord_id: {}})

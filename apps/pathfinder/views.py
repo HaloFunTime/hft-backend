@@ -38,6 +38,7 @@ from apps.pathfinder.serializers import (
     HikeSubmissionPostResponseSerializer,
     PathfinderDynamoEra1ProgressResponseSerializer,
     PathfinderDynamoEra2ProgressResponseSerializer,
+    PathfinderDynamoEra3ProgressResponseSerializer,
     PathfinderDynamoProgressRequestSerializer,
     PathfinderDynamoProgressResponseSerializer,
     PathfinderProdigyCheckRequestSerializer,
@@ -64,6 +65,8 @@ from apps.pathfinder.utils import (
     get_e1_xbox_earn_dict,
     get_e2_discord_earn_dict,
     get_e2_xbox_earn_dict,
+    get_e3_discord_earn_dict,
+    get_e3_xbox_earn_dict,
 )
 from config.serializers import StandardErrorSerializer
 
@@ -685,6 +688,28 @@ class PathfinderDynamoProgressView(APIView):
                     serializable_dict["pointsGoneHiking"] = xbox_earns.get(
                         "gone_hiking", 0
                     )
+                    serializable_dict["pointsForgedInFire"] = xbox_earns.get(
+                        "forged_in_fire", 0
+                    )
+                elif era == 3:
+                    serializer_class = PathfinderDynamoEra3ProgressResponseSerializer
+                    # Tally the Discord Points
+                    discord_earns = get_e3_discord_earn_dict(
+                        [discord_account.discord_id]
+                    ).get(discord_account.discord_id)
+                    serializable_dict["pointsWhatAreYouWorkingOn"] = discord_earns.get(
+                        "what_are_you_working_on", 0
+                    )
+                    serializable_dict["pointsFeedbackFiend"] = discord_earns.get(
+                        "feedback_fiend", 0
+                    )
+
+                    # Tally the Xbox Points
+                    xbox_earns = {}
+                    if link is not None:
+                        xbox_earns = get_e3_xbox_earn_dict(
+                            [link.xbox_live_account_id]
+                        ).get(link.xbox_live_account_id)
                     serializable_dict["pointsForgedInFire"] = xbox_earns.get(
                         "forged_in_fire", 0
                     )
