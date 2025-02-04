@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "apps.discord",
     "apps.era_01",
     "apps.era_02",
+    "apps.era_03",
     "apps.fun_time_friday",
     "apps.halo_infinite",
     "apps.intern",
