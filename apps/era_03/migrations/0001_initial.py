@@ -55,14 +55,14 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(
-            code=lambda apps, schema_editor: None if schema_editor.connection.alias == 'default' and 'test' in schema_editor.connection.settings_dict['NAME'] else apps.get_model('era_03', 'BoatRank').objects.create(
+            code=lambda apps, schema_editor: None if settings.ENVIRONMENT == "dev" else apps.get_model('era_03', 'BoatRank').objects.create(
                 rank='Junior Deckhand',
                 tier=1,
                 track='N/A', 
                 description='The lowest rank in the crew. Responsible for sweeping the poop deck.',
                 creator=apps.get_model(settings.AUTH_USER_MODEL).objects.first()
             ),
-            reverse_code=lambda apps, schema_editor: apps.get_model('era_03', 'BoatRank').objects.filter(rank='Junior Deckhand', tier=1).delete()
+            reverse_code=lambda apps, schema_editor: None if settings.ENVIRONMENT == "dev" else apps.get_model('era_03', 'BoatRank').objects.filter(rank='Junior Deckhand', tier=1).delete()
         ),
         migrations.CreateModel(
             name='BoatDeckhand',
