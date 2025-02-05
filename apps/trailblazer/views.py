@@ -51,6 +51,9 @@ class TrailblazerScoutProgressView(APIView):
         def raise_exception(ex):
             logger.error("Error attempting the Trailblazer Scout progress check.")
             logger.error(ex)
+            import traceback
+
+            traceback.print_exc()
             raise APIException("Error attempting the Trailblazer Scout progress check.")
 
         validation_serializer = TrailblazerScoutProgressRequestSerializer(

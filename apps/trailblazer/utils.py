@@ -7,7 +7,6 @@ from apps.discord.models import DiscordAccount
 from apps.halo_infinite.constants import (
     GAME_VARIANT_CATEGORY_CAPTURE_THE_FLAG,
     GAME_VARIANT_CATEGORY_KING_OF_THE_HILL,
-    GAME_VARIANT_CATEGORY_NEUTRAL_BOMB,
     GAME_VARIANT_CATEGORY_ODDBALL,
     GAME_VARIANT_CATEGORY_SLAYER,
     GAME_VARIANT_CATEGORY_STRONGHOLDS,
@@ -246,8 +245,8 @@ def get_e3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
             if match.get("Outcome") == 2:
                 wins += 1
             if (
-                match.get("MatchInfo", {}).get("GameVariantCategory")
-                == GAME_VARIANT_CATEGORY_NEUTRAL_BOMB
+                match.get("MatchInfo", {}).get("UgcGameVariant", {}).get("AssetId")
+                == "b91028ac-0531-4f71-b3bc-0b039ee8c73b"
             ):
                 if match.get("Outcome") == 2:
                     neutral_bomb_wins += 1
@@ -268,15 +267,16 @@ def get_e3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                     if player_dict.get("PlayerId") == f"xuid({xuid})":
                         player_data = player_dict
                         break
-                for medal_dict in (
-                    player_data.get("PlayerTeamStats", {})
-                    .get("Stats", {})
-                    .get("CoreStats", {})
-                    .get("Medals", [])
-                ):
-                    if medal_dict.get("NameId") == MEDAL_ID_OVERKILL:
-                        unlocked_overkill = True
-                        break
+                if player_data is not None:
+                    for medal_dict in (
+                        player_data.get("PlayerTeamStats", {})
+                        .get("Stats", {})
+                        .get("CoreStats", {})
+                        .get("Medals", [])
+                    ):
+                        if medal_dict.get("NameId") == MEDAL_ID_OVERKILL:
+                            unlocked_overkill = True
+                            break
 
         earn_dict[xuid] = {
             "csr_go_up": min(wins, 300),
