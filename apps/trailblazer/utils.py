@@ -17,6 +17,7 @@ from apps.halo_infinite.constants import (
 )
 from apps.halo_infinite.utils import (
     get_era_ranked_arena_matches_for_xuid,
+    get_era_ranked_arena_service_record_data,
     get_start_and_end_times_for_era,
 )
 
@@ -236,11 +237,13 @@ def get_e3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
         # Get matches for this XUID
         matches = get_era_ranked_arena_matches_for_xuid(xuid, 3)
 
+        # Get Ranked Arena Service Record(s) for this XUID
+        service_records = get_era_ranked_arena_service_record_data(xuid, 3)
+
         # CSR Go Up: Win games in Ranked Arena. 1 point per win.
         # Bomb Dot Com: Win Neutral Bomb games in Ranked Arena. 5 points per win.
         # Oddly Effective: Win Oddball games in Ranked Arena. 5 points per win.
         # It's the Age: Win games on the map Aquarius in Ranked Arena. 5 points per win.
-        # Overkill: Achieve an Overkill in Ranked Arena. Earnable once.
         for match in matches:
             if match.get("Outcome") == 2:
                 wins += 1
@@ -260,23 +263,13 @@ def get_e3_xbox_earn_dict(xuids: list[int]) -> dict[int, dict[str, int]]:
                 if match.get("Outcome") == 2:
                     aquarius_wins += 1
 
-            # Only check for Overkill if not already unlocked
-            if not unlocked_overkill:
-                player_data = None
-                for player_dict in match.get("Players", []):
-                    if player_dict.get("PlayerId") == f"xuid({xuid})":
-                        player_data = player_dict
-                        break
-                if player_data is not None:
-                    for medal_dict in (
-                        player_data.get("PlayerTeamStats", {})
-                        .get("Stats", {})
-                        .get("CoreStats", {})
-                        .get("Medals", [])
-                    ):
-                        if medal_dict.get("NameId") == MEDAL_ID_OVERKILL:
-                            unlocked_overkill = True
-                            break
+        # Overkill: Achieve an Overkill in Ranked Arena. Earnable once.
+        for service_record in service_records.values():
+            medals = service_record.get("CoreStats", {}).get("Medals", [])
+            medals_list = list(
+                filter(lambda x: x.get("NameId") == MEDAL_ID_OVERKILL, medals)
+            )
+            unlocked_overkill = unlocked_overkill or len(medals_list) > 0
 
         earn_dict[xuid] = {
             "csr_go_up": min(wins, 300),

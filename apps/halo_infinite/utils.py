@@ -58,6 +58,15 @@ def get_current_season_id() -> str:
     raise MissingSeasonDataException(f"Missing season ID for time '{now.isoformat()}'")
 
 
+def get_api_ids_for_era(era: int) -> list[str]:
+    era_dict = ERA_DATA_DICT.get(era, {})
+    if "api_id" in era_dict:
+        return [era_dict.get("api_id")]
+    elif "api_ids" in era_dict:
+        return era_dict.get("api_ids")
+    raise Exception(f"Could not find API IDs for Era '{era}'")
+
+
 def get_current_era() -> int:
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     for era in ERA_DATA_DICT.keys():
@@ -506,3 +515,13 @@ def get_era_ranked_arena_matches_for_xuid(xuid: int, era: int):
         if match.get("MatchInfo", {}).get("Playlist", {}).get("AssetId")
         == PLAYLIST_ID_RANKED_ARENA
     ]
+
+
+def get_era_ranked_arena_service_record_data(xuid: int, era: int) -> dict:
+    combined_service_record = {}
+    era_api_ids = get_api_ids_for_era(era)
+    for era_api_id in era_api_ids:
+        combined_service_record[era_api_id] = service_record(
+            xuid, era_api_id, PLAYLIST_ID_RANKED_ARENA
+        )
+    return combined_service_record
