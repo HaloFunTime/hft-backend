@@ -181,8 +181,6 @@ def generate_weekly_assignments(
     tier = deckhand.rank.tier
     track = deckhand.rank.track
     classifications = TIER_ASSIGNMENT_CLASSIFICATIONS.get(tier, {}).get(track, [])
-    print(TIER_ASSIGNMENT_CLASSIFICATIONS)
-    print(f"Tier: {tier}, Track: {track}, Classifications: {classifications}")
     assignments = []
     for classification in classifications:
         assignments.append(

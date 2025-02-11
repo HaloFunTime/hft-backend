@@ -103,5 +103,6 @@ class WeeklyBoatAssignmentsAdmin(AutofillCreatorModelAdmin):
         "assignment_2_completion_match_id",
         "assignment_3",
         "assignment_3_completion_match_id",
+        "next_rank",
         "creator",
     )
