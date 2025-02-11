@@ -9,16 +9,33 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.discord.utils import update_or_create_discord_account
-from apps.era_03.models import BoatCaptain, BoatDeckhand, BoatRank
+from apps.era_03.exceptions import (
+    AlreadyRank10Exception,
+    AssignmentsIncompleteException,
+)
+from apps.era_03.models import (
+    BoatCaptain,
+    BoatDeckhand,
+    BoatRank,
+    WeeklyBoatAssignments,
+)
 from apps.era_03.serializers import (
     BoardBoatRequestSerializer,
     BoardBoatResponseSerializer,
+    CheckBoatAssignmentsRequestSerializer,
+    CheckBoatAssignmentsResponseSerializer,
     CheckDeckhandGamesRequestSerializer,
     CheckDeckhandGamesResponseSerializer,
     SaveBoatCaptainRequestSerializer,
     SaveBoatCaptainResponseSerializer,
 )
-from apps.era_03.utils import fetch_match_ids_for_xuid, save_new_matches
+from apps.era_03.utils import (
+    check_xuid_assignment,
+    fetch_match_ids_for_xuid,
+    generate_weekly_assignments,
+    get_current_week_start,
+    save_new_matches,
+)
 from apps.halo_infinite.constants import ERA_3_END_TIME, ERA_3_START_TIME
 from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.link.models import DiscordXboxLiveLink
@@ -76,6 +93,190 @@ class BoardBoat(APIView):
                     "newJoiner": new_joiner,
                 }
             )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CheckBoatAssignments(APIView):
+    @extend_schema(
+        request=CheckBoatAssignmentsRequestSerializer,
+        responses={
+            200: CheckBoatAssignmentsResponseSerializer,
+        },
+    )
+    def post(self, request, format=None):
+        """
+        Check if a BoatDeckhand has completed their assignments for the week.
+        """
+        validation_serializer = CheckBoatAssignmentsRequestSerializer(data=request.data)
+        if validation_serializer.is_valid(raise_exception=True):
+            discord_id = validation_serializer.data.get("discordUserId")
+            discord_username = validation_serializer.data.get("discordUsername")
+            joined_challenge = False
+            linked_gamertag = False
+            current_rank = "N/A"
+            current_rank_tier = 0
+            existing_assignments = False
+            assignment_1 = None
+            assignment_1_completed = False
+            assignment_2 = None
+            assignment_2_completed = False
+            assignment_3 = None
+            assignment_3_completed = False
+            assignments_completed = False
+            just_promoted = False
+
+            current_week_start = get_current_week_start()
+
+            try:
+                discord_account = update_or_create_discord_account(
+                    discord_id, discord_username, request.user
+                )
+
+                deckhand = BoatDeckhand.objects.filter(
+                    deckhand_id=discord_account.discord_id
+                ).get()
+                joined_challenge = True
+
+                link = DiscordXboxLiveLink.objects.filter(
+                    discord_account_id=discord_account.discord_id, verified=True
+                ).get()
+                linked_gamertag = True
+
+                current_rank = deckhand.rank.rank
+                current_rank_tier = deckhand.rank.tier
+                if current_rank_tier >= 10:
+                    raise AlreadyRank10Exception()
+
+                weekly_assignments = WeeklyBoatAssignments.objects.filter(
+                    deckhand=deckhand, week_start=current_week_start
+                ).get()
+                existing_assignments = True
+
+                # Evaluate all BoatAssignments for this deckhand for this week
+                assignment_1 = (
+                    weekly_assignments.assignment_1.description
+                    if weekly_assignments.assignment_1 is not None
+                    else None
+                )
+                assignment_2 = (
+                    weekly_assignments.assignment_2.description
+                    if weekly_assignments.assignment_2 is not None
+                    else None
+                )
+                assignment_3 = (
+                    weekly_assignments.assignment_3.description
+                    if weekly_assignments.assignment_3 is not None
+                    else None
+                )
+                assignment_2_completed = weekly_assignments.assignment_2 is None
+                assignment_3_completed = weekly_assignments.assignment_3 is None
+                if (
+                    weekly_assignments.assignment_1 is not None
+                    and weekly_assignments.assignment_1_completion_match_id is None
+                ):
+                    match = check_xuid_assignment(
+                        link.xbox_live_account_id,
+                        weekly_assignments.assignment_1,
+                        current_week_start,
+                    )
+                    if match is not None:
+                        weekly_assignments.assignment_1_completion_match_id = (
+                            match.match_id
+                        )
+                        assignment_1_completed = True
+                if (
+                    weekly_assignments.assignment_2 is not None
+                    and weekly_assignments.assignment_2_completion_match_id is None
+                ):
+                    match = check_xuid_assignment(
+                        link.xbox_live_account_id,
+                        weekly_assignments.assignment_2,
+                        current_week_start,
+                    )
+                    if match is not None:
+                        weekly_assignments.assignment_2_completion_match_id = (
+                            match.match_id
+                        )
+                        assignment_2_completed = True
+                if (
+                    weekly_assignments.assignment_3 is not None
+                    and weekly_assignments.assignment_3_completion_match_id is None
+                ):
+                    match = check_xuid_assignment(
+                        link.xbox_live_account_id,
+                        weekly_assignments.assignment_3,
+                        current_week_start,
+                    )
+                    if match is not None:
+                        weekly_assignments.assignment_3_completion_match_id = (
+                            match.match_id
+                        )
+                        assignment_3_completed = True
+                weekly_assignments.save()
+                if not weekly_assignments.completed_all_assignments:
+                    raise AssignmentsIncompleteException()
+                assignments_completed = True
+
+                # Promote deckhand if they have not already been promoted this week
+                if deckhand.rank != weekly_assignments.next_rank:
+                    # Promote the deckhand
+                    deckhand.rank = weekly_assignments.next_rank
+                    deckhand.save()
+                    current_rank = deckhand.rank.rank
+                    current_rank_tier = deckhand.rank.tier
+                    just_promoted = True
+            except BoatDeckhand.DoesNotExist:
+                logger.info("No BoatDeckhand exists.")
+            except DiscordXboxLiveLink.DoesNotExist:
+                logger.info("No DiscordXboxLiveLink exists.")
+            except AlreadyRank10Exception:
+                logger.info("Deckhand is already at rank 10.")
+            except WeeklyBoatAssignments.DoesNotExist:
+                logger.info("No assignments exist for this week.")
+                weekly_assignments = generate_weekly_assignments(
+                    deckhand, current_week_start, request.user
+                )
+                assignment_1 = weekly_assignments.assignment_1.description
+                assignment_2 = (
+                    weekly_assignments.assignment_2.description
+                    if weekly_assignments.assignment_2 is not None
+                    else None
+                )
+                assignment_3 = (
+                    weekly_assignments.assignment_3.description
+                    if weekly_assignments.assignment_3 is not None
+                    else None
+                )
+            except AssignmentsIncompleteException:
+                logger.info("Assignments are incomplete.")
+            except Exception as ex:
+                import traceback
+
+                traceback.print_exc()
+                logger.error("Error attempting to check Boat Challenge assignments.")
+                logger.error(ex)
+                raise APIException(
+                    "Error attempting to check Boat Challenge assignments."
+                )
+            finally:
+                serializer = CheckBoatAssignmentsResponseSerializer(
+                    {
+                        "discordUserId": discord_id,
+                        "joinedChallenge": joined_challenge,
+                        "linkedGamertag": linked_gamertag,
+                        "currentRank": current_rank,
+                        "currentRankTier": current_rank_tier,
+                        "assignment1": assignment_1,
+                        "assignment1Completed": assignment_1_completed,
+                        "assignment2": assignment_2,
+                        "assignment2Completed": assignment_2_completed,
+                        "assignment3": assignment_3,
+                        "assignment3Completed": assignment_3_completed,
+                        "assignmentsCompleted": assignments_completed,
+                        "existingAssignments": existing_assignments,
+                        "justPromoted": just_promoted,
+                    }
+                )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 

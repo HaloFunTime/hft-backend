@@ -1,8 +1,28 @@
+from calendar import TUESDAY
+from datetime import date
+
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
 from apps.discord.models import DiscordAccount
+from apps.halo_infinite.constants import STATS
 from apps.overrides.models import Base
+
+
+def get_stat_choices():
+    choices = []
+    for key in STATS:
+        if key != "CoreStats_Medals":
+            choices.append(
+                (key, f"{key.split('_')[0].rstrip('Stats')}: {STATS.get(key)[1]}")
+            )
+    return choices
+
+
+def validate_tuesday_only(value: date):
+    if value.weekday() != TUESDAY:
+        raise ValidationError("The date must be a Tuesday.")
 
 
 class BoatRank(Base):
@@ -14,10 +34,10 @@ class BoatRank(Base):
 
     class Tracks(models.TextChoices):
         NA = "N/A", "N/A"
-        COMMAND = "COMMAND", "Command"
-        MACHINERY = "MACHINERY", "Machinery"
-        HOSPITALITY = "HOSPITALITY", "Hospitality"
-        CULINARY = "CULINARY", "Culinary"
+        COMMAND = "Command", "Command"
+        MACHINERY = "Machinery", "Machinery"
+        HOSPITALITY = "Hospitality", "Hospitality"
+        CULINARY = "Culinary", "Culinary"
 
     rank = models.CharField(max_length=255, verbose_name="Rank")
     tier = models.IntegerField(verbose_name="Tier", validators=[MinValueValidator(1)])
@@ -77,3 +97,134 @@ class BoatDeckhand(Base):
 
     def __str__(self):
         return f"{self.deckhand}"
+
+
+class BoatAssignment(Base):
+    class Meta:
+        db_table = "BoatAssignment"
+        ordering = ["-created_at"]
+        verbose_name = "Boat Assignment"
+        verbose_name_plural = "Boat Assignments"
+
+    class Classification(models.TextChoices):
+        EASY = "Easy"
+        MEDIUM = "Medium"
+        HARD = "Hard"
+        COMMAND = "Command"
+        MACHINERY = "Machinery"
+        HOSPITALITY = "Hospitality"
+        CULINARY = "Culinary"
+
+    class Outcome(models.IntegerChoices):
+        WIN = 2
+        LOSS = 3
+        TIE = 1
+        LEFT = 4
+
+    classification = models.CharField(
+        max_length=255, choices=Classification.choices, verbose_name="Classification"
+    )
+    description = models.TextField(
+        max_length=256, verbose_name="Description", null=True, blank=True
+    )
+    stat = models.CharField(
+        max_length=128, choices=get_stat_choices, verbose_name="Stat"
+    )
+    score = models.CharField(max_length=128, verbose_name="Score")
+    require_outcome = models.IntegerField(
+        blank=True,
+        null=True,
+        choices=Outcome.choices,
+        verbose_name="Outcome",
+    )
+    require_level_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Level Canvas ID"
+    )
+    require_map_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Map File ID"
+    )
+    require_mode_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Mode File ID"
+    )
+    require_playlist_asset_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Playlist ID"
+    )
+
+    def __str__(self):
+        return f"{self.classification} - {self.description}"
+
+
+class WeeklyBoatAssignments(Base):
+    class Meta:
+        db_table = "WeeklyBoatAssignments"
+        ordering = ["-created_at"]
+        verbose_name = "Weekly Boat Assignments"
+        verbose_name_plural = "Weekly Boat Assignments"
+
+    deckhand = models.ForeignKey(
+        BoatDeckhand,
+        on_delete=models.RESTRICT,
+        related_name="weekly_assignments",
+        verbose_name="Deckhand",
+    )
+    week_start = models.DateField(
+        verbose_name="Week Start",
+        validators=[MinValueValidator(date(2025, 2, 4)), validate_tuesday_only],
+    )
+    assignment_1 = models.ForeignKey(
+        BoatAssignment,
+        on_delete=models.RESTRICT,
+        related_name="assignment_1",
+        verbose_name="Assignment 1",
+    )
+    assignment_1_completion_match_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Assignment 1 Completion Match ID"
+    )
+    assignment_2 = models.ForeignKey(
+        BoatAssignment,
+        on_delete=models.RESTRICT,
+        related_name="assignment_2",
+        verbose_name="Assignment 2",
+        null=True,
+        blank=True,
+    )
+    assignment_2_completion_match_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Assignment 2 Completion Match ID"
+    )
+    assignment_3 = models.ForeignKey(
+        BoatAssignment,
+        on_delete=models.RESTRICT,
+        related_name="assignment_3",
+        verbose_name="Assignment 3",
+        null=True,
+        blank=True,
+    )
+    assignment_3_completion_match_id = models.UUIDField(
+        blank=True, null=True, verbose_name="Assignment 3 Completion Match ID"
+    )
+    next_rank = models.ForeignKey(
+        BoatRank,
+        on_delete=models.RESTRICT,
+        related_name="next_rank",
+        verbose_name="Next Rank",
+    )
+
+    def __str__(self):
+        return f"{self.deckhand} - {self.week_start.strftime('%Y-%m-%d')} Weekly Assignments"
+
+    @property
+    def completed_all_assignments(self) -> bool:
+        return (
+            (
+                self.assignment_1_completion_match_id is not None
+                or self.assignment_1 is None
+            )
+            and (
+                self.assignment_2_completion_match_id is not None
+                or self.assignment_2 is None
+            )
+            and (
+                self.assignment_3_completion_match_id is not None
+                or self.assignment_3 is None
+            )
+        )

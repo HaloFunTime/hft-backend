@@ -1,7 +1,35 @@
 from django.contrib import admin
 
-from apps.era_03.models import BoatCaptain, BoatDeckhand, BoatRank
+from apps.era_03.models import (
+    BoatAssignment,
+    BoatCaptain,
+    BoatDeckhand,
+    BoatRank,
+    WeeklyBoatAssignments,
+)
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
+
+
+@admin.register(BoatAssignment)
+class BoatAssignmentAdmin(AutofillCreatorModelAdmin):
+    list_display = (
+        "__str__",
+        "classification",
+        "description",
+    )
+    list_filter = ("classification", "stat", "creator")
+    fields = (
+        "classification",
+        "description",
+        "stat",
+        "score",
+        "require_outcome",
+        "require_level_id",
+        "require_map_asset_id",
+        "require_mode_asset_id",
+        "require_playlist_asset_id",
+        "creator",
+    )
 
 
 @admin.register(BoatCaptain)
@@ -53,5 +81,27 @@ class BoatRankAdmin(AutofillCreatorModelAdmin):
         "tier",
         "track",
         "description",
+        "creator",
+    )
+
+
+@admin.register(WeeklyBoatAssignments)
+class WeeklyBoatAssignmentsAdmin(AutofillCreatorModelAdmin):
+    list_display = (
+        "__str__",
+        "deckhand",
+        "week_start",
+        "creator",
+    )
+    list_filter = ("deckhand", "week_start", "creator")
+    fields = (
+        "deckhand",
+        "week_start",
+        "assignment_1",
+        "assignment_1_completion_match_id",
+        "assignment_2",
+        "assignment_2_completion_match_id",
+        "assignment_3",
+        "assignment_3_completion_match_id",
         "creator",
     )

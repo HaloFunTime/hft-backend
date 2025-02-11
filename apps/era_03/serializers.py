@@ -18,6 +18,32 @@ class BoardBoatResponseSerializer(serializers.Serializer):
     newJoiner = serializers.BooleanField()
 
 
+class CheckBoatAssignmentsRequestSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    discordUsername = serializers.CharField(min_length=2, max_length=32)
+
+
+class CheckBoatAssignmentsResponseSerializer(serializers.Serializer):
+    discordUserId = serializers.CharField(
+        max_length=20, validators=[validate_discord_id]
+    )
+    joinedChallenge = serializers.BooleanField()
+    linkedGamertag = serializers.BooleanField()
+    currentRank = serializers.CharField(max_length=255)
+    currentRankTier = serializers.IntegerField(min_value=1)
+    assignment1 = serializers.CharField(max_length=255)
+    assignment1Completed = serializers.BooleanField()
+    assignment2 = serializers.CharField(max_length=255)
+    assignment2Completed = serializers.BooleanField()
+    assignment3 = serializers.CharField(max_length=255)
+    assignment3Completed = serializers.BooleanField()
+    assignmentsCompleted = serializers.BooleanField()
+    existingAssignments = serializers.BooleanField()
+    justPromoted = serializers.BooleanField()
+
+
 class CheckDeckhandGamesRequestSerializer(serializers.Serializer):
     discordUserIds = serializers.ListField(
         allow_empty=True,
