@@ -185,6 +185,9 @@ def generate_weekly_assignments(
     for classification in classifications:
         assignments.append(
             BoatAssignment.objects.filter(classification=classification)
+            .exclude(
+                id__in=[assignment.id for assignment in assignments]
+            )  # Avoid duplicate assignments
             .order_by("?")
             .first()
         )

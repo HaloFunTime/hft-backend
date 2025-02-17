@@ -6,11 +6,12 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
-from apps.era_03.models import BoatCaptain
+from apps.era_03.models import BoatAssignment, BoatCaptain, BoatDeckhand, BoatRank
 from apps.era_03.utils import (
     EARLIEST_TIME,
     LATEST_TIME,
     fetch_match_ids_for_xuid,
+    generate_weekly_assignments,
     save_new_matches,
 )
 from apps.halo_infinite.models import HaloInfiniteMatch
@@ -62,6 +63,9 @@ class UtilsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="test", email="test@test.com", password="test"
+        )
+        self.discord_account = DiscordAccount.objects.create(
+            creator=self.user, discord_id=123, discord_username="Test123"
         )
 
     @patch("apps.era_03.utils.matches_between")
@@ -162,6 +166,147 @@ class UtilsTestCase(TestCase):
                 "90bd95ab-ea56-4f85-96ca-3c1aafc85cf1",
             ],
         )
+
+    def test_generate_weekly_assignments(self):
+        tier1 = BoatRank.objects.create(creator=self.user, rank="Test1", tier=1)
+        tier2 = BoatRank.objects.create(creator=self.user, rank="Test2", tier=2)
+        tier3 = BoatRank.objects.create(creator=self.user, rank="Test3", tier=3)
+        tier4 = BoatRank.objects.create(creator=self.user, rank="Test4", tier=4)
+
+        easy1 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.EASY,
+            description="Easy1",
+        )
+        easy2 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.EASY,
+            description="Easy2",
+        )
+        easy3 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.EASY,
+            description="Easy3",
+        )
+        easy_assignments = [easy1, easy2, easy3]
+        medium1 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.MEDIUM,
+            description="Medium1",
+        )
+        medium2 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.MEDIUM,
+            description="Medium2",
+        )
+        medium3 = BoatAssignment.objects.create(
+            creator=self.user,
+            classification=BoatAssignment.Classification.MEDIUM,
+            description="Medium3",
+        )
+        medium_assignments = [medium1, medium2, medium3]
+
+        deckhand = BoatDeckhand.objects.create(
+            creator=self.user,
+            deckhand_id=self.discord_account.discord_id,
+            rank=tier1,
+        )
+
+        # Rank 1 generates 1 easy assignment
+        deckhand.rank = tier1
+        deckhand.save()
+        weekly_assignments = generate_weekly_assignments(
+            deckhand, datetime.date(2025, 1, 1), self.user
+        )
+        # Correct assignments are generated
+        self.assertIsNotNone(weekly_assignments.assignment_1)
+        self.assertIsNone(weekly_assignments.assignment_2)
+        self.assertIsNone(weekly_assignments.assignment_3)
+        # Assignment 1 is an easy assignment
+        self.assertEqual(
+            weekly_assignments.assignment_1.classification,
+            BoatAssignment.Classification.EASY,
+        )
+        self.assertIn(weekly_assignments.assignment_1, easy_assignments)
+
+        # Rank 2 generates 2 easy assignments
+        deckhand.rank = tier2
+        deckhand.save()
+        weekly_assignments = generate_weekly_assignments(
+            deckhand, datetime.date(2025, 1, 1), self.user
+        )
+        # Correct assignments are generated
+        self.assertIsNotNone(weekly_assignments.assignment_1)
+        self.assertIsNotNone(weekly_assignments.assignment_2)
+        self.assertIsNone(weekly_assignments.assignment_3)
+        # Assignment 1 is an easy assignment
+        self.assertEqual(
+            weekly_assignments.assignment_1.classification,
+            BoatAssignment.Classification.EASY,
+        )
+        self.assertIn(weekly_assignments.assignment_1, easy_assignments)
+        # Assignment 2 is an easy assignment
+        self.assertEqual(
+            weekly_assignments.assignment_2.classification,
+            BoatAssignment.Classification.EASY,
+        )
+        self.assertIn(weekly_assignments.assignment_2, easy_assignments)
+        # Assignment 1 and 2 are different
+        self.assertNotEqual(
+            weekly_assignments.assignment_1, weekly_assignments.assignment_2
+        )
+
+        # Rank 3 generates 1 easy and 1 medium assignment
+        deckhand.rank = tier3
+        deckhand.save()
+        weekly_assignments = generate_weekly_assignments(
+            deckhand, datetime.date(2025, 1, 1), self.user
+        )
+        # Correct assignments are generated
+        self.assertIsNotNone(weekly_assignments.assignment_1)
+        self.assertIsNotNone(weekly_assignments.assignment_2)
+        self.assertIsNone(weekly_assignments.assignment_3)
+        # Assignment 1 is an easy assignment
+        self.assertEqual(
+            weekly_assignments.assignment_1.classification,
+            BoatAssignment.Classification.EASY,
+        )
+        self.assertIn(weekly_assignments.assignment_1, easy_assignments)
+        # Assignment 2 is a medium assignment
+        self.assertEqual(
+            weekly_assignments.assignment_2.classification,
+            BoatAssignment.Classification.MEDIUM,
+        )
+        self.assertIn(weekly_assignments.assignment_2, medium_assignments)
+
+        # Rank 4 generates 2 medium assignments (no duplicates)
+        deckhand.rank = tier4
+        deckhand.save()
+        weekly_assignments = generate_weekly_assignments(
+            deckhand, datetime.date(2025, 1, 1), self.user
+        )
+        # Correct assignments are generated
+        self.assertIsNotNone(weekly_assignments.assignment_1)
+        self.assertIsNotNone(weekly_assignments.assignment_2)
+        self.assertIsNone(weekly_assignments.assignment_3)
+        # Assignment 1 is a medium assignment
+        self.assertEqual(
+            weekly_assignments.assignment_1.classification,
+            BoatAssignment.Classification.MEDIUM,
+        )
+        self.assertIn(weekly_assignments.assignment_1, medium_assignments)
+        # Assignment 2 is a medium assignment
+        self.assertEqual(
+            weekly_assignments.assignment_2.classification,
+            BoatAssignment.Classification.MEDIUM,
+        )
+        self.assertIn(weekly_assignments.assignment_2, medium_assignments)
+        # Assignment 1 and 2 are different
+        self.assertNotEqual(
+            weekly_assignments.assignment_1, weekly_assignments.assignment_2
+        )
+
+        # TODO: Test ranks 5 and onward
 
     @patch("apps.era_03.utils.match_stats")
     @patch("apps.era_03.utils.requests.Session")
