@@ -172,6 +172,7 @@ class UtilsTestCase(TestCase):
         tier2 = BoatRank.objects.create(creator=self.user, rank="Test2", tier=2)
         tier3 = BoatRank.objects.create(creator=self.user, rank="Test3", tier=3)
         tier4 = BoatRank.objects.create(creator=self.user, rank="Test4", tier=4)
+        tier5 = BoatRank.objects.create(creator=self.user, rank="Test5", tier=5)
 
         easy1 = BoatAssignment.objects.create(
             creator=self.user,
@@ -228,6 +229,8 @@ class UtilsTestCase(TestCase):
             BoatAssignment.Classification.EASY,
         )
         self.assertIn(weekly_assignments.assignment_1, easy_assignments)
+        # Next rank is tier 2
+        self.assertEqual(weekly_assignments.next_rank, tier2)
 
         # Rank 2 generates 2 easy assignments
         deckhand.rank = tier2
@@ -255,6 +258,8 @@ class UtilsTestCase(TestCase):
         self.assertNotEqual(
             weekly_assignments.assignment_1, weekly_assignments.assignment_2
         )
+        # Next rank is tier 3
+        self.assertEqual(weekly_assignments.next_rank, tier3)
 
         # Rank 3 generates 1 easy and 1 medium assignment
         deckhand.rank = tier3
@@ -278,6 +283,8 @@ class UtilsTestCase(TestCase):
             BoatAssignment.Classification.MEDIUM,
         )
         self.assertIn(weekly_assignments.assignment_2, medium_assignments)
+        # Next rank is tier 4
+        self.assertEqual(weekly_assignments.next_rank, tier4)
 
         # Rank 4 generates 2 medium assignments (no duplicates)
         deckhand.rank = tier4
@@ -305,6 +312,8 @@ class UtilsTestCase(TestCase):
         self.assertNotEqual(
             weekly_assignments.assignment_1, weekly_assignments.assignment_2
         )
+        # Next rank is tier 5
+        self.assertEqual(weekly_assignments.next_rank, tier5)
 
         # TODO: Test ranks 5 and onward
 
