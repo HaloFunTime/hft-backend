@@ -421,6 +421,7 @@ STATS = {
     "CoreStats_Kills": (int, "Kills"),
     "CoreStats_Deaths": (int, "Deaths"),
     "CoreStats_Assists": (int, "Assists"),
+    "CoreStats_KDA": (decimal.Decimal, "KDA"),
     "CoreStats_AverageKDA": (decimal.Decimal, "AverageKDA"),
     "CoreStats_Suicides": (int, "Suicides"),
     "CoreStats_Betrayals": (int, "Betrayals"),
