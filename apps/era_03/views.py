@@ -116,12 +116,10 @@ class CheckBoatAssignments(APIView):
             current_rank = "N/A"
             current_rank_tier = 0
             existing_assignments = False
+            weekly_assignments = None
             assignment_1 = None
-            assignment_1_completed = False
             assignment_2 = None
-            assignment_2_completed = False
             assignment_3 = None
-            assignment_3_completed = False
             assignments_completed = False
             just_promoted = False
 
@@ -168,8 +166,6 @@ class CheckBoatAssignments(APIView):
                     if weekly_assignments.assignment_3 is not None
                     else None
                 )
-                assignment_2_completed = weekly_assignments.assignment_2 is None
-                assignment_3_completed = weekly_assignments.assignment_3 is None
                 if (
                     weekly_assignments.assignment_1 is not None
                     and weekly_assignments.assignment_1_completion_match_id is None
@@ -183,7 +179,6 @@ class CheckBoatAssignments(APIView):
                         weekly_assignments.assignment_1_completion_match_id = (
                             match.match_id
                         )
-                        assignment_1_completed = True
                 if (
                     weekly_assignments.assignment_2 is not None
                     and weekly_assignments.assignment_2_completion_match_id is None
@@ -197,7 +192,6 @@ class CheckBoatAssignments(APIView):
                         weekly_assignments.assignment_2_completion_match_id = (
                             match.match_id
                         )
-                        assignment_2_completed = True
                 if (
                     weekly_assignments.assignment_3 is not None
                     and weekly_assignments.assignment_3_completion_match_id is None
@@ -211,7 +205,6 @@ class CheckBoatAssignments(APIView):
                         weekly_assignments.assignment_3_completion_match_id = (
                             match.match_id
                         )
-                        assignment_3_completed = True
                 weekly_assignments.save()
                 if not weekly_assignments.completed_all_assignments:
                     raise AssignmentsIncompleteException()
@@ -259,6 +252,18 @@ class CheckBoatAssignments(APIView):
                     "Error attempting to check Boat Challenge assignments."
                 )
             finally:
+                assignment_1_completed = (
+                    weekly_assignments is not None
+                    and weekly_assignments.assignment_1_completion_match_id is not None
+                )
+                assignment_2_completed = (
+                    weekly_assignments is not None
+                    and weekly_assignments.assignment_2_completion_match_id is not None
+                )
+                assignment_3_completed = (
+                    weekly_assignments is not None
+                    and weekly_assignments.assignment_3_completion_match_id is not None
+                )
                 serializer = CheckBoatAssignmentsResponseSerializer(
                     {
                         "discordUserId": discord_id,
