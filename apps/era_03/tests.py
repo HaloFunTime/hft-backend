@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from unittest.mock import call, patch
 
 from django.contrib.auth.models import User
@@ -6,10 +7,19 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 
 from apps.discord.models import DiscordAccount
-from apps.era_03.models import BoatAssignment, BoatCaptain, BoatDeckhand, BoatRank
+from apps.era_03.models import (
+    BoatAssignment,
+    BoatCaptain,
+    BoatDeckhand,
+    BoatRank,
+    BoatSecret,
+    BoatSecretUnlock,
+    WeeklyBoatAssignments,
+)
 from apps.era_03.utils import (
     EARLIEST_TIME,
     LATEST_TIME,
+    check_deckhand_promotion,
     fetch_match_ids_for_xuid,
     generate_weekly_assignments,
     save_new_matches,
@@ -373,3 +383,106 @@ class UtilsTestCase(TestCase):
                 called_2 = True
         self.assertTrue(called_0 and called_1 and called_2)
         self.assertEqual(HaloInfiniteMatch.objects.count(), 3)
+
+    def test_check_deckhand_promotion(self):
+        tiers = [
+            BoatRank.objects.create(creator=self.user, rank="Test1", tier=1),
+            BoatRank.objects.create(creator=self.user, rank="Test2", tier=2),
+            BoatRank.objects.create(creator=self.user, rank="Test3", tier=3),
+            BoatRank.objects.create(creator=self.user, rank="Test4", tier=4),
+            BoatRank.objects.create(creator=self.user, rank="Test5", tier=5),
+            BoatRank.objects.create(creator=self.user, rank="Test6", tier=6),
+            BoatRank.objects.create(creator=self.user, rank="Test7", tier=7),
+            BoatRank.objects.create(creator=self.user, rank="Test8", tier=8),
+            BoatRank.objects.create(creator=self.user, rank="Test9", tier=9),
+            BoatRank.objects.create(creator=self.user, rank="Test10", tier=10),
+        ]
+
+        deckhand = BoatDeckhand.objects.create(
+            creator=self.user,
+            deckhand_id=self.discord_account.discord_id,
+            rank=tiers[0],
+        )
+
+        # Ranks match
+        self.assertFalse(
+            check_deckhand_promotion(
+                deckhand,
+                WeeklyBoatAssignments(
+                    creator=self.user,
+                    deckhand=deckhand,
+                    week_start=datetime.date(2025, 1, 1),
+                    next_rank=tiers[0],
+                ),
+            )
+        )
+
+        # Ranks do not match (below rank 10)
+        self.assertTrue(
+            check_deckhand_promotion(
+                deckhand,
+                WeeklyBoatAssignments(
+                    creator=self.user,
+                    deckhand=deckhand,
+                    week_start=datetime.date(2025, 1, 1),
+                    next_rank=tiers[1],
+                ),
+            )
+        )
+        self.assertEqual(deckhand.rank, tiers[1])
+
+        deckhand.rank = tiers[8]
+        deckhand.save()
+
+        # Promotion to rank 10 disallowed (not all secrets unlocked)
+        self.assertFalse(
+            check_deckhand_promotion(
+                deckhand,
+                WeeklyBoatAssignments(
+                    creator=self.user,
+                    deckhand=deckhand,
+                    week_start=datetime.date(2025, 1, 1),
+                    next_rank=tiers[9],
+                ),
+            )
+        )
+
+        for i in range(0, 7):
+            secret = BoatSecret.objects.create(
+                creator=self.user,
+                title=f"TestSecret{i}",
+                hint=f"TestHint{i}",
+                medal_id=i,
+            )
+            with patch("apps.halo_infinite.signals.match_stats") as mock_match_stats:
+                match_uuid = str(uuid.uuid4())
+                mock_match_stats.return_value = {
+                    "MatchId": match_uuid,
+                    "MatchInfo": {
+                        "StartTime": "2025-01-09T00:00:00.00Z",
+                        "EndTime": "2025-01-09T01:20:34.567Z",
+                    },
+                }
+                match = HaloInfiniteMatch.objects.create(
+                    creator=self.user,
+                    match_id=match_uuid,
+                    start_time=datetime.datetime(2025, 1, 1),
+                    end_time=datetime.datetime(2025, 1, 1),
+                )
+            BoatSecretUnlock.objects.create(
+                creator=self.user, secret=secret, deckhand=deckhand, match=match
+            )
+
+        # Promotion to rank 10 allowed (all secrets unlocked)
+        self.assertTrue(
+            check_deckhand_promotion(
+                deckhand,
+                WeeklyBoatAssignments(
+                    creator=self.user,
+                    deckhand=deckhand,
+                    week_start=datetime.date(2025, 1, 1),
+                    next_rank=tiers[9],
+                ),
+            )
+        )
+        self.assertEqual(deckhand.rank, tiers[9])

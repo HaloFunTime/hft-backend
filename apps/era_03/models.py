@@ -4,9 +4,11 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.html import format_html
 
 from apps.discord.models import DiscordAccount
 from apps.halo_infinite.constants import STATS
+from apps.halo_infinite.models import HaloInfiniteMatch
 from apps.overrides.models import Base
 
 
@@ -152,6 +154,62 @@ class BoatAssignment(Base):
 
     def __str__(self):
         return f"{self.classification} - {self.description}"
+
+
+class BoatSecret(Base):
+    class Meta:
+        db_table = "BoatSecret"
+        ordering = ["-created_at"]
+        verbose_name = "Boat Secret"
+        verbose_name_plural = "Boat Secrets"
+
+    medal_id = models.DecimalField(
+        decimal_places=0, max_digits=15, verbose_name="Medal ID"
+    )
+    title = models.TextField(max_length=64, verbose_name="Title")
+    hint = models.TextField(max_length=256, verbose_name="Hint")
+
+    def __str__(self):
+        return self.title
+
+
+class BoatSecretUnlock(Base):
+    class Meta:
+        db_table = "BoatSecretUnlock"
+        ordering = ["-created_at"]
+        verbose_name = "Boat Secret Unlock"
+        verbose_name_plural = "Boat Secret Unlocks"
+
+    secret = models.ForeignKey(
+        BoatSecret,
+        on_delete=models.RESTRICT,
+        related_name="unlocks",
+        verbose_name="Secret",
+    )
+    deckhand = models.ForeignKey(
+        BoatDeckhand,
+        on_delete=models.RESTRICT,
+        related_name="secrets_unlocked",
+        verbose_name="Deckhand",
+    )
+    match = models.ForeignKey(
+        HaloInfiniteMatch,
+        on_delete=models.CASCADE,
+        related_name="+",
+    )
+
+    @property
+    def external_match_link(self):
+        return (
+            ""
+            if self.match_id is None
+            else format_html(
+                f"<a href=https://halotracker.com/halo-infinite/match/{self.match_id}>View on HaloTracker</a>"
+            )
+        )
+
+    def __str__(self):
+        return f"{self.deckhand} unlocked {self.secret}"
 
 
 class WeeklyBoatAssignments(Base):

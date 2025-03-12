@@ -17,6 +17,8 @@ from apps.era_03.models import (
     BoatCaptain,
     BoatDeckhand,
     BoatRank,
+    BoatSecret,
+    BoatSecretUnlock,
     WeeklyBoatAssignments,
 )
 from apps.era_03.serializers import (
@@ -30,7 +32,9 @@ from apps.era_03.serializers import (
     SaveBoatCaptainResponseSerializer,
 )
 from apps.era_03.utils import (
+    check_deckhand_promotion,
     check_xuid_assignment,
+    check_xuid_secret,
     fetch_match_ids_for_xuid,
     generate_weekly_assignments,
     get_current_week_start,
@@ -115,6 +119,7 @@ class CheckBoatAssignments(APIView):
             linked_gamertag = False
             current_rank = "N/A"
             current_rank_tier = 0
+            secrets_unlocked = []
             existing_assignments = False
             weekly_assignments = None
             assignment_1 = None
@@ -142,6 +147,46 @@ class CheckBoatAssignments(APIView):
 
                 current_rank = deckhand.rank.rank
                 current_rank_tier = deckhand.rank.tier
+                if current_rank_tier >= 6:
+                    # Retrieve all Boat Secrets this participant has already unlocked
+                    secrets_unlocked.extend(
+                        [
+                            {
+                                "title": secret_unlocked.secret.title,
+                                "hint": secret_unlocked.secret.hint,
+                                "matchId": secret_unlocked.match_id,
+                                "newlyUnlocked": False,
+                            }
+                            for secret_unlocked in deckhand.secrets_unlocked.all()
+                        ]
+                    )
+
+                    # Evaluate all Boat Secrets this participant has not yet unlocked
+                    for secret in BoatSecret.objects.exclude(
+                        medal_id__in=[
+                            secret_unlocked.secret.medal_id
+                            for secret_unlocked in deckhand.secrets_unlocked.all()
+                        ]
+                    ):
+                        match = check_xuid_secret(
+                            link.xbox_live_account_id, secret, current_week_start
+                        )
+                        if match is not None:
+                            BoatSecretUnlock.objects.create(
+                                secret=secret,
+                                deckhand=deckhand,
+                                match=match,
+                                creator=request.user,
+                            )
+                            secrets_unlocked.append(
+                                {
+                                    "title": secret.title,
+                                    "hint": secret.hint,
+                                    "matchId": match.match_id,
+                                    "newlyUnlocked": True,
+                                }
+                            )
+
                 if current_rank_tier >= 10:
                     raise AlreadyRank10Exception()
 
@@ -211,13 +256,9 @@ class CheckBoatAssignments(APIView):
                 assignments_completed = True
 
                 # Promote deckhand if they have not already been promoted this week
-                if deckhand.rank != weekly_assignments.next_rank:
-                    # Promote the deckhand
-                    deckhand.rank = weekly_assignments.next_rank
-                    deckhand.save()
-                    current_rank = deckhand.rank.rank
-                    current_rank_tier = deckhand.rank.tier
-                    just_promoted = True
+                just_promoted = check_deckhand_promotion(deckhand, weekly_assignments)
+                current_rank = deckhand.rank.rank
+                current_rank_tier = deckhand.rank.tier
             except BoatDeckhand.DoesNotExist:
                 logger.info("No BoatDeckhand exists.")
             except DiscordXboxLiveLink.DoesNotExist:
@@ -280,6 +321,7 @@ class CheckBoatAssignments(APIView):
                         "assignmentsCompleted": assignments_completed,
                         "existingAssignments": existing_assignments,
                         "justPromoted": just_promoted,
+                        "secretsUnlocked": secrets_unlocked,
                     }
                 )
             return Response(serializer.data, status=status.HTTP_200_OK)

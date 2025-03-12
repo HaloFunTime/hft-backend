@@ -125,6 +125,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(deckhand_record.rank, self.first_rank)
 
     @patch("apps.halo_infinite.signals.match_stats")
+    @patch("apps.era_03.utils.check_xuid_secret")
     @patch("apps.era_03.views.check_xuid_assignment")
     @patch("apps.era_03.views.generate_weekly_assignments")
     @patch("apps.xbox_live.signals.get_xuid_and_exact_gamertag")
@@ -135,6 +136,7 @@ class Era03TestCase(APITestCase):
         mock_get_xuid_and_exact_gamertag,
         mock_generate_weekly_assignments,
         mock_check_xuid_assignment,
+        mock_check_xuid_secret,
         mock_match_stats,
     ):
         mock_get_current_week_start.return_value = datetime.date(2025, 2, 11)
@@ -198,6 +200,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), False)
         self.assertEqual(response.data.get("currentRank"), "N/A")
         self.assertEqual(response.data.get("currentRankTier"), 0)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), None)
         self.assertEqual(response.data.get("assignment1Completed"), False)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -227,6 +230,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), False)
         self.assertEqual(response.data.get("currentRank"), "N/A")
         self.assertEqual(response.data.get("currentRankTier"), 0)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), None)
         self.assertEqual(response.data.get("assignment1Completed"), False)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -264,6 +268,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("currentRank"), "Test Rank 10 Name")
         self.assertEqual(response.data.get("currentRankTier"), 10)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), None)
         self.assertEqual(response.data.get("assignment1Completed"), False)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -302,6 +307,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("currentRank"), "Junior Deckhand")
         self.assertEqual(response.data.get("currentRankTier"), 1)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), "Test Assignment 1")
         self.assertEqual(response.data.get("assignment1Completed"), False)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -316,6 +322,7 @@ class Era03TestCase(APITestCase):
             datetime.date(2025, 2, 11),
             self.user,
         )
+        mock_check_xuid_secret.assert_not_called()
         mock_check_xuid_assignment.assert_not_called()
         self.assertEqual(WeeklyBoatAssignments.objects.all().count(), 1)
         weekly_assignments = WeeklyBoatAssignments.objects.first()
@@ -346,6 +353,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("currentRank"), "Junior Deckhand")
         self.assertEqual(response.data.get("currentRankTier"), 1)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), "Test Assignment 1")
         self.assertEqual(response.data.get("assignment1Completed"), False)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -355,6 +363,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("assignmentsCompleted"), False)
         self.assertEqual(response.data.get("existingAssignments"), True)
         self.assertEqual(response.data.get("justPromoted"), False)
+        mock_check_xuid_secret.assert_not_called()
         mock_check_xuid_assignment.assert_called_once_with(
             test_xbox_live_account.xuid,
             weekly_assignments.assignment_1,
@@ -395,6 +404,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("currentRank"), "Test Rank 2 Name")
         self.assertEqual(response.data.get("currentRankTier"), 2)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), "Test Assignment 1")
         self.assertEqual(response.data.get("assignment1Completed"), True)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -404,6 +414,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("assignmentsCompleted"), True)
         self.assertEqual(response.data.get("existingAssignments"), True)
         self.assertEqual(response.data.get("justPromoted"), False)
+        mock_check_xuid_secret.assert_not_called()
         mock_check_xuid_assignment.assert_called_once_with(
             test_xbox_live_account.xuid,
             weekly_assignments.assignment_1,
@@ -439,6 +450,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("linkedGamertag"), True)
         self.assertEqual(response.data.get("currentRank"), "Test Rank 2 Name")
         self.assertEqual(response.data.get("currentRankTier"), 2)
+        self.assertEqual(response.data.get("secretsUnlocked"), [])
         self.assertEqual(response.data.get("assignment1"), "Test Assignment 1")
         self.assertEqual(response.data.get("assignment1Completed"), True)
         self.assertEqual(response.data.get("assignment2"), None)
@@ -448,6 +460,7 @@ class Era03TestCase(APITestCase):
         self.assertEqual(response.data.get("assignmentsCompleted"), True)
         self.assertEqual(response.data.get("existingAssignments"), True)
         self.assertEqual(response.data.get("justPromoted"), True)
+        mock_check_xuid_secret.assert_not_called()
         mock_check_xuid_assignment.assert_called_once_with(
             test_xbox_live_account.xuid,
             weekly_assignments.assignment_1,

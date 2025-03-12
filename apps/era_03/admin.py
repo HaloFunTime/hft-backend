@@ -5,6 +5,8 @@ from apps.era_03.models import (
     BoatCaptain,
     BoatDeckhand,
     BoatRank,
+    BoatSecret,
+    BoatSecretUnlock,
     WeeklyBoatAssignments,
 )
 from apps.overrides.admin import AutofillCreatorModelAdmin, linkify
@@ -81,6 +83,38 @@ class BoatRankAdmin(AutofillCreatorModelAdmin):
         "tier",
         "track",
         "description",
+        "creator",
+    )
+
+
+@admin.register(BoatSecret)
+class BoatSecretAdmin(AutofillCreatorModelAdmin):
+    list_display = (
+        "__str__",
+        "hint",
+        "creator",
+    )
+    list_filter = ("creator",)
+    fields = (
+        "medal_id",
+        "title",
+        "hint",
+        "creator",
+    )
+
+
+@admin.register(BoatSecretUnlock)
+class BoatSecretUnlockAdmin(AutofillCreatorModelAdmin):
+    list_display = (
+        "__str__",
+        "external_match_link",
+        "created_at",
+    )
+    list_filter = ("deckhand", "secret", "creator")
+    fields = (
+        "deckhand",
+        "secret",
+        "match",
         "creator",
     )
 

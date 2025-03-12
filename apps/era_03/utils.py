@@ -11,6 +11,7 @@ from apps.era_03.models import (
     BoatAssignment,
     BoatDeckhand,
     BoatRank,
+    BoatSecret,
     WeeklyBoatAssignments,
 )
 from apps.halo_infinite.api.match import match_stats, matches_between
@@ -39,7 +40,97 @@ TIER_ASSIGNMENT_CLASSIFICATIONS = {
             BoatAssignment.Classification.MEDIUM,
         ]
     },
-    # TODO: Add in Secrets of The Sea for promotions beyond tier 5
+    5: {
+        BoatRank.Tracks.NA: [
+            BoatAssignment.Classification.EASY,
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.HARD,
+        ]
+    },
+    6: {
+        BoatRank.Tracks.COMMAND: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.COMMAND,
+        ],
+        BoatRank.Tracks.CULINARY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.CULINARY,
+        ],
+        BoatRank.Tracks.MACHINERY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+        BoatRank.Tracks.HOSPITALITY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.HOSPITALITY,
+        ],
+    },
+    7: {
+        BoatRank.Tracks.COMMAND: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.COMMAND,
+            BoatAssignment.Classification.COMMAND,
+        ],
+        BoatRank.Tracks.CULINARY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.CULINARY,
+            BoatAssignment.Classification.CULINARY,
+        ],
+        BoatRank.Tracks.MACHINERY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.MACHINERY,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+        BoatRank.Tracks.HOSPITALITY: [
+            BoatAssignment.Classification.MEDIUM,
+            BoatAssignment.Classification.HOSPITALITY,
+            BoatAssignment.Classification.HOSPITALITY,
+        ],
+    },
+    8: {
+        BoatRank.Tracks.COMMAND: [
+            BoatAssignment.Classification.HARD,
+            BoatAssignment.Classification.COMMAND,
+            BoatAssignment.Classification.COMMAND,
+        ],
+        BoatRank.Tracks.CULINARY: [
+            BoatAssignment.Classification.HARD,
+            BoatAssignment.Classification.CULINARY,
+            BoatAssignment.Classification.CULINARY,
+        ],
+        BoatRank.Tracks.MACHINERY: [
+            BoatAssignment.Classification.HARD,
+            BoatAssignment.Classification.MACHINERY,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+        BoatRank.Tracks.HOSPITALITY: [
+            BoatAssignment.Classification.HARD,
+            BoatAssignment.Classification.HOSPITALITY,
+            BoatAssignment.Classification.HOSPITALITY,
+        ],
+    },
+    9: {
+        BoatRank.Tracks.COMMAND: [
+            BoatAssignment.Classification.CULINARY,
+            BoatAssignment.Classification.HOSPITALITY,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+        BoatRank.Tracks.CULINARY: [
+            BoatAssignment.Classification.COMMAND,
+            BoatAssignment.Classification.HOSPITALITY,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+        BoatRank.Tracks.MACHINERY: [
+            BoatAssignment.Classification.COMMAND,
+            BoatAssignment.Classification.CULINARY,
+            BoatAssignment.Classification.HOSPITALITY,
+        ],
+        BoatRank.Tracks.HOSPITALITY: [
+            BoatAssignment.Classification.COMMAND,
+            BoatAssignment.Classification.CULINARY,
+            BoatAssignment.Classification.MACHINERY,
+        ],
+    },
 }
 
 
@@ -79,6 +170,21 @@ def get_next_rank(current_rank_tier: int, current_track: str) -> BoatRank:
                 tier=current_rank_tier + 1,
                 track=current_track,
             ).first()
+
+
+def check_deckhand_promotion(
+    deckhand: BoatDeckhand, weekly_assignments: WeeklyBoatAssignments
+) -> bool:
+    if deckhand.rank != weekly_assignments.next_rank:
+        if weekly_assignments.next_rank.tier == 10:
+            # Validate that all 7 secrets have been unlocked
+            if deckhand.secrets_unlocked.count() < 7:
+                return False
+        # Promote the deckhand
+        deckhand.rank = weekly_assignments.next_rank
+        deckhand.save()
+        return True
+    return False
 
 
 def check_xuid_assignment(
@@ -168,6 +274,65 @@ def check_xuid_assignment(
     return None
 
 
+def check_xuid_secret(
+    xuid: int, secret: BoatSecret, current_week_start: datetime.date
+) -> HaloInfiniteMatch | None:
+    week_start_time = pytz.timezone("America/Denver").localize(
+        datetime.datetime.combine(current_week_start, datetime.time(11, 0, 0))
+    )
+    week_end_time = pytz.timezone("America/Denver").localize(
+        datetime.datetime.combine(
+            current_week_start + datetime.timedelta(days=7), datetime.time(11, 0, 0)
+        )
+    )
+    # Set match info to query against
+    match_info_dict = {"LifecycleMode": 3}  # Challenges are matchmaking only
+    # Set player info to query against
+    player_dict = {
+        "PlayerId": f"xuid({xuid})",
+    }
+    hi_matches = HaloInfiniteMatch.objects.filter(
+        start_time__gte=week_start_time,
+        end_time__lt=week_end_time,
+        data__MatchInfo__contains=match_info_dict,
+        data__Players__contains=[player_dict],
+    ).order_by("end_time")
+    for hi_match in hi_matches:
+        # Get the player data for each potential assignment-completing match
+        player_data = None
+        for player_dict in hi_match.data.get("Players", []):
+            if player_dict.get("PlayerId") == f"xuid({xuid})":
+                player_data = player_dict
+                break
+        if player_data is None:
+            continue
+        # Check for secret completion
+        stat_path = ["CoreStats", "Medals"]
+        for team_stats in player_data["PlayerTeamStats"]:
+            data = team_stats.get("Stats")
+            found = False
+            while len(stat_path) > 0:
+                stat_piece = stat_path.pop(0)
+                if stat_piece in data:
+                    data = data[stat_piece]
+                    if len(stat_path) == 0:
+                        found = True
+                else:
+                    break
+            if found:
+                medal_count = 0
+                for medal in data:
+                    if medal["NameId"] == secret.medal_id:
+                        medal_count = medal["Count"]
+                        break
+                if medal_count >= 1:
+                    logger.info(
+                        f"Secret {secret} completed by xuid({xuid}) in match {hi_match.match_id}"
+                    )
+                    return hi_match
+    return None
+
+
 def fetch_match_ids_for_xuid(xuid: int, session: requests.Session = None) -> list[str]:
     matches = matches_between(
         xuid, EARLIEST_TIME, LATEST_TIME, session=session, ids_only=True
@@ -180,7 +345,10 @@ def generate_weekly_assignments(
 ) -> WeeklyBoatAssignments:
     tier = deckhand.rank.tier
     track = deckhand.rank.track
-    classifications = TIER_ASSIGNMENT_CLASSIFICATIONS.get(tier, {}).get(track, [])
+    next_rank = get_next_rank(tier, track)
+    classifications = TIER_ASSIGNMENT_CLASSIFICATIONS.get(tier, {}).get(
+        next_rank.track, []
+    )
     assignments = []
     for classification in classifications:
         assignments.append(
@@ -197,7 +365,7 @@ def generate_weekly_assignments(
         assignment_1=assignments[0],
         assignment_2=assignments[1] if len(assignments) > 1 else None,
         assignment_3=assignments[2] if len(assignments) > 2 else None,
-        next_rank=BoatRank.objects.filter(tier=tier + 1, track=track).first(),
+        next_rank=next_rank,
         creator=user,
     )
 
