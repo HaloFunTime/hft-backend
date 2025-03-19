@@ -164,9 +164,8 @@ def get_next_rank(current_rank_tier: int, current_track: str) -> BoatRank:
         next_ranks_on_track = potential_next_ranks.filter(track=current_track)
         if len(next_ranks_on_track) > 0:
             return random.choice(list(next_ranks_on_track))
-        else:
-            # Pick a random promotion rank from the list of promotion ranks
-            return random.choice(list(potential_next_ranks))
+        # Pick a random promotion rank from the list of promotion ranks
+        return random.choice(list(potential_next_ranks))
 
 
 def check_deckhand_promotion(
@@ -344,7 +343,7 @@ def generate_weekly_assignments(
     track = deckhand.rank.track
     next_rank = get_next_rank(tier, track)
     classifications = TIER_ASSIGNMENT_CLASSIFICATIONS.get(tier, {}).get(
-        next_rank.track, []
+        next_rank.track if next_rank.tier != 10 else track, []
     )
     assignments = []
     for classification in classifications:
@@ -356,6 +355,7 @@ def generate_weekly_assignments(
             .order_by("?")
             .first()
         )
+    assert len(assignments) >= 1
     return WeeklyBoatAssignments.objects.create(
         deckhand=deckhand,
         week_start=week_start,
