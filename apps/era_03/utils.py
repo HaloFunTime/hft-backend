@@ -161,15 +161,12 @@ def get_next_rank(current_rank_tier: int, current_track: str) -> BoatRank:
     elif len(potential_next_ranks) == 1:
         return potential_next_ranks.first()
     else:
-        if current_track != BoatRank.Tracks.NA:
+        next_ranks_on_track = potential_next_ranks.filter(track=current_track)
+        if len(next_ranks_on_track) > 0:
+            return random.choice(list(next_ranks_on_track))
+        else:
             # Pick a random promotion rank from the list of promotion ranks
             return random.choice(list(potential_next_ranks))
-        else:
-            # Pick the next rank on the track
-            return potential_next_ranks.filter(
-                tier=current_rank_tier + 1,
-                track=current_track,
-            ).first()
 
 
 def check_deckhand_promotion(

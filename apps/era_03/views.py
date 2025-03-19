@@ -167,7 +167,7 @@ class CheckBoatAssignments(APIView):
                             secret_unlocked.secret.medal_id
                             for secret_unlocked in deckhand.secrets_unlocked.all()
                         ]
-                    ):
+                    ).order_by("created_at"):
                         match = check_xuid_secret(
                             link.xbox_live_account_id, secret, current_week_start
                         )
